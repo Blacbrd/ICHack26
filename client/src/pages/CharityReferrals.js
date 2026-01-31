@@ -1,7 +1,8 @@
 // src/pages/CharityReferrals.js
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
-import './CharityReferrals.css'; // optional - you can inline style if preferred
+import './CharityReferrals.css'; // optional - keep for other styles
 
 // Small, simple modal component
 const Modal = ({ open, onClose, children }) => {
@@ -23,6 +24,7 @@ const Modal = ({ open, onClose, children }) => {
 };
 
 const CharityReferrals = ({ user }) => {
+  const navigate = useNavigate();
   const [referrals, setReferrals] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeRoomParticipants, setActiveRoomParticipants] = useState([]);
@@ -118,6 +120,45 @@ const CharityReferrals = ({ user }) => {
 
   return (
     <div style={{ padding: 24 }}>
+      {/* Fixed Back / Logout button to always be visible */}
+      <div
+        style={{
+          position: 'fixed',
+          top: 12,
+          left: 12,
+          zIndex: 10000,
+        }}
+      >
+        <button
+          type="button"
+          onClick={async () => {
+            try {
+              await supabase.auth.signOut();
+            } catch (err) {
+              // ignore signOut errors, still navigate
+              console.error('Sign out error:', err);
+            }
+            navigate('/login');
+          }}
+          className="cr-back-button"
+          aria-label="Back to login"
+          style={{
+            padding: '8px 12px',
+            borderRadius: 8,
+            border: '1px solid rgba(0,0,0,0.12)',
+            background: '#ffffff',
+            boxShadow: '0 2px 6px rgba(0,0,0,0.08)',
+            cursor: 'pointer',
+            fontSize: 14,
+          }}
+        >
+          ← Back / Logout
+        </button>
+      </div>
+
+      {/* Add top spacer so fixed button doesn't overlap content */}
+      <div style={{ height: 48 }} />
+
       <h1>Charity Referrals</h1>
 
       {loading ? (
@@ -125,7 +166,7 @@ const CharityReferrals = ({ user }) => {
       ) : referrals.length === 0 ? (
         <p>No referrals found for this charity account.</p>
       ) : (
-        <div className="cr-list">
+        <div className="cr-list" style={{ marginTop: 12 }}>
           {referrals.map((r) => (
             <div
               key={r.referral_id}
@@ -134,6 +175,11 @@ const CharityReferrals = ({ user }) => {
               tabIndex={0}
               onClick={() => handleOpenRoom(r)}
               onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') handleOpenRoom(r); }}
+              style={{
+                display: 'inline-block',
+                margin: 8,
+                verticalAlign: 'top',
+              }}
             >
               <div className="cr-referral-box">
                 <div className="cr-referral-label">RoomID:</div>

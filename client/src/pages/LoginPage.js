@@ -52,7 +52,12 @@ const LoginPage = () => {
 
             const { error: upsertError } = await supabase
               .from('profiles')
-              .upsert(profilePayload, { onConflict: 'id' });
+              .update({
+                username: username || email.split('@')[0],
+                email,
+                is_charity: isCharity,
+              })
+              .eq('id', data.user.id);
 
             if (upsertError) {
               console.error('Error upserting profile after signup:', upsertError);
