@@ -8,16 +8,41 @@ import JoinRoomPage from './pages/JoinRoomPage';
 import PublicRoomsPage from './pages/PublicRoomsPage';
 import RoomPage from './pages/RoomPage';
 import PlanningPage from './pages/PlanningPage';
+import CharityReferrals from './pages/CharityReferrals';
 import './App.css';
 
 function App() {
   const [user, setUser] = useState(null);
+  const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
+
+  // Fetch profile for the current user
+  const loadProfile = async (userId) => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .maybeSingle();
+
+      if (error) throw error;
+      setProfile(data || null);
+    } catch (err) {
+      console.error('Error loading profile:', err);
+      setProfile(null);
+    }
+  };
 
   useEffect(() => {
     // Check active session
     supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
+      const currentUser = session?.user ?? null;
+      setUser(currentUser);
+      if (currentUser) {
+        loadProfile(currentUser.id);
+      } else {
+        setProfile(null);
+      }
       setLoading(false);
     });
 
@@ -25,7 +50,13 @@ function App() {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
+      const currentUser = session?.user ?? null;
+      setUser(currentUser);
+      if (currentUser) {
+        loadProfile(currentUser.id);
+      } else {
+        setProfile(null);
+      }
     });
 
     return () => subscription.unsubscribe();
@@ -33,10 +64,10 @@ function App() {
 
   if (loading) {
     return (
-      <div style={{ 
-        display: 'flex', 
-        justifyContent: 'center', 
-        alignItems: 'center', 
+      <div style={{
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
         height: '100vh',
         fontSize: '18px',
         color: '#666'
@@ -49,29 +80,39 @@ function App() {
   return (
     <Router>
       <Routes>
-        <Route 
-          path="/login" 
-          element={user ? <Navigate to="/" replace /> : <LoginPage />} 
+        <Route
+          path="/login"
+          element={user ? <Navigate to="/" replace /> : <LoginPage />}
         />
-        <Route 
-          path="/" 
-          element={user ? <LandingPage user={user} /> : <Navigate to="/login" replace />} 
+        <Route
+          path="/"
+          element={
+            user
+              ? profile?.is_charity
+                ? <CharityReferrals user={user} profile={profile} />
+                : <LandingPage user={user} profile={profile} />
+              : <Navigate to="/login" replace />
+          }
         />
-        <Route 
-          path="/join" 
-          element={user ? <JoinRoomPage user={user} /> : <Navigate to="/login" replace />} 
+        <Route
+          path="/join"
+          element={user ? <JoinRoomPage user={user} profile={profile} /> : <Navigate to="/login" replace />}
         />
-        <Route 
-          path="/public-rooms" 
-          element={user ? <PublicRoomsPage user={user} /> : <Navigate to="/login" replace />} 
+        <Route
+          path="/public-rooms"
+          element={user ? <PublicRoomsPage user={user} profile={profile} /> : <Navigate to="/login" replace />}
         />
-        <Route 
-          path="/room/:code" 
-          element={user ? <RoomPage user={user} /> : <Navigate to="/login" replace />} 
+        <Route
+          path="/room/:code"
+          element={user ? <RoomPage user={user} profile={profile} /> : <Navigate to="/login" replace />}
         />
-        <Route 
-          path="/planning/:code" 
-          element={user ? <PlanningPage user={user} /> : <Navigate to="/login" replace />} 
+        <Route
+          path="/planning/:code"
+          element={user ? <PlanningPage user={user} profile={profile} /> : <Navigate to="/login" replace />}
+        />
+        <Route
+          path="/charity-referrals"
+          element={user ? <CharityReferrals user={user} profile={profile} /> : <Navigate to="/login" replace />}
         />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
@@ -80,4 +121,3 @@ function App() {
 }
 
 export default App;
-

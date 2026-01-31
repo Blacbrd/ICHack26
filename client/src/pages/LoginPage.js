@@ -10,6 +10,7 @@ const LoginPage = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [username, setUsername] = useState('');
+  const [isCharity, setIsCharity] = useState(false); // <-- new state for role
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [theme, setTheme] = useTheme('dark');
@@ -32,14 +33,40 @@ const LoginPage = () => {
           options: {
             data: {
               username: username || email.split('@')[0],
+              is_charity: isCharity, // include in user metadata as well
             },
           },
         });
 
         if (signUpError) throw signUpError;
 
-        if (data.user) {
-          // Successfully signed up, user will be redirected automatically
+        // If the signUp returned a user immediately, create/upsert profile row
+        if (data?.user) {
+          try {
+            const profilePayload = {
+              id: data.user.id,
+              email,
+              username: username || email.split('@')[0],
+              is_charity: isCharity,
+            };
+
+            const { error: upsertError } = await supabase
+              .from('profiles')
+              .upsert(profilePayload, { onConflict: 'id' });
+
+            if (upsertError) {
+              console.error('Error upserting profile after signup:', upsertError);
+              // Not fatal — continue to navigate so the user isn't blocked
+            }
+          } catch (err) {
+            console.error('Error creating profile after signup:', err);
+          }
+        }
+
+        // Redirect depending on selection (if immediate handling possible)
+        if (isCharity) {
+          navigate('/charity-referrals');
+        } else {
           navigate('/');
         }
       } else {
@@ -51,21 +78,45 @@ const LoginPage = () => {
 
         if (signInError) {
           // Check if it's an invalid login (user doesn't exist)
-          if (signInError.message.includes('Invalid login credentials') || signInError.message.includes('Email not confirmed')) {
+          if (signInError.message && (signInError.message.includes('Invalid login credentials') || signInError.message.includes('Email not confirmed'))) {
             setError('You need to sign up. Please use the "Sign Up" option below.');
           } else {
             throw signInError;
           }
+          setLoading(false);
           return;
         }
 
-        if (data.user) {
-          navigate('/');
+        if (data?.user) {
+          // fetch profile to decide where to navigate
+          try {
+            const { data: profile, error: profileError } = await supabase
+              .from('profiles')
+              .select('is_charity')
+              .eq('id', data.user.id)
+              .maybeSingle();
+
+            if (profileError) {
+              console.error('Error fetching profile after sign-in:', profileError);
+              // fall back to landing page
+              navigate('/');
+              return;
+            }
+
+            if (profile?.is_charity) {
+              navigate('/charity-referrals');
+            } else {
+              navigate('/');
+            }
+          } catch (err) {
+            console.error('Error after sign in:', err);
+            navigate('/');
+          }
         }
       }
     } catch (err) {
       console.error('Auth error:', err);
-      setError(err.message || 'Failed to authenticate. Please try again.');
+      setError(err?.message || 'Failed to authenticate. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -92,14 +143,40 @@ const LoginPage = () => {
 
         <form onSubmit={handleSubmit} className="login-form">
           {isSignUp && (
-            <input
-              type="text"
-              className="form-input"
-              placeholder="Username"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              required={isSignUp}
-            />
+            <>
+              <input
+                type="text"
+                className="form-input"
+                placeholder="Username"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                required={isSignUp}
+              />
+
+              {/* Role selection: Volunteer or Charity */}
+              <div className="role-selection" style={{ marginBottom: 12 }}>
+                <label style={{ marginRight: 12 }}>
+                  <input
+                    type="radio"
+                    name="role"
+                    value="volunteer"
+                    checked={!isCharity}
+                    onChange={() => setIsCharity(false)}
+                  />{' '}
+                  Volunteer
+                </label>
+                <label>
+                  <input
+                    type="radio"
+                    name="role"
+                    value="charity"
+                    checked={isCharity}
+                    onChange={() => setIsCharity(true)}
+                  />{' '}
+                  Charity
+                </label>
+              </div>
+            </>
           )}
 
           <input
