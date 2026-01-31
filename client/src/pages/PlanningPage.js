@@ -5,6 +5,7 @@ import GlobeComponent from '../components/globe';
 import Chat from '../components/Chat';
 import OpportunitiesPanel from '../components/OpportunitiesPanel';
 import DinosaurGame from '../components/DinosaurGame';
+import useTheme from '../lib/useTheme';
 import './PlanningPage.css';
 
 const PlanningPage = ({ user }) => {
@@ -42,6 +43,11 @@ const PlanningPage = ({ user }) => {
   const masterIdleTimeoutRef = useRef(null);
   const lastMasterActionRef = useRef(Date.now());
   const [showDinosaurGame, setShowDinosaurGame] = useState(false);
+  const [theme, setTheme] = useTheme('dark');
+
+  const toggleTheme = () => {
+    setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'));
+  };
 
   useEffect(() => {
     (async () => {
@@ -527,15 +533,23 @@ const PlanningPage = ({ user }) => {
   }
 
   return (
-    <div className="planning-page">
+    <div className={`planning-page ${theme}`}>
       <div className="planning-header">
         <h1>Planning Room: {roomCode}</h1>
-        <button 
-          onClick={handleLeaveRoom} 
-          className="btn btn-leave-room"
-        >
-          Leave Room
-        </button>
+        <div className="planning-header-actions">
+          <button type="button" className="theme-toggle" onClick={toggleTheme}>
+            <span className="theme-icon" aria-hidden="true">
+              {theme === 'dark' ? '☀️' : '🌙'}
+            </span>
+            {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
+          </button>
+          <button 
+            onClick={handleLeaveRoom} 
+            className="btn btn-leave-room"
+          >
+            Leave Room
+          </button>
+        </div>
       </div>
       {/* Button container with hover area */}
       <div
@@ -756,4 +770,3 @@ const PlanningPage = ({ user }) => {
 };
 
 export default PlanningPage;
-

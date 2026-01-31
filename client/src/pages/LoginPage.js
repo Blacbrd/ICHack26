@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
+import useTheme from '../lib/useTheme';
 import './LoginPage.css';
 
 const LoginPage = () => {
@@ -11,6 +12,11 @@ const LoginPage = () => {
   const [username, setUsername] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [theme, setTheme] = useTheme('dark');
+
+  const toggleTheme = () => {
+    setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'));
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -66,13 +72,19 @@ const LoginPage = () => {
   };
 
   return (
-    <div className="login-page">
+    <div className={`login-page ${theme}`}>
+      <button type="button" className="theme-toggle" onClick={toggleTheme}>
+        <span className="theme-icon" aria-hidden="true">
+          {theme === 'dark' ? '☀️' : '🌙'}
+        </span>
+        {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
+      </button>
       <div className="login-container">
         <div className="login-logo">
-          <img className="login-logo-mark" src="/favicon.ico" alt="WellWorld Logo" />
+          <img className="login-logo-mark" src="/favicon.ico" alt="VisaWorld Logo" />
           <div className="login-logo-text">
-            <h1 className="login-title">WellWorld</h1>
-            <p className="login-tagline">Wellbeing through Social Good</p>
+            <h1 className="login-title">VisaWorld</h1>
+            <p className="login-tagline">Wereld van Leven</p>
           </div>
         </div>
         <p className="login-subtitle">

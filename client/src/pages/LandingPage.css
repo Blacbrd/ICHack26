@@ -1,22 +1,20 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@400;500;600;700&display=swap');
-
 .landing-page {
-  --bg-gradient: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 50%, #e0e7ff 100%);
+  --bg-gradient: linear-gradient(135deg, #f5f8ff 0%, #edf3ff 50%, #dfe9ff 100%);
   --panel-bg: rgba(255, 255, 255, 0.95);
-  --panel-border: rgba(124, 58, 237, 0.15);
-  --panel-shadow: 0 40px 70px rgba(124, 58, 237, 0.12);
-  --text-color: #1e293b;
-  --muted-color: #64748b;
-  --chip-bg: rgba(124, 58, 237, 0.1);
-  --chip-color: #6366f1;
-  --card-bg: rgba(255, 255, 255, 0.9);
-  --card-border: rgba(124, 58, 237, 0.15);
-  --primary-gradient: linear-gradient(135deg, #7c3aed, #2563eb);
-  --secondary-gradient: linear-gradient(135deg, #7c3aed, #2563eb);
+  --panel-border: rgba(15, 59, 136, 0.18);
+  --panel-shadow: 0 40px 80px rgba(15, 59, 136, 0.18);
+  --text-color: #0b1224;
+  --muted-color: #5b6b86;
+  --chip-bg: rgba(28, 103, 230, 0.1);
+  --chip-color: #1c67e6;
+  --card-bg: rgba(255, 255, 255, 0.95);
+  --card-border: rgba(15, 59, 136, 0.16);
+  --primary-gradient: linear-gradient(135deg, #0f3b88, #1c67e6);
+  --secondary-gradient: linear-gradient(135deg, #0b2a5b, #1c67e6);
   --button-text: #ffffff;
-  --danger-bg: rgba(248, 113, 113, 0.1);
-  --danger-text: #dc2626;
-  font-family: 'Space Grotesk', 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --danger-bg: rgba(239, 68, 68, 0.12);
+  --danger-text: #b91c1c;
+  font-family: var(--font-sans);
   min-height: 100vh;
   display: flex;
   flex-direction: column;
@@ -29,20 +27,20 @@
 }
 
 .landing-page.dark {
-  --bg-gradient: radial-gradient(circle at 20% 20%, #101727, #05060a);
-  --panel-bg: rgba(6, 8, 18, 0.9);
-  --panel-border: rgba(124, 58, 237, 0.2);
-  --panel-shadow: 0 40px 120px rgba(124, 58, 237, 0.3);
-  --text-color: #f8fafc;
-  --muted-color: #cbd5e1;
-  --chip-bg: rgba(124, 58, 237, 0.18);
-  --chip-color: #7c3aed;
-  --card-bg: rgba(15, 18, 35, 0.9);
-  --card-border: rgba(124, 58, 237, 0.2);
-  --primary-gradient: linear-gradient(135deg, #7c3aed, #2563eb);
-  --secondary-gradient: linear-gradient(135deg, #7c3aed, #2563eb);
-  --button-text: #f8fafc;
-  --danger-bg: rgba(248, 113, 113, 0.15);
+  --bg-gradient: radial-gradient(circle at 20% 20%, #0b1327, #05080f);
+  --panel-bg: rgba(6, 10, 22, 0.94);
+  --panel-border: rgba(28, 103, 230, 0.25);
+  --panel-shadow: 0 40px 120px rgba(16, 59, 136, 0.45);
+  --text-color: #f6f8ff;
+  --muted-color: #b7c3da;
+  --chip-bg: rgba(28, 103, 230, 0.18);
+  --chip-color: #6aa5ff;
+  --card-bg: rgba(9, 14, 30, 0.95);
+  --card-border: rgba(28, 103, 230, 0.26);
+  --primary-gradient: linear-gradient(135deg, #0f3b88, #2c7dff);
+  --secondary-gradient: linear-gradient(135deg, #0b2a5b, #1c67e6);
+  --button-text: #f6f8ff;
+  --danger-bg: rgba(248, 113, 113, 0.18);
   --danger-text: #fca5a5;
 }
 
@@ -78,7 +76,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 10px 25px rgba(37, 99, 235, 0.35);
+  box-shadow: 0 10px 25px rgba(16, 59, 136, 0.35);
   overflow: hidden;
 }
 
@@ -99,6 +97,7 @@
   font-size: 20px;
   font-weight: 600;
   color: var(--text-color);
+  font-family: var(--font-display);
 }
 
 .brand-tagline {
@@ -258,6 +257,7 @@
   font-size: clamp(2.5rem, 6vw, 3.5rem);
   color: var(--text-color);
   margin-bottom: 12px;
+  font-family: var(--font-display);
 }
 
 .hero-copy {
@@ -295,13 +295,13 @@
 .action-tab.active {
   background: #ffffff;
   color: var(--text-color);
-  box-shadow: 0 10px 25px rgba(124, 58, 237, 0.2);
+  box-shadow: 0 10px 25px rgba(28, 103, 230, 0.2);
 }
 
 .landing-page.dark .action-tab.active {
-  background: rgba(124, 58, 237, 0.2);
+  background: rgba(28, 103, 230, 0.2);
   color: #f8fafc;
-  box-shadow: 0 10px 25px rgba(124, 58, 237, 0.25);
+  box-shadow: 0 10px 25px rgba(28, 103, 230, 0.25);
 }
 
 .card {
@@ -339,7 +339,7 @@
   width: 48px;
   height: 48px;
   border-radius: 16px;
-  background: rgba(124, 58, 237, 0.1);
+  background: rgba(28, 103, 230, 0.1);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -349,7 +349,7 @@
 }
 
 .landing-page.dark .card-icon {
-  background: rgba(124, 58, 237, 0.15);
+  background: rgba(28, 103, 230, 0.15);
 }
 
 .input-label {
@@ -394,12 +394,12 @@
 
 .btn-primary {
   background: var(--primary-gradient);
-  box-shadow: 0 18px 35px rgba(37, 99, 235, 0.35);
+  box-shadow: 0 18px 35px rgba(16, 59, 136, 0.35);
 }
 
 .btn-secondary {
   background: var(--secondary-gradient);
-  box-shadow: 0 18px 35px rgba(37, 99, 235, 0.35);
+  box-shadow: 0 18px 35px rgba(16, 59, 136, 0.35);
 }
 
 .btn:hover:not(:disabled) {
@@ -469,8 +469,8 @@
 
 .public-room-card:hover {
   transform: translateY(-2px);
-  border-color: rgba(124, 58, 237, 0.4);
-  box-shadow: 0 18px 35px rgba(124, 58, 237, 0.25);
+  border-color: rgba(28, 103, 230, 0.4);
+  box-shadow: 0 18px 35px rgba(28, 103, 230, 0.25);
 }
 
 .public-room-info {
@@ -544,7 +544,7 @@
 }
 
 .btn-dots:hover {
-  border-color: rgba(124, 58, 237, 0.4);
+  border-color: rgba(28, 103, 230, 0.4);
   color: var(--text-color);
 }
 
@@ -558,7 +558,7 @@
   font-weight: 600;
   cursor: pointer;
   transition: transform 0.2s, box-shadow 0.2s;
-  box-shadow: 0 15px 30px rgba(37, 99, 235, 0.35);
+  box-shadow: 0 15px 30px rgba(16, 59, 136, 0.35);
 }
 
 .btn-join-public:hover:not(:disabled) {

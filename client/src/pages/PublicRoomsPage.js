@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
+import useTheme from '../lib/useTheme';
 import './PublicRoomsPage.css';
 
 const PublicRoomsPage = ({ user }) => {
@@ -9,6 +10,11 @@ const PublicRoomsPage = ({ user }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [expandedDescription, setExpandedDescription] = useState(null);
+  const [theme, setTheme] = useTheme('dark');
+
+  const toggleTheme = () => {
+    setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'));
+  };
 
   useEffect(() => {
     loadPublicRooms();
@@ -184,20 +190,28 @@ const PublicRoomsPage = ({ user }) => {
 
   if (loading) {
     return (
-      <div className="public-rooms-page">
+      <div className={`public-rooms-page ${theme}`}>
         <div className="loading">Loading public rooms...</div>
       </div>
     );
   }
 
   return (
-    <div className="public-rooms-page">
+    <div className={`public-rooms-page ${theme}`}>
       <div className="public-rooms-container">
         <div className="page-header">
           <h1 className="page-title">Public Rooms</h1>
-          <button className="btn btn-link" onClick={() => navigate('/')}>
-            Back to Home
-          </button>
+          <div className="page-header-actions">
+            <button type="button" className="theme-toggle" onClick={toggleTheme}>
+              <span className="theme-icon" aria-hidden="true">
+                {theme === 'dark' ? '☀️' : '🌙'}
+              </span>
+              {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
+            </button>
+            <button className="btn btn-link" onClick={() => navigate('/')}>
+              Back to Home
+            </button>
+          </div>
         </div>
 
         {error && <div className="error-message">{error}</div>}
@@ -269,4 +283,3 @@ const PublicRoomsPage = ({ user }) => {
 };
 
 export default PublicRoomsPage;
-

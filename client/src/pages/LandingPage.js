@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
+import useTheme from '../lib/useTheme';
 import './LandingPage.css';
 
 const UserIcon = (props) => (
@@ -136,18 +137,7 @@ const LandingPage = ({ user }) => {
   };
 
   const copy = translations[language] || translations.en;
-  const [theme, setTheme] = useState(() => {
-    if (typeof window === 'undefined') {
-      return 'dark';
-    }
-    return localStorage.getItem('landingTheme') || 'dark';
-  });
-
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('landingTheme', theme);
-    }
-  }, [theme]);
+  const [theme, setTheme] = useTheme('dark');
 
   const toggleTheme = () => {
     setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'));
@@ -414,11 +404,11 @@ const LandingPage = ({ user }) => {
         <header className="landing-nav">
           <div className="brand-cluster">
             <div className="brand-mark">
-              <img src="/favicon.ico" alt="WellWorld Logo" />
+              <img src="/favicon.ico" alt="VisaWorld Logo" />
             </div>
             <div className="brand-copy">
-              <span className="brand-name">WellWorld</span>
-              <span className="brand-tagline">Wellbeing through Social Good</span>
+              <span className="brand-name">VisaWorld</span>
+              <span className="brand-tagline">Wereld van Leven</span>
             </div>
           </div>
           <div className="nav-actions">

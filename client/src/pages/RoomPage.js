@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useMemo, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
+import useTheme from '../lib/useTheme';
 import './RoomPage.css';
 
 const UserIcon = (props) => (
@@ -30,10 +31,7 @@ const RoomPage = ({ user }) => {
   const [roomDescription, setRoomDescription] = useState('');
   const [descriptionError, setDescriptionError] = useState('');
   const planningStartedRef = useRef(false);
-  const [theme, setTheme] = useState(() => {
-    if (typeof window === 'undefined') return 'light';
-    return localStorage.getItem('roomTheme') || 'light';
-  });
+  const [theme, setTheme] = useTheme('dark');
   const [language, setLanguage] = useState(() => {
     if (typeof window === 'undefined') return 'en';
     return localStorage.getItem('roomLanguage') || 'en';
@@ -152,12 +150,6 @@ const RoomPage = ({ user }) => {
 
   const copy = translations[language] || translations.en;
   const isMaster = useMemo(() => userId && masterId && userId === masterId, [userId, masterId]);
-
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('roomTheme', theme);
-    }
-  }, [theme]);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {

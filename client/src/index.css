@@ -1,3 +1,22 @@
+@import url('https://fonts.googleapis.com/css2?family=Newsreader:wght@400;600;700&family=Sora:wght@300;400;500;600;700&display=swap');
+
+:root {
+  --font-sans: 'Sora', 'Avenir Next', 'Segoe UI', sans-serif;
+  --font-display: 'Newsreader', 'Iowan Old Style', 'Times New Roman', serif;
+
+  --imc-blue-900: #0b2a5b;
+  --imc-blue-800: #0f3b88;
+  --imc-blue-700: #1551ba;
+  --imc-blue-600: #1c67e6;
+  --imc-blue-500: #2c7dff;
+  --imc-ink: #0b1224;
+  --imc-ink-2: #111b34;
+  --imc-ivory: #f6f8ff;
+  --imc-ice: #eef3ff;
+  --imc-slate: #5b6b86;
+  --imc-slate-2: #7183a2;
+}
+
 * {
   margin: 0;
   padding: 0;
@@ -6,15 +25,13 @@
 
 body {
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
+  font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  color: var(--imc-ink);
+  background: var(--imc-ivory);
 }
 
 code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
-    monospace;
+  font-family: 'JetBrains Mono', 'SFMono-Regular', Menlo, Monaco, Consolas, 'Courier New', monospace;
 }
-
