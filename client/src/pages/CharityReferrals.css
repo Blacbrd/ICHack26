@@ -1,0 +1,70 @@
+/* CharityReferrals.css */
+.cr-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.cr-referral-card {
+  border: 1px solid #ddd;
+  padding: 12px;
+  border-radius: 8px;
+  min-width: 200px;
+  cursor: pointer;
+  background: #fff;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+}
+
+.cr-referral-box {
+  border: 1px solid #eee;
+  padding: 8px;
+  border-radius: 6px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+}
+
+.cr-referral-label {
+  font-size: 0.9rem;
+  color:#666;
+}
+
+.cr-referral-value {
+  font-weight:700;
+}
+
+.cr-referral-meta { margin-top:8px; font-size:0.85rem; color:#444; }
+
+.cr-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  z-index: 2000;
+}
+
+.cr-modal-content {
+  background: #fff;
+  padding: 20px;
+  border-radius: 10px;
+  min-width: 280px;
+  max-width: 90%;
+  position: relative;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.25);
+}
+
+.cr-modal-close {
+  position:absolute;
+  right:8px;
+  top:8px;
+  border:none;
+  background:transparent;
+  font-size:1rem;
+  cursor:pointer;
+}
+
+.cr-participants-list { margin-top: 8px; }
+.cr-participant { padding:6px 0; border-bottom: 1px dashed #eee; }
