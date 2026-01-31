@@ -248,6 +248,65 @@
   border: 1px solid var(--error-border);
 }
 
+.causes-container {
+  background: var(--field-bg);
+  border: 1.5px solid var(--field-border);
+  border-radius: 18px;
+  padding: 20px;
+  text-align: left;
+}
+
+.causes-label {
+  display: block;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-color);
+  margin-bottom: 14px;
+}
+
+.causes-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 10px;
+  max-height: 280px;
+  overflow-y: auto;
+  padding: 4px;
+}
+
+.cause-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  padding: 8px 10px;
+  border-radius: 8px;
+  transition: background-color 0.2s;
+}
+
+.cause-checkbox:hover {
+  background: rgba(28, 103, 230, 0.08);
+}
+
+.cause-checkbox input[type="checkbox"] {
+  cursor: pointer;
+  width: 18px;
+  height: 18px;
+  accent-color: var(--accent);
+}
+
+.cause-text {
+  font-size: 14px;
+  color: var(--text-color);
+  user-select: none;
+}
+
+.causes-selected {
+  margin: 12px 0 0 0;
+  font-size: 13px;
+  color: var(--accent);
+  font-weight: 600;
+}
+
 @media (max-width: 640px) {
   .login-container {
     padding: 48px 28px 40px;
@@ -265,5 +324,10 @@
 
   .login-page .environment-leaf {
     display: none;
+  }
+
+  .causes-grid {
+    grid-template-columns: 1fr;
+    max-height: 200px;
   }
 }
