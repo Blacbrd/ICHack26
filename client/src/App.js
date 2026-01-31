@@ -8,6 +8,7 @@ import JoinRoomPage from './pages/JoinRoomPage';
 import PublicRoomsPage from './pages/PublicRoomsPage';
 import RoomPage from './pages/RoomPage';
 import PlanningPage from './pages/PlanningPage';
+import ChatPage from './pages/ChatPage';
 import MyProfile from './pages/MyProfile';
 import './App.css';
 
