@@ -11,6 +11,7 @@ const LoginPage = () => {
   const [password, setPassword] = useState('');
   const [username, setUsername] = useState('');
   const [causes, setCauses] = useState([]);
+  const [isCharity, setIsCharity] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [theme, setTheme] = useTheme('dark');
