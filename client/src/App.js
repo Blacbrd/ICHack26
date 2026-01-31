@@ -3,13 +3,14 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { useEffect, useState } from 'react';
 import { supabase } from './lib/supabaseClient';
 import LoginPage from './pages/LoginPage';
-import LandingPage from './pages/LandingPage';
+import VolunteerLandingPage from './pages/VolunteerLandingPage';
 import JoinRoomPage from './pages/JoinRoomPage';
 import PublicRoomsPage from './pages/PublicRoomsPage';
 import RoomPage from './pages/RoomPage';
 import PlanningPage from './pages/PlanningPage';
 import ChatPage from './pages/ChatPage';
 import MyProfile from './pages/MyProfile';
+import ChatPage from './pages/ChatPage';
 import './App.css';
 
 function App() {
@@ -57,7 +58,7 @@ function App() {
         />
         <Route 
           path="/" 
-          element={user ? <LandingPage user={user} /> : <Navigate to="/login" replace />} 
+          element={user ? <VolunteerLandingPage user={user} /> : <Navigate to="/login" replace />} 
         />
         <Route 
           path="/join" 

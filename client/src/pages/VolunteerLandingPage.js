@@ -4,24 +4,53 @@ import { supabase } from '../lib/supabaseClient';
 import useTheme from '../lib/useTheme';
 import './VolunteerLandingPage.css';
 
+const UserIcon = (props) => (
+  <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+  </svg>
+);
+
 const VolunteerLandingPage = ({ user }) => {
   const navigate = useNavigate();
   const [theme, setTheme] = useTheme('dark');
   const [myRooms, setMyRooms] = useState([]);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
+  const [posts, setPosts] = useState([]);
+  const [showCreatePost, setShowCreatePost] = useState(false);
+  const [newPostText, setNewPostText] = useState('');
+  const [newPostImages, setNewPostImages] = useState([]);
 
   // Toggle Theme Helper
   const toggleTheme = () => {
     setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'));
   };
 
-  const newsItems = [
-    { id: 1, title: "Earthquake Relief in Turkey", snippet: "Urgent volunteers needed for supply distribution centers in Hatay province." },
-    { id: 2, title: "Flood Response in Pakistan", snippet: "Medical professionals and general volunteers required for mobile clinics." },
-    { id: 3, title: "Wildfire Restoration in Greece", snippet: "Tree planting initiatives starting next month in Rhodes." },
-    { id: 4, title: "Food Bank Crisis in London", snippet: "Local shelters seeking evening shift volunteers for meal prep." },
-  ];
+  const handleCreatePost = () => {
+    if (!newPostText.trim() && newPostImages.length === 0) return;
+    const imageUrls = newPostImages.map((file) => URL.createObjectURL(file));
+    const post = {
+      id: Date.now(),
+      author: user?.email || 'Anonymous',
+      text: newPostText.trim(),
+      images: imageUrls,
+      createdAt: new Date().toISOString(),
+    };
+    setPosts((prev) => [post, ...prev]);
+    setNewPostText('');
+    setNewPostImages([]);
+    setShowCreatePost(false);
+  };
+
+  const handleImageSelect = (e) => {
+    const files = Array.from(e.target.files || []);
+    setNewPostImages((prev) => [...prev, ...files]);
+    e.target.value = '';
+  };
+
+  const removeImage = (index) => {
+    setNewPostImages((prev) => prev.filter((_, i) => i !== index));
+  };
 
   useEffect(() => {
     if (user) {
@@ -135,7 +164,7 @@ const VolunteerLandingPage = ({ user }) => {
         </div>
         <div className="nav-actions" style={{ display: 'flex', gap: '10px' }}>
           <button type="button" className="btn-profile-signout" onClick={toggleTheme}>
-            {theme === 'dark' ? '☀' : '☾'}
+            {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
           </button>
           <button 
             className="btn-profile-signout"
@@ -150,14 +179,98 @@ const VolunteerLandingPage = ({ user }) => {
         
         {/* LEFT COLUMN: NEWS */}
         <section className="dashboard-card left-column">
-          <h3 className="card-title">News & Alerts</h3>
-          <div className="news-list">
-            {newsItems.map(news => (
-              <div key={news.id} className="news-item">
-                <div className="news-headline">{news.title}</div>
-                <div className="news-snippet">{news.snippet}</div>
+          <h3 className="card-title">Community Feed</h3>
+          <div className="feed-section">
+            {!showCreatePost ? (
+              <button
+                className="btn btn-primary btn-create-post"
+                onClick={() => setShowCreatePost(true)}
+              >
+                Create Post
+              </button>
+            ) : (
+              <div className="card create-post-card">
+                <textarea
+                  className="post-textarea"
+                  placeholder="Share an update about your impact journey..."
+                  value={newPostText}
+                  onChange={(e) => setNewPostText(e.target.value)}
+                  rows={4}
+                />
+                <div className="post-image-upload">
+                  <label className="btn btn-secondary btn-upload-label">
+                    + Images
+                    <input
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      onChange={handleImageSelect}
+                      style={{ display: 'none' }}
+                    />
+                  </label>
+                </div>
+                {newPostImages.length > 0 && (
+                  <div className="post-image-previews">
+                    {newPostImages.map((file, i) => (
+                      <div key={i} className="preview-thumb">
+                        <img src={URL.createObjectURL(file)} alt="" />
+                        <button
+                          className="preview-remove"
+                          onClick={() => removeImage(i)}
+                        >
+                          x
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <div className="post-form-actions">
+                  <button
+                    className="btn btn-secondary"
+                    onClick={() => {
+                      setShowCreatePost(false);
+                      setNewPostText('');
+                      setNewPostImages([]);
+                    }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    className="btn btn-primary btn-submit-post"
+                    onClick={handleCreatePost}
+                    disabled={!newPostText.trim() && newPostImages.length === 0}
+                  >
+                    Post
+                  </button>
+                </div>
               </div>
-            ))}
+            )}
+
+            {posts.length === 0 ? (
+              <div className="feed-empty">No posts yet. Be the first to share!</div>
+            ) : (
+              <div className="post-feed">
+                {posts.map((post) => (
+                  <div key={post.id} className="card post-card">
+                    <div className="post-author">
+                      <UserIcon className="post-author-icon" />
+                      <span className="post-author-name">{post.author}</span>
+                      <span className="post-time">
+                        {new Date(post.createdAt).toLocaleString()}
+                      </span>
+                    </div>
+                    {post.text && <p className="post-content">{post.text}</p>}
+                    {post.images.length > 0 && (
+                      <div className="post-images">
+                        {post.images.map((src, i) => (
+                          <img key={i} src={src} alt="" className="post-image" />
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </section>
 
@@ -213,7 +326,7 @@ const VolunteerLandingPage = ({ user }) => {
           
           <div className="profile-section">
             <div className="profile-avatar">
-               <span style={{color: 'var(--accent-color)'}}>👤</span>
+              <span className="profile-avatar-text">VW</span>
             </div>
             <div className="profile-name">{user?.user_metadata?.full_name || 'Volunteer'}</div>
             <div className="profile-email">{user?.email}</div>
