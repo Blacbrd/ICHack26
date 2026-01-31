@@ -285,7 +285,7 @@
 
 .action-tabs {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   background: rgba(241, 245, 249, 0.6);
   border-radius: 999px;
   border: 1px solid var(--panel-border);

@@ -3,12 +3,14 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { useEffect, useState } from 'react';
 import { supabase } from './lib/supabaseClient';
 import LoginPage from './pages/LoginPage';
-import LandingPage from './pages/LandingPage';
+import VolunteerLandingPage from './pages/VolunteerLandingPage';
 import JoinRoomPage from './pages/JoinRoomPage';
 import PublicRoomsPage from './pages/PublicRoomsPage';
 import RoomPage from './pages/RoomPage';
 import PlanningPage from './pages/PlanningPage';
 import CharityReferrals from './pages/CharityReferrals';
+import ChatPage from './pages/ChatPage';
+import MyProfile from './pages/MyProfile';
 import './App.css';
 
 function App() {
@@ -38,11 +40,13 @@ function App() {
     supabase.auth.getSession().then(({ data: { session } }) => {
       const currentUser = session?.user ?? null;
       setUser(currentUser);
+
       if (currentUser) {
         loadProfile(currentUser.id);
       } else {
         setProfile(null);
       }
+
       setLoading(false);
     });
 
@@ -52,6 +56,7 @@ function App() {
     } = supabase.auth.onAuthStateChange((_event, session) => {
       const currentUser = session?.user ?? null;
       setUser(currentUser);
+
       if (currentUser) {
         loadProfile(currentUser.id);
       } else {
@@ -64,14 +69,16 @@ function App() {
 
   if (loading) {
     return (
-      <div style={{
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        height: '100vh',
-        fontSize: '18px',
-        color: '#666'
-      }}>
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          height: '100vh',
+          fontSize: '18px',
+          color: '#666',
+        }}
+      >
         Loading...
       </div>
     );
@@ -84,36 +91,99 @@ function App() {
           path="/login"
           element={user ? <Navigate to="/" replace /> : <LoginPage />}
         />
+
         <Route
           path="/"
           element={
-            user
-              ? profile?.is_charity
-                ? <CharityReferrals user={user} profile={profile} />
-                : <LandingPage user={user} profile={profile} />
-              : <Navigate to="/login" replace />
+            user ? (
+              profile?.is_charity ? (
+                <CharityReferrals user={user} profile={profile} />
+              ) : (
+                <VolunteerLandingPage user={user} profile={profile} />
+              )
+            ) : (
+              <Navigate to="/login" replace />
+            )
           }
         />
+
         <Route
           path="/join"
-          element={user ? <JoinRoomPage user={user} profile={profile} /> : <Navigate to="/login" replace />}
+          element={
+            user ? (
+              <JoinRoomPage user={user} profile={profile} />
+            ) : (
+              <Navigate to="/login" replace />
+            )
+          }
         />
+
         <Route
           path="/public-rooms"
-          element={user ? <PublicRoomsPage user={user} profile={profile} /> : <Navigate to="/login" replace />}
+          element={
+            user ? (
+              <PublicRoomsPage user={user} profile={profile} />
+            ) : (
+              <Navigate to="/login" replace />
+            )
+          }
         />
+
         <Route
           path="/room/:code"
-          element={user ? <RoomPage user={user} profile={profile} /> : <Navigate to="/login" replace />}
+          element={
+            user ? (
+              <RoomPage user={user} profile={profile} />
+            ) : (
+              <Navigate to="/login" replace />
+            )
+          }
         />
+
         <Route
           path="/planning/:code"
-          element={user ? <PlanningPage user={user} profile={profile} /> : <Navigate to="/login" replace />}
+          element={
+            user ? (
+              <PlanningPage user={user} profile={profile} />
+            ) : (
+              <Navigate to="/login" replace />
+            )
+          }
         />
+
         <Route
           path="/charity-referrals"
-          element={user ? <CharityReferrals user={user} profile={profile} /> : <Navigate to="/login" replace />}
+          element={
+            user ? (
+              <CharityReferrals user={user} profile={profile} />
+            ) : (
+              <Navigate to="/login" replace />
+            )
+          }
         />
+
+        <Route
+          path="/chat/:code"
+          element={
+            user ? (
+              <ChatPage user={user} profile={profile} />
+            ) : (
+              <Navigate to="/login" replace />
+            )
+          }
+        />
+
+        <Route
+          path="/profile"
+          element={
+            user ? (
+              <MyProfile user={user} profile={profile} />
+            ) : (
+              <Navigate to="/login" replace />
+            )
+          }
+        />
+
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Router>

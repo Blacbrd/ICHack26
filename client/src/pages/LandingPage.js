@@ -398,6 +398,7 @@ const LandingPage = ({ user }) => {
     }
   };
 
+
   return (
     <div className={`landing-page ${theme}`}>
       <div className="landing-shell">
@@ -484,7 +485,7 @@ const LandingPage = ({ user }) => {
             </button>
           </div>
 
-          {activeTab === 'create' ? (
+          {activeTab === 'create' && (
             <section className="card create-card">
               <div className="card-header">
                 <div className="card-icon">+</div>
@@ -493,7 +494,7 @@ const LandingPage = ({ user }) => {
                   <p>{copy.createCardSubtitle}</p>
                 </div>
               </div>
-<button
+              <button
                 className="btn btn-primary"
                 onClick={handleCreateRoom}
                 disabled={loading}
@@ -501,7 +502,9 @@ const LandingPage = ({ user }) => {
                 {loading ? `${copy.createButton}...` : copy.createButton}
               </button>
             </section>
-          ) : (
+          )}
+
+          {activeTab === 'join' && (
             <section className="card join-card">
               <div className="card-header">
                 <div className="card-icon">⇢</div>
@@ -519,6 +522,7 @@ const LandingPage = ({ user }) => {
               </button>
             </section>
           )}
+
 
           <div className="public-rooms-section">
             <h2 className="public-rooms-title">{copy.publicRoomsTitle}</h2>
