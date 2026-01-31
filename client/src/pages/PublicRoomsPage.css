@@ -1,0 +1,158 @@
+.public-rooms-page {
+  min-height: 100vh;
+  background: radial-gradient(circle at 20% 20%, #101727, #05060a);
+  padding: 20px;
+  color: #f8fafc;
+}
+
+.public-rooms-container {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 32px;
+}
+
+.page-title {
+  font-size: 36px;
+  font-weight: bold;
+  color: #f8fafc;
+}
+
+.loading {
+  text-align: center;
+  padding: 48px;
+  font-size: 18px;
+  color: #cbd5e1;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 48px;
+  background: rgba(6, 8, 18, 0.9);
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(124, 58, 237, 0.2);
+  border: 1px solid rgba(124, 58, 237, 0.2);
+  color: #cbd5e1;
+}
+
+.rooms-list {
+  display: grid;
+  gap: 16px;
+}
+
+.room-card {
+  background: rgba(6, 8, 18, 0.9);
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 2px 8px rgba(124, 58, 237, 0.2);
+  border: 1px solid rgba(124, 58, 237, 0.2);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.room-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(124, 58, 237, 0.35);
+  border-color: rgba(124, 58, 237, 0.4);
+}
+
+.room-info {
+  flex: 1;
+}
+
+.room-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+
+.room-name {
+  font-size: 20px;
+  font-weight: bold;
+  color: #f8fafc;
+  margin: 0;
+  flex: 1;
+}
+
+.room-code {
+  font-size: 14px;
+  color: #cbd5e1;
+  font-family: monospace;
+  margin-bottom: 4px;
+}
+
+.room-meta {
+  font-size: 14px;
+  color: #94a3b8;
+}
+
+.room-creator {
+  color: #cbd5e1;
+}
+
+.creator-name {
+  font-weight: 600;
+  color: #7c3aed;
+}
+
+.room-description {
+  margin-top: 12px;
+  padding: 12px;
+  background: rgba(15, 18, 35, 0.8);
+  border-left: 3px solid #7c3aed;
+  border-radius: 4px;
+}
+
+.room-description p {
+  margin: 0;
+  font-size: 14px;
+  color: #cbd5e1;
+  line-height: 1.5;
+}
+
+.btn-dots {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px 8px;
+  color: #94a3b8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: all 0.2s;
+  margin-left: 8px;
+}
+
+.btn-dots:hover {
+  background: rgba(124, 58, 237, 0.2);
+  color: #7c3aed;
+}
+
+.btn-dots svg {
+  display: block;
+}
+
+.btn-small {
+  padding: 10px 20px;
+  font-size: 14px;
+}
+
+.error-message {
+  background: rgba(248, 113, 113, 0.15);
+  color: #fca5a5;
+  padding: 12px;
+  border-radius: 8px;
+  margin-bottom: 16px;
+  font-size: 14px;
+  border: 1px solid rgba(248, 113, 113, 0.3);
+}
+
