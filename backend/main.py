@@ -53,6 +53,10 @@ from routers.gemini.hotel_recommendations import router as hotel_recommendations
 
 app.include_router(hotel_recommendations_router, prefix="/api/gemini", tags=["gemini"])
 
+from routers.gemini.rank_opportunities import router as rank_opportunities_router
+
+app.include_router(rank_opportunities_router, prefix="/api/gemini", tags=["gemini"])
+
 # Mount the Google Maps router
 from routers.gmap.router import router as gmap_router
 app.include_router(gmap_router, prefix="/api/gmap", tags=["gmap"])
