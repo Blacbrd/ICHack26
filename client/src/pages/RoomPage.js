@@ -523,9 +523,6 @@ const RoomPage = ({ user }) => {
               className="theme-toggle"
               onClick={() => setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'))}
             >
-              <span className="theme-icon" aria-hidden="true">
-                {theme === 'dark' ? '☀️' : '🌙'}
-              </span>
               {theme === 'dark' ? copy.lightMode : copy.darkMode}
             </button>
           </div>

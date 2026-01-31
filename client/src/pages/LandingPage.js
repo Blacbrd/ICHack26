@@ -404,7 +404,7 @@ const LandingPage = ({ user }) => {
         <header className="landing-nav">
           <div className="brand-cluster">
             <div className="brand-mark">
-              <img src="/favicon.ico" alt="VisaWorld Logo" />
+              <img src="/imc-logo.svg" alt="IMC Trading Logo" />
             </div>
             <div className="brand-copy">
               <span className="brand-name">VisaWorld</span>
@@ -433,9 +433,6 @@ const LandingPage = ({ user }) => {
               onClick={toggleTheme}
               aria-label="Toggle light and dark mode"
             >
-              <span className="theme-icon" aria-hidden="true">
-                {theme === 'dark' ? '☀️' : '🌙'}
-              </span>
               {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
             </button>
             {user && (

@@ -1,8 +1,8 @@
 .landing-page {
-  --bg-gradient: linear-gradient(135deg, #f5f8ff 0%, #edf3ff 50%, #dfe9ff 100%);
+  --bg-gradient: linear-gradient(135deg, #f7f9ff 0%, #eef3ff 55%, #e5ecff 100%);
   --panel-bg: rgba(255, 255, 255, 0.95);
   --panel-border: rgba(15, 59, 136, 0.18);
-  --panel-shadow: 0 40px 80px rgba(15, 59, 136, 0.18);
+  --panel-shadow: 0 20px 45px rgba(15, 59, 136, 0.12);
   --text-color: #0b1224;
   --muted-color: #5b6b86;
   --chip-bg: rgba(28, 103, 230, 0.1);
@@ -27,10 +27,10 @@
 }
 
 .landing-page.dark {
-  --bg-gradient: radial-gradient(circle at 20% 20%, #0b1327, #05080f);
+  --bg-gradient: radial-gradient(circle at 20% 20%, #0b1327, #070a12);
   --panel-bg: rgba(6, 10, 22, 0.94);
   --panel-border: rgba(28, 103, 230, 0.25);
-  --panel-shadow: 0 40px 120px rgba(16, 59, 136, 0.45);
+  --panel-shadow: 0 18px 50px rgba(5, 10, 20, 0.55);
   --text-color: #f6f8ff;
   --muted-color: #b7c3da;
   --chip-bg: rgba(28, 103, 230, 0.18);
@@ -42,6 +42,22 @@
   --button-text: #f6f8ff;
   --danger-bg: rgba(248, 113, 113, 0.18);
   --danger-text: #fca5a5;
+}
+
+.landing-page::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(transparent 0, transparent 38px, rgba(15, 59, 136, 0.05) 39px),
+    linear-gradient(90deg, transparent 0, transparent 38px, rgba(15, 59, 136, 0.05) 39px);
+  background-size: 40px 40px;
+  opacity: 0.4;
+  pointer-events: none;
+}
+
+.landing-page.dark::before {
+  opacity: 0.15;
 }
 
 .landing-shell {
@@ -70,13 +86,14 @@
 }
 
 .brand-mark {
-  width: 52px;
-  height: 52px;
+  width: 92px;
+  height: 92px;
   border-radius: 16px;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 10px 25px rgba(16, 59, 136, 0.35);
+  box-shadow: 0 8px 20px rgba(16, 59, 136, 0.25);
+  border: 1px solid rgba(15, 59, 136, 0.2);
   overflow: hidden;
 }
 
@@ -84,7 +101,7 @@
   width: 100%;
   height: 100%;
   object-fit: contain;
-  padding: 8px;
+  padding: 4px;
 }
 
 .brand-copy {
@@ -269,7 +286,7 @@
 .action-tabs {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  background: rgba(241, 245, 249, 0.8);
+  background: rgba(241, 245, 249, 0.6);
   border-radius: 999px;
   border: 1px solid var(--panel-border);
   padding: 4px;
@@ -277,7 +294,7 @@
 }
 
 .landing-page.dark .action-tabs {
-  background: rgba(15, 18, 35, 0.6);
+  background: rgba(9, 14, 30, 0.55);
 }
 
 .action-tab {
@@ -295,13 +312,13 @@
 .action-tab.active {
   background: #ffffff;
   color: var(--text-color);
-  box-shadow: 0 10px 25px rgba(28, 103, 230, 0.2);
+  box-shadow: 0 8px 18px rgba(16, 59, 136, 0.18);
 }
 
 .landing-page.dark .action-tab.active {
   background: rgba(28, 103, 230, 0.2);
-  color: #f8fafc;
-  box-shadow: 0 10px 25px rgba(28, 103, 230, 0.25);
+  color: #f6f8ff;
+  box-shadow: 0 8px 18px rgba(16, 59, 136, 0.35);
 }
 
 .card {
@@ -309,7 +326,7 @@
   border: 1px solid var(--panel-border);
   border-radius: 28px;
   padding: 28px;
-  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 16px 35px rgba(15, 59, 136, 0.1);
 }
 
 .card + .card {
@@ -394,12 +411,12 @@
 
 .btn-primary {
   background: var(--primary-gradient);
-  box-shadow: 0 18px 35px rgba(16, 59, 136, 0.35);
+  box-shadow: 0 12px 25px rgba(16, 59, 136, 0.3);
 }
 
 .btn-secondary {
   background: var(--secondary-gradient);
-  box-shadow: 0 18px 35px rgba(16, 59, 136, 0.35);
+  box-shadow: 0 12px 25px rgba(16, 59, 136, 0.3);
 }
 
 .btn:hover:not(:disabled) {

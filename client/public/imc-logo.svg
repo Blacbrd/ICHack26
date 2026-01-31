@@ -1,27 +1,10 @@
-<svg width="320" height="120" viewBox="0 0 320 120" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="IMC Trading logo">
+<svg width="360" height="140" viewBox="0 0 360 140" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="IMC Trading logo">
   <defs>
-    <linearGradient id="imcBlue" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#1c67e6"/>
+    <linearGradient id="imcBlue" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#0b2a5b"/>
       <stop offset="100%" stop-color="#0f3b88"/>
     </linearGradient>
   </defs>
-  <rect width="320" height="120" fill="none"/>
-  <g transform="translate(16,18)" fill="#1c67e6">
-    <circle cx="14" cy="14" r="10"/>
-    <circle cx="42" cy="14" r="10"/>
-    <circle cx="70" cy="14" r="10"/>
-    <circle cx="98" cy="14" r="10"/>
-    <circle cx="126" cy="14" r="10"/>
-    <circle cx="14" cy="42" r="10"/>
-    <circle cx="42" cy="42" r="10"/>
-    <circle cx="70" cy="42" r="10"/>
-    <circle cx="98" cy="42" r="10"/>
-    <circle cx="126" cy="42" r="10"/>
-    <circle cx="14" cy="70" r="10"/>
-    <circle cx="42" cy="70" r="10"/>
-    <circle cx="70" cy="70" r="10"/>
-    <circle cx="98" cy="70" r="10"/>
-    <circle cx="126" cy="70" r="10"/>
-  </g>
-  <text x="178" y="74" font-family="'Newsreader','Times New Roman',serif" font-size="64" font-weight="600" fill="url(#imcBlue)">imc</text>
+  <rect width="360" height="140" fill="none"/>
+  <text x="180" y="98" text-anchor="middle" font-family="'Newsreader','Times New Roman',serif" font-size="108" font-weight="600" fill="url(#imcBlue)">imc</text>
 </svg>

@@ -2,7 +2,7 @@
   --page-bg: linear-gradient(140deg, #f5f8ff 0%, #edf3ff 45%, #dfe9ff 100%);
   --panel-bg: rgba(255, 255, 255, 0.92);
   --panel-border: rgba(15, 59, 136, 0.16);
-  --panel-shadow: 0 45px 90px rgba(15, 59, 136, 0.2);
+  --panel-shadow: 0 28px 60px rgba(15, 59, 136, 0.18);
   --text-color: #0b1224;
   --muted-color: #5b6b86;
   --accent: #1c67e6;
@@ -32,7 +32,7 @@
   --page-bg: radial-gradient(circle at 20% 20%, #0b1327, #05080f);
   --panel-bg: rgba(6, 10, 22, 0.94);
   --panel-border: rgba(28, 103, 230, 0.28);
-  --panel-shadow: 0 45px 100px rgba(16, 59, 136, 0.45);
+  --panel-shadow: 0 30px 70px rgba(16, 59, 136, 0.4);
   --text-color: #f6f8ff;
   --muted-color: #b7c3da;
   --accent: #6aa5ff;
@@ -56,19 +56,19 @@
   width: 360px;
   height: 360px;
   border-radius: 50%;
-  filter: blur(80px);
-  opacity: 0.5;
+  filter: blur(70px);
+  opacity: 0.3;
   z-index: 0;
 }
 
 .join-room-page::before {
-  background: rgba(28, 103, 230, 0.28);
+  background: rgba(28, 103, 230, 0.18);
   top: -100px;
   left: -60px;
 }
 
 .join-room-page::after {
-  background: rgba(44, 125, 255, 0.3);
+  background: rgba(15, 59, 136, 0.2);
   bottom: -80px;
   right: -40px;
 }
@@ -133,12 +133,12 @@
 }
 
 .join-room-logo-mark {
-  width: 64px;
-  height: 64px;
+  width: 100px;
+  height: 100px;
   border-radius: 20px;
   box-shadow: 0 18px 30px rgba(16, 59, 136, 0.35);
   object-fit: contain;
-  padding: 12px;
+  padding: 4px;
 }
 
 .join-room-logo-text {

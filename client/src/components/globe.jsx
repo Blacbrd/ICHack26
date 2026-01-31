@@ -1304,7 +1304,7 @@ const GlobeComponent = ({ roomCode, isMaster, user, opportunityMarker, opportuni
               .then(data => {
                 if (data && data.recommendation) {
                   // Insert hotel recommendation into chat
-                  const recommendationMessage = `🏨 Hotel Recommendations for Shinjuku:\n\n${data.recommendation}`;
+                  const recommendationMessage = `Hotel Recommendations for Shinjuku:\n\n${data.recommendation}`;
                   
                   supabase
                     .from('messages')

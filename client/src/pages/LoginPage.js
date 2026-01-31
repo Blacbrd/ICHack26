@@ -74,14 +74,11 @@ const LoginPage = () => {
   return (
     <div className={`login-page ${theme}`}>
       <button type="button" className="theme-toggle" onClick={toggleTheme}>
-        <span className="theme-icon" aria-hidden="true">
-          {theme === 'dark' ? '☀️' : '🌙'}
-        </span>
         {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
       </button>
       <div className="login-container">
         <div className="login-logo">
-          <img className="login-logo-mark" src="/favicon.ico" alt="VisaWorld Logo" />
+          <img className="login-logo-mark" src="/imc-logo.svg" alt="IMC Trading Logo" />
           <div className="login-logo-text">
             <h1 className="login-title">VisaWorld</h1>
             <p className="login-tagline">Wereld van Leven</p>

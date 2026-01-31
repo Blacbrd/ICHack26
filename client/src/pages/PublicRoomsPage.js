@@ -203,9 +203,6 @@ const PublicRoomsPage = ({ user }) => {
           <h1 className="page-title">Public Rooms</h1>
           <div className="page-header-actions">
             <button type="button" className="theme-toggle" onClick={toggleTheme}>
-              <span className="theme-icon" aria-hidden="true">
-                {theme === 'dark' ? '☀️' : '🌙'}
-              </span>
               {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
             </button>
             <button className="btn btn-link" onClick={() => navigate('/')}>

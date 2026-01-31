@@ -538,9 +538,6 @@ const PlanningPage = ({ user }) => {
         <h1>Planning Room: {roomCode}</h1>
         <div className="planning-header-actions">
           <button type="button" className="theme-toggle" onClick={toggleTheme}>
-            <span className="theme-icon" aria-hidden="true">
-              {theme === 'dark' ? '☀️' : '🌙'}
-            </span>
             {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
           </button>
           <button 
@@ -576,7 +573,7 @@ const PlanningPage = ({ user }) => {
           onClick={catsActive ? stopCatInvasion : startCatInvasion}
           title={catsActive ? "Stop cat invasion (or press ESC)" : "Start cat invasion!"}
         >
-          {catsActive ? '🐱' : '🐈'}
+          CAT
         </button>
         {/* Explosion button */}
         <button
@@ -585,7 +582,7 @@ const PlanningPage = ({ user }) => {
           title="Explosion!"
           disabled={explosionActive}
         >
-          💣
+          BOOM
         </button>
         {/* Google Careers button */}
         <button
@@ -601,7 +598,7 @@ const PlanningPage = ({ user }) => {
           onClick={handleHanzilaClick}
           title="Change globe to Hanzila (10 seconds)"
         >
-          🗺️
+          MAP
         </button>
       </div>
       {/* Cat overlay */}
@@ -752,7 +749,7 @@ const PlanningPage = ({ user }) => {
           onClick={() => setShowDinosaurGame(!showDinosaurGame)}
           title={showDinosaurGame ? "Hide Dinosaur Game" : "Show Dinosaur Game"}
         >
-          {showDinosaurGame ? '🦕' : '🦖'}
+          DINO
         </button>
       )}
       {/* Dinosaur Game - only for non-master users when master is idle and toggled on */}

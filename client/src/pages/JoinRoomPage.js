@@ -122,14 +122,11 @@ const JoinRoomPage = ({ user }) => {
   return (
     <div className={`join-room-page ${theme}`}>
       <button type="button" className="theme-toggle" onClick={toggleTheme}>
-        <span className="theme-icon" aria-hidden="true">
-          {theme === 'dark' ? '☀️' : '🌙'}
-        </span>
         {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
       </button>
       <div className="join-room-container">
         <div className="join-room-logo">
-          <img className="join-room-logo-mark" src="/favicon.ico" alt="VisaWorld Logo" />
+          <img className="join-room-logo-mark" src="/imc-logo.svg" alt="IMC Trading Logo" />
           <div className="join-room-logo-text">
             <h1 className="page-title">Join Room</h1>
             <p className="join-room-tagline">VisaWorld · Wereld van Leven</p>
