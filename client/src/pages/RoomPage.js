@@ -354,18 +354,20 @@ const RoomPage = ({ user }) => {
   }, [roomCode, navigate]);
 
   const beginPlanning = async () => {
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('rooms')
       .update({ planning_started: true })
       .eq('room_code', roomCode)
-      .eq('master_id', userId);
+      .eq('master_id', user.id)
+      .select();
 
-    if (error) {
+    if (error || !data || data.length === 0) {
       alert('Failed to start planning.');
     } else {
       navigate(`/planning/${roomCode}`);
     }
   };
+
 
   const togglePublic = async () => {
     const newIsPublic = !isPublic;
