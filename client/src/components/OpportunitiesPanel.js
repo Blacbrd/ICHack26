@@ -10,6 +10,8 @@ const OpportunitiesPanel = ({
   onCountrySelect,
   onPaginatedOpportunitiesChange,
   onOpportunitiesDataChange,
+  rankedOpportunityIds,
+  rankingLoading,
 }) => {
   const [opportunities, setOpportunities] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -215,10 +217,30 @@ const OpportunitiesPanel = ({
     // only re-run when opportunities array or selectedCountry value changes
   }, [opportunities, selectedCountry]);
 
-  // Compute displayed opportunities (either all filtered or only the selected one)
+  // Compute displayed opportunities (either all filtered or only the selected one),
+  // then apply AI ranking if available
   const displayedOpportunities = useMemo(() => {
-    return showAllOpportunities ? filteredOpportunities : filteredOpportunities.filter((opp) => opp.id === selectedOpportunityId);
-  }, [filteredOpportunities, showAllOpportunities, selectedOpportunityId]);
+    const base = showAllOpportunities ? filteredOpportunities : filteredOpportunities.filter((opp) => opp.id === selectedOpportunityId);
+
+    // Apply AI ranking if we have ranked IDs
+    if (rankedOpportunityIds && rankedOpportunityIds.length > 0 && showAllOpportunities) {
+      const idToIndex = {};
+      rankedOpportunityIds.forEach((id, idx) => {
+        idToIndex[id] = idx;
+      });
+      const sorted = [...base].sort((a, b) => {
+        const aIdx = idToIndex[a.id] !== undefined ? idToIndex[a.id] : rankedOpportunityIds.length;
+        const bIdx = idToIndex[b.id] !== undefined ? idToIndex[b.id] : rankedOpportunityIds.length;
+        return aIdx - bIdx;
+      });
+      console.log('Ranking applied. Top 5 ranked IDs:', rankedOpportunityIds.slice(0, 5));
+      console.log('Before sort first 3:', base.slice(0, 3).map(o => o.id + ': ' + o.name));
+      console.log('After sort first 3:', sorted.slice(0, 3).map(o => o.id + ': ' + o.name));
+      return sorted;
+    }
+
+    return base;
+  }, [filteredOpportunities, showAllOpportunities, selectedOpportunityId, rankedOpportunityIds]);
 
   // Pagination calculation (memoized)
   const paginatedOpportunities = useMemo(() => {
@@ -522,7 +544,11 @@ const OpportunitiesPanel = ({
             ← Back
           </button>
         )}
-        {showAllOpportunities && <span className="opportunities-count">{selectedCountry ? filteredOpportunities.length : opportunities.length}</span>}
+        {showAllOpportunities && (
+          <span className="opportunities-count">
+            {rankingLoading ? 'Ranking...' : (selectedCountry ? filteredOpportunities.length : opportunities.length)}
+          </span>
+        )}
       </div>
 
       <div className="opportunities-list">
