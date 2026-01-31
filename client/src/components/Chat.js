@@ -218,7 +218,7 @@ const Chat = ({ roomCode, userId, masterId, paginatedOpportunities = [], opportu
         } else if (status === 'TIMED_OUT') {
           console.error('❌ Subscription timed out');
         } else if (status === 'CLOSED') {
-          console.warn('⚠️ Subscription closed');
+          console.warn('Subscription closed');
         }
       });
 
@@ -349,7 +349,7 @@ const Chat = ({ roomCode, userId, masterId, paginatedOpportunities = [], opportu
       const data = await response.json().catch(() => null);
 
       const recommendationText = data?.recommendation || data?.result || JSON.stringify(data) || 'No recommendation received.';
-      const recommendationMessage = `🤖 WorldAI Recommendation:\n\n${recommendationText}`;
+      const recommendationMessage = `WorldAI Recommendation:\n\n${recommendationText}`;
 
       // Insert recommendation into messages table (so it appears in chat)
       // We insert with current userId (you might want to use a dedicated system userId instead)
@@ -408,7 +408,7 @@ const Chat = ({ roomCode, userId, masterId, paginatedOpportunities = [], opportu
             <div key={msg.id} className="chat-message">
               <div className="message-header">
                 <span className="message-username">
-                  {isMaster(msg.user_id) && <span className="master-emoji">👑</span>}
+                  {isMaster(msg.user_id) && <span className="master-emoji">Host</span>}
                   {getUsername(msg.user_id)}
                 </span>
                 <span className="message-time">

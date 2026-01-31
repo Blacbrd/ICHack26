@@ -70,9 +70,13 @@ function App() {
           path="/room/:code" 
           element={user ? <RoomPage user={user} /> : <Navigate to="/login" replace />} 
         />
-        <Route 
-          path="/planning/:code" 
-          element={user ? <PlanningPage user={user} /> : <Navigate to="/login" replace />} 
+        <Route
+          path="/planning/:code"
+          element={user ? <PlanningPage user={user} /> : <Navigate to="/login" replace />}
+        />
+        <Route
+          path="/chat/:code"
+          element={user ? <ChatPage user={user} /> : <Navigate to="/login" replace />}
         />
         <Route 
           path="/profile" 
