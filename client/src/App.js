@@ -10,7 +10,6 @@ import RoomPage from './pages/RoomPage';
 import PlanningPage from './pages/PlanningPage';
 import ChatPage from './pages/ChatPage';
 import MyProfile from './pages/MyProfile';
-import ChatPage from './pages/ChatPage';
 import './App.css';
 
 function App() {
