@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
+import useTheme from '../lib/useTheme';
 import './JoinRoomPage.css';
 
 const JoinRoomPage = ({ user }) => {
@@ -8,6 +9,11 @@ const JoinRoomPage = ({ user }) => {
   const [roomCode, setRoomCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [theme, setTheme] = useTheme('dark');
+
+  const toggleTheme = () => {
+    setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'));
+  };
 
   const handleJoin = async (e) => {
     e.preventDefault();
@@ -114,13 +120,16 @@ const JoinRoomPage = ({ user }) => {
   };
 
   return (
-    <div className="join-room-page">
+    <div className={`join-room-page ${theme}`}>
+      <button type="button" className="theme-toggle" onClick={toggleTheme}>
+        {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
+      </button>
       <div className="join-room-container">
         <div className="join-room-logo">
-          <img className="join-room-logo-mark" src="/favicon.ico" alt="WellWorld Logo" />
+          <img className="join-room-logo-mark" src="/imc-logo.svg" alt="IMC Trading Logo" />
           <div className="join-room-logo-text">
             <h1 className="page-title">Join Room</h1>
-            <p className="join-room-tagline">Enter Room Code</p>
+            <p className="join-room-tagline">VisaWorld · Wereld van Leven</p>
           </div>
         </div>
         <p className="page-subtitle">
@@ -166,4 +175,3 @@ const JoinRoomPage = ({ user }) => {
 };
 
 export default JoinRoomPage;
-

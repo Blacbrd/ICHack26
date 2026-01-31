@@ -1,0 +1,10 @@
+<svg width="360" height="140" viewBox="0 0 360 140" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="IMC Trading logo">
+  <defs>
+    <linearGradient id="imcBlue" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#0b2a5b"/>
+      <stop offset="100%" stop-color="#0f3b88"/>
+    </linearGradient>
+  </defs>
+  <rect width="360" height="140" fill="none"/>
+  <text x="180" y="98" text-anchor="middle" font-family="'Newsreader','Times New Roman',serif" font-size="108" font-weight="600" fill="url(#imcBlue)">imc</text>
+</svg>

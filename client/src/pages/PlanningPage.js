@@ -5,6 +5,7 @@ import GlobeComponent from '../components/globe';
 import Chat from '../components/Chat';
 import OpportunitiesPanel from '../components/OpportunitiesPanel';
 import DinosaurGame from '../components/DinosaurGame';
+import useTheme from '../lib/useTheme';
 import './PlanningPage.css';
 
 const PlanningPage = ({ user }) => {
@@ -42,6 +43,11 @@ const PlanningPage = ({ user }) => {
   const masterIdleTimeoutRef = useRef(null);
   const lastMasterActionRef = useRef(Date.now());
   const [showDinosaurGame, setShowDinosaurGame] = useState(false);
+  const [theme, setTheme] = useTheme('dark');
+
+  const toggleTheme = () => {
+    setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'));
+  };
 
   useEffect(() => {
     (async () => {
@@ -527,15 +533,20 @@ const PlanningPage = ({ user }) => {
   }
 
   return (
-    <div className="planning-page">
+    <div className={`planning-page ${theme}`}>
       <div className="planning-header">
         <h1>Planning Room: {roomCode}</h1>
-        <button 
-          onClick={handleLeaveRoom} 
-          className="btn btn-leave-room"
-        >
-          Leave Room
-        </button>
+        <div className="planning-header-actions">
+          <button type="button" className="theme-toggle" onClick={toggleTheme}>
+            {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
+          </button>
+          <button 
+            onClick={handleLeaveRoom} 
+            className="btn btn-leave-room"
+          >
+            Leave Room
+          </button>
+        </div>
       </div>
       {/* Button container with hover area */}
       <div
@@ -562,7 +573,7 @@ const PlanningPage = ({ user }) => {
           onClick={catsActive ? stopCatInvasion : startCatInvasion}
           title={catsActive ? "Stop cat invasion (or press ESC)" : "Start cat invasion!"}
         >
-          {catsActive ? '🐱' : '🐈'}
+          CAT
         </button>
         {/* Explosion button */}
         <button
@@ -571,7 +582,7 @@ const PlanningPage = ({ user }) => {
           title="Explosion!"
           disabled={explosionActive}
         >
-          💣
+          BOOM
         </button>
         {/* Google Careers button */}
         <button
@@ -587,7 +598,7 @@ const PlanningPage = ({ user }) => {
           onClick={handleHanzilaClick}
           title="Change globe to Hanzila (10 seconds)"
         >
-          🗺️
+          MAP
         </button>
       </div>
       {/* Cat overlay */}
@@ -738,7 +749,7 @@ const PlanningPage = ({ user }) => {
           onClick={() => setShowDinosaurGame(!showDinosaurGame)}
           title={showDinosaurGame ? "Hide Dinosaur Game" : "Show Dinosaur Game"}
         >
-          {showDinosaurGame ? '🦕' : '🦖'}
+          DINO
         </button>
       )}
       {/* Dinosaur Game - only for non-master users when master is idle and toggled on */}
@@ -756,4 +767,3 @@ const PlanningPage = ({ user }) => {
 };
 
 export default PlanningPage;
-
