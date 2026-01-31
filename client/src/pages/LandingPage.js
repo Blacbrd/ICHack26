@@ -19,6 +19,10 @@ const LandingPage = ({ user }) => {
   const [expandedDescription, setExpandedDescription] = useState(null);
   const [language, setLanguage] = useState('en');
   const [activeTab, setActiveTab] = useState('create');
+  const [posts, setPosts] = useState([]);
+  const [showCreatePost, setShowCreatePost] = useState(false);
+  const [newPostText, setNewPostText] = useState('');
+  const [newPostImages, setNewPostImages] = useState([]);
   // room name input removed from UI; names will default to Room <CODE> on creation
   const languageOptions = [
     { value: 'en', label: 'English' },
@@ -37,6 +41,12 @@ const LandingPage = ({ user }) => {
         'Connect with others to discover wellbeing-focused travel experiences that create positive social impact. No resorts. No tourism. Just meaningful connections and authentic change.',
       createTab: 'Create Room',
       joinTab: 'Join Room',
+      feedTab: 'Feed',
+      feedEmpty: 'No posts yet. Be the first to share!',
+      createPost: 'Create Post',
+      postPlaceholder: 'Share an update about your impact journey...',
+      postSubmit: 'Post',
+      postCancel: 'Cancel',
       createCardTitle: 'Create a New Room',
       createCardSubtitle: 'Start a private planning session with your group.',
       roomNameLabel: 'Room Name',
@@ -58,6 +68,12 @@ const LandingPage = ({ user }) => {
         'Conecta con otros para descubrir experiencias de viaje enfocadas en el bienestar que crean impacto social positivo. Sin resorts. Sin turismo masivo. Solo conexiones significativas y cambio auténtico.',
       createTab: 'Crear Sala',
       joinTab: 'Unirse a Sala',
+      feedTab: 'Feed',
+      feedEmpty: 'No hay publicaciones. Se el primero en compartir!',
+      createPost: 'Crear Publicacion',
+      postPlaceholder: 'Comparte una actualizacion sobre tu viaje de impacto...',
+      postSubmit: 'Publicar',
+      postCancel: 'Cancelar',
       createCardTitle: 'Crea una Nueva Sala',
       createCardSubtitle: 'Inicia una sesión privada de planificación con tu grupo.',
       roomNameLabel: 'Nombre de la Sala',
@@ -79,6 +95,12 @@ const LandingPage = ({ user }) => {
         'Connectez-vous avec d’autres pour découvrir des expériences axées sur le bien-être qui génèrent un impact social positif. Pas de resorts. Pas de tourisme de masse. Seulement des liens authentiques.',
       createTab: 'Créer une Salle',
       joinTab: 'Rejoindre une Salle',
+      feedTab: 'Feed',
+      feedEmpty: 'Aucune publication. Soyez le premier a partager!',
+      createPost: 'Creer une Publication',
+      postPlaceholder: 'Partagez une mise a jour sur votre voyage a impact...',
+      postSubmit: 'Publier',
+      postCancel: 'Annuler',
       createCardTitle: 'Créer une Nouvelle Salle',
       createCardSubtitle: 'Lancez une session de planification privée avec votre groupe.',
       roomNameLabel: 'Nom de la Salle',
@@ -100,6 +122,12 @@ const LandingPage = ({ user }) => {
         'Vernetze dich mit anderen, um Wohlfühlreisen zu entdecken, die positiven sozialen Einfluss haben. Keine Resorts. Kein Massentourismus. Nur echte Verbindungen und Veränderung.',
       createTab: 'Raum Erstellen',
       joinTab: 'Raum Beitreten',
+      feedTab: 'Feed',
+      feedEmpty: 'Noch keine Beitrage. Sei der Erste!',
+      createPost: 'Beitrag Erstellen',
+      postPlaceholder: 'Teile ein Update uber deine Impact-Reise...',
+      postSubmit: 'Posten',
+      postCancel: 'Abbrechen',
       createCardTitle: 'Neuen Raum Erstellen',
       createCardSubtitle: 'Starte eine private Planungssitzung mit deiner Gruppe.',
       roomNameLabel: 'Raumname',
@@ -121,6 +149,12 @@ const LandingPage = ({ user }) => {
         'Conecte-se com outras pessoas para descobrir experiências de viagem focadas em bem-estar que criam impacto social positivo. Sem resorts. Sem turismo. Apenas conexões significativas e mudança real.',
       createTab: 'Criar Sala',
       joinTab: 'Entrar na Sala',
+      feedTab: 'Feed',
+      feedEmpty: 'Nenhuma publicacao. Seja o primeiro a compartilhar!',
+      createPost: 'Criar Publicacao',
+      postPlaceholder: 'Compartilhe uma atualizacao sobre sua jornada de impacto...',
+      postSubmit: 'Publicar',
+      postCancel: 'Cancelar',
       createCardTitle: 'Criar Nova Sala',
       createCardSubtitle: 'Inicie uma sessão privada de planejamento com seu grupo.',
       roomNameLabel: 'Nome da Sala',
@@ -398,6 +432,32 @@ const LandingPage = ({ user }) => {
     }
   };
 
+  const handleCreatePost = () => {
+    if (!newPostText.trim() && newPostImages.length === 0) return;
+    const imageUrls = newPostImages.map((file) => URL.createObjectURL(file));
+    const post = {
+      id: Date.now(),
+      author: user?.email || 'Anonymous',
+      text: newPostText.trim(),
+      images: imageUrls,
+      createdAt: new Date().toISOString(),
+    };
+    setPosts((prev) => [post, ...prev]);
+    setNewPostText('');
+    setNewPostImages([]);
+    setShowCreatePost(false);
+  };
+
+  const handleImageSelect = (e) => {
+    const files = Array.from(e.target.files || []);
+    setNewPostImages((prev) => [...prev, ...files]);
+    e.target.value = '';
+  };
+
+  const removeImage = (index) => {
+    setNewPostImages((prev) => prev.filter((_, i) => i !== index));
+  };
+
   return (
     <div className={`landing-page ${theme}`}>
       <div className="landing-shell">
@@ -482,9 +542,18 @@ const LandingPage = ({ user }) => {
             >
               {copy.joinTab}
             </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={activeTab === 'feed'}
+              className={`action-tab ${activeTab === 'feed' ? 'active' : ''}`}
+              onClick={() => setActiveTab('feed')}
+            >
+              {copy.feedTab}
+            </button>
           </div>
 
-          {activeTab === 'create' ? (
+          {activeTab === 'create' && (
             <section className="card create-card">
               <div className="card-header">
                 <div className="card-icon">+</div>
@@ -493,7 +562,7 @@ const LandingPage = ({ user }) => {
                   <p>{copy.createCardSubtitle}</p>
                 </div>
               </div>
-<button
+              <button
                 className="btn btn-primary"
                 onClick={handleCreateRoom}
                 disabled={loading}
@@ -501,7 +570,9 @@ const LandingPage = ({ user }) => {
                 {loading ? `${copy.createButton}...` : copy.createButton}
               </button>
             </section>
-          ) : (
+          )}
+
+          {activeTab === 'join' && (
             <section className="card join-card">
               <div className="card-header">
                 <div className="card-icon">⇢</div>
@@ -517,6 +588,101 @@ const LandingPage = ({ user }) => {
               >
                 {copy.joinCardButton}
               </button>
+            </section>
+          )}
+
+          {activeTab === 'feed' && (
+            <section className="feed-section">
+              {!showCreatePost ? (
+                <button
+                  className="btn btn-primary btn-create-post"
+                  onClick={() => setShowCreatePost(true)}
+                >
+                  {copy.createPost}
+                </button>
+              ) : (
+                <div className="card create-post-card">
+                  <textarea
+                    className="post-textarea"
+                    placeholder={copy.postPlaceholder}
+                    value={newPostText}
+                    onChange={(e) => setNewPostText(e.target.value)}
+                    rows={4}
+                  />
+                  <div className="post-image-upload">
+                    <label className="btn btn-secondary btn-upload-label">
+                      + Images
+                      <input
+                        type="file"
+                        accept="image/*"
+                        multiple
+                        onChange={handleImageSelect}
+                        style={{ display: 'none' }}
+                      />
+                    </label>
+                  </div>
+                  {newPostImages.length > 0 && (
+                    <div className="post-image-previews">
+                      {newPostImages.map((file, i) => (
+                        <div key={i} className="preview-thumb">
+                          <img src={URL.createObjectURL(file)} alt="" />
+                          <button
+                            className="preview-remove"
+                            onClick={() => removeImage(i)}
+                          >
+                            x
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <div className="post-form-actions">
+                    <button
+                      className="btn btn-secondary"
+                      onClick={() => {
+                        setShowCreatePost(false);
+                        setNewPostText('');
+                        setNewPostImages([]);
+                      }}
+                    >
+                      {copy.postCancel}
+                    </button>
+                    <button
+                      className="btn btn-primary btn-submit-post"
+                      onClick={handleCreatePost}
+                      disabled={!newPostText.trim() && newPostImages.length === 0}
+                    >
+                      {copy.postSubmit}
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {posts.length === 0 ? (
+                <div className="feed-empty">{copy.feedEmpty}</div>
+              ) : (
+                <div className="post-feed">
+                  {posts.map((post) => (
+                    <div key={post.id} className="card post-card">
+                      <div className="post-author">
+                        <UserIcon className="post-author-icon" />
+                        <span className="post-author-name">{post.author}</span>
+                        <span className="post-time">
+                          {new Date(post.createdAt).toLocaleString()}
+                        </span>
+                      </div>
+                      {post.text && <p className="post-content">{post.text}</p>}
+                      {post.images.length > 0 && (
+                        <div className="post-images">
+                          {post.images.map((src, i) => (
+                            <img key={i} src={src} alt="" className="post-image" />
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
             </section>
           )}
 
