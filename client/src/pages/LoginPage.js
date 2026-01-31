@@ -10,12 +10,40 @@ const LoginPage = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [username, setUsername] = useState('');
+  const [causes, setCauses] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [theme, setTheme] = useTheme('dark');
 
+  const causesList = [
+    'Animal Welfare',
+    'Arts and Culture',
+    'Children',
+    'Civil Rights and Social Action',
+    'Disaster and Humanitarian Relief',
+    'Economic Empowerment',
+    'Education',
+    'Environment',
+    'Health',
+    'Human Rights',
+    'Poverty Alleviation',
+    'Science and Technology',
+    'Social Services',
+    'Veteran Support'
+  ];
+
   const toggleTheme = () => {
     setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'));
+  };
+
+  const handleCauseToggle = (cause) => {
+    setCauses((prev) => {
+      if (prev.includes(cause)) {
+        return prev.filter((c) => c !== cause);
+      } else {
+        return [...prev, cause];
+      }
+    });
   };
 
   const handleSubmit = async (e) => {
@@ -39,6 +67,19 @@ const LoginPage = () => {
         if (signUpError) throw signUpError;
 
         if (data.user) {
+          // Store causes in profiles table
+          const { error: profileError } = await supabase
+            .from('profiles')
+            .upsert({
+              id: data.user.id,
+              username: username || email.split('@')[0],
+              causes: causes,
+            });
+
+          if (profileError) {
+            console.error('Error saving causes:', profileError);
+          }
+
           // Successfully signed up, user will be redirected automatically
           navigate('/');
         }
@@ -122,6 +163,29 @@ const LoginPage = () => {
             autoComplete={isSignUp ? 'new-password' : 'current-password'}
             minLength={6}
           />
+
+          {isSignUp && (
+            <div className="causes-container">
+              <label className="causes-label">Select your causes of interest:</label>
+              <div className="causes-grid">
+                {causesList.map((cause) => (
+                  <label key={cause} className="cause-checkbox">
+                    <input
+                      type="checkbox"
+                      checked={causes.includes(cause)}
+                      onChange={() => handleCauseToggle(cause)}
+                    />
+                    <span className="cause-text">{cause}</span>
+                  </label>
+                ))}
+              </div>
+              {causes.length > 0 && (
+                <p className="causes-selected">
+                  Selected: {causes.length} cause{causes.length !== 1 ? 's' : ''}
+                </p>
+              )}
+            </div>
+          )}
 
           <button type="submit" className="btn btn-primary" disabled={loading}>
             {loading
