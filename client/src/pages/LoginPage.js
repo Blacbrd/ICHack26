@@ -10,6 +10,7 @@ const LoginPage = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [username, setUsername] = useState('');
+  const [avatarUrl, setAvatarUrl] = useState(''); // New state for avatar
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [theme, setTheme] = useTheme('dark');
@@ -25,13 +26,14 @@ const LoginPage = () => {
 
     try {
       if (isSignUp) {
-        // Sign up
+        // Sign up with metadata
         const { data, error: signUpError } = await supabase.auth.signUp({
           email,
           password,
           options: {
             data: {
               username: username || email.split('@')[0],
+              avatar_url: avatarUrl || 'https://api.dicebear.com/7.x/avataaars/svg?seed=' + (username || 'default'), // Default to random avatar if empty
             },
           },
         });
@@ -39,7 +41,6 @@ const LoginPage = () => {
         if (signUpError) throw signUpError;
 
         if (data.user) {
-          // Successfully signed up, user will be redirected automatically
           navigate('/');
         }
       } else {
@@ -50,7 +51,6 @@ const LoginPage = () => {
         });
 
         if (signInError) {
-          // Check if it's an invalid login (user doesn't exist)
           if (signInError.message.includes('Invalid login credentials') || signInError.message.includes('Email not confirmed')) {
             setError('You need to sign up. Please use the "Sign Up" option below.');
           } else {
@@ -92,14 +92,23 @@ const LoginPage = () => {
 
         <form onSubmit={handleSubmit} className="login-form">
           {isSignUp && (
-            <input
-              type="text"
-              className="form-input"
-              placeholder="Username"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              required={isSignUp}
-            />
+            <>
+              <input
+                type="text"
+                className="form-input"
+                placeholder="Username"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                required={isSignUp}
+              />
+              <input
+                type="url"
+                className="form-input"
+                placeholder="Profile Picture URL (Optional)"
+                value={avatarUrl}
+                onChange={(e) => setAvatarUrl(e.target.value)}
+              />
+            </>
           )}
 
           <input
