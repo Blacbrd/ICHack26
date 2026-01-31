@@ -10,13 +10,42 @@ const LoginPage = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [username, setUsername] = useState('');
-  const [avatarUrl, setAvatarUrl] = useState(''); // New state for avatar
+  const [avatarUrl, setAvatarUrl] = useState('');
+  const [causes, setCauses] = useState([]);
+  const [isCharity, setIsCharity] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [theme, setTheme] = useTheme('dark');
 
+  const causesList = [
+    'Animal Welfare',
+    'Arts and Culture',
+    'Children',
+    'Civil Rights and Social Action',
+    'Disaster and Humanitarian Relief',
+    'Economic Empowerment',
+    'Education',
+    'Environment',
+    'Health',
+    'Human Rights',
+    'Poverty Alleviation',
+    'Science and Technology',
+    'Social Services',
+    'Veteran Support'
+  ];
+
   const toggleTheme = () => {
     setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'));
+  };
+
+  const handleCauseToggle = (cause) => {
+    setCauses((prev) => {
+      if (prev.includes(cause)) {
+        return prev.filter((c) => c !== cause);
+      } else {
+        return [...prev, cause];
+      }
+    });
   };
 
   const handleSubmit = async (e) => {
@@ -33,7 +62,8 @@ const LoginPage = () => {
           options: {
             data: {
               username: username || email.split('@')[0],
-              avatar_url: avatarUrl || 'https://api.dicebear.com/7.x/avataaars/svg?seed=' + (username || 'default'), // Default to random avatar if empty
+              is_charity: isCharity, // include in user metadata as well
+              avatar_url: avatarUrl || 'https://api.dicebear.com/7.x/avataaars/svg?seed=' + (username || 'default'),
             },
           },
         });
@@ -41,6 +71,19 @@ const LoginPage = () => {
         if (signUpError) throw signUpError;
 
         if (data.user) {
+          // Store causes in profiles table
+          const { error: profileError } = await supabase
+            .from('profiles')
+            .upsert({
+              id: data.user.id,
+              username: username || email.split('@')[0],
+              causes: causes,
+            });
+
+          if (profileError) {
+            console.error('Error saving causes:', profileError);
+          }
+
           navigate('/');
         }
       } else {
@@ -51,21 +94,45 @@ const LoginPage = () => {
         });
 
         if (signInError) {
-          if (signInError.message.includes('Invalid login credentials') || signInError.message.includes('Email not confirmed')) {
+          if (signInError.message && (signInError.message.includes('Invalid login credentials') || signInError.message.includes('Email not confirmed'))) {
             setError('You need to sign up. Please use the "Sign Up" option below.');
           } else {
             throw signInError;
           }
+          setLoading(false);
           return;
         }
 
-        if (data.user) {
-          navigate('/');
+        if (data?.user) {
+          // fetch profile to decide where to navigate
+          try {
+            const { data: profile, error: profileError } = await supabase
+              .from('profiles')
+              .select('is_charity')
+              .eq('id', data.user.id)
+              .maybeSingle();
+
+            if (profileError) {
+              console.error('Error fetching profile after sign-in:', profileError);
+              // fall back to landing page
+              navigate('/');
+              return;
+            }
+
+            if (profile?.is_charity) {
+              navigate('/charity-referrals');
+            } else {
+              navigate('/');
+            }
+          } catch (err) {
+            console.error('Error after sign in:', err);
+            navigate('/');
+          }
         }
       }
     } catch (err) {
       console.error('Auth error:', err);
-      setError(err.message || 'Failed to authenticate. Please try again.');
+      setError(err?.message || 'Failed to authenticate. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -93,14 +160,40 @@ const LoginPage = () => {
         <form onSubmit={handleSubmit} className="login-form">
           {isSignUp && (
             <>
+              <>
               <input
-                type="text"
-                className="form-input"
-                placeholder="Username"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                required={isSignUp}
-              />
+                  type="text"
+                  className="form-input"
+                  placeholder="Username"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  required={isSignUp}
+                />
+
+              {/* Role selection: Volunteer or Charity */}
+              <div className="role-selection" style={{ marginBottom: 12 }}>
+                <label style={{ marginRight: 12 }}>
+                  <input
+                    type="radio"
+                    name="role"
+                    value="volunteer"
+                    checked={!isCharity}
+                    onChange={() => setIsCharity(false)}
+                  />{' '}
+                  Volunteer
+                </label>
+                <label>
+                  <input
+                    type="radio"
+                    name="role"
+                    value="charity"
+                    checked={isCharity}
+                    onChange={() => setIsCharity(true)}
+                  />{' '}
+                  Charity
+                </label>
+              </div>
+            </>
               <input
                 type="url"
                 className="form-input"
@@ -131,6 +224,29 @@ const LoginPage = () => {
             autoComplete={isSignUp ? 'new-password' : 'current-password'}
             minLength={6}
           />
+
+          {isSignUp && (
+            <div className="causes-container">
+              <label className="causes-label">Select your causes of interest:</label>
+              <div className="causes-grid">
+                {causesList.map((cause) => (
+                  <label key={cause} className="cause-checkbox">
+                    <input
+                      type="checkbox"
+                      checked={causes.includes(cause)}
+                      onChange={() => handleCauseToggle(cause)}
+                    />
+                    <span className="cause-text">{cause}</span>
+                  </label>
+                ))}
+              </div>
+              {causes.length > 0 && (
+                <p className="causes-selected">
+                  Selected: {causes.length} cause{causes.length !== 1 ? 's' : ''}
+                </p>
+              )}
+            </div>
+          )}
 
           <button type="submit" className="btn btn-primary" disabled={loading}>
             {loading

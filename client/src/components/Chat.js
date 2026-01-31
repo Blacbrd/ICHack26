@@ -1,5 +1,5 @@
 // src/components/Chat.jsx
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import './Chat.css';
 
@@ -10,26 +10,83 @@ import './Chat.css';
  *  - roomCode (string) - required
  *  - userId (string) - required (id of the current user, used when inserting messages)
  *  - masterId (string) - optional (for showing master badge)
- *  - paginatedOpportunities (array) - optional array of currently-visible/paginated opportunity objects (up to 5)
- *  - opportunitiesData (object) - optional full opportunities JSON data
- *
- * Notes:
- *  - This component calls the backend endpoint:
- *      POST {apiBase}/api/gemini/recommend-opportunity
- *    where apiBase is taken from REACT_APP_API_URL env var or defaults to '' (same origin).
- *  - The body contains { room_code, displayed_opportunities } (displayed_opportunities is an array of {id,name,link,country})
- *  - On success the endpoint must return JSON with at least { recommendation: string, analyzed_count: number }.
- *  - The recommendation text is inserted into the 'messages' table via Supabase after being returned.
+ *  - allOpportunities (array) - all currently filtered opportunities for ranking
+ *  - onRankUpdate (function) - callback with ranked opportunity IDs
  */
 
-const Chat = ({ roomCode, userId, masterId, paginatedOpportunities = [], opportunitiesData = null }) => {
+const Chat = ({ roomCode, userId, masterId, allOpportunities = [], onRankUpdate, onRankingLoadingChange }) => {
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(true);
   const [usernames, setUsernames] = useState({}); // Cache for usernames
-  const [askWorldAILoading, setAskWorldAILoading] = useState(false);
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
+  const rankTimeoutRef = useRef(null);
+  const allOpportunitiesRef = useRef(allOpportunities);
+  const onRankUpdateRef = useRef(onRankUpdate);
+  const onRankingLoadingChangeRef = useRef(onRankingLoadingChange);
+
+  // Keep refs updated without causing re-renders/re-subscriptions
+  useEffect(() => {
+    allOpportunitiesRef.current = allOpportunities;
+  }, [allOpportunities]);
+
+  useEffect(() => {
+    onRankUpdateRef.current = onRankUpdate;
+  }, [onRankUpdate]);
+
+  useEffect(() => {
+    onRankingLoadingChangeRef.current = onRankingLoadingChange;
+  }, [onRankingLoadingChange]);
+
+  // Auto-rank opportunities whenever new messages arrive (debounced).
+  // Uses refs so this function identity is stable and won't cause subscription churn.
+  const triggerRanking = useCallback(() => {
+    if (rankTimeoutRef.current) {
+      clearTimeout(rankTimeoutRef.current);
+    }
+
+    rankTimeoutRef.current = setTimeout(async () => {
+      const opps = allOpportunitiesRef.current;
+      const callback = onRankUpdateRef.current;
+      const setLoading = onRankingLoadingChangeRef.current;
+      if (!opps || opps.length === 0 || !callback || !roomCode) return;
+
+      const payload = {
+        room_code: roomCode,
+        opportunities: opps.map(opp => ({
+          id: opp.id || '',
+          name: opp.name || '',
+        })),
+      };
+
+      console.log('Calling rank-opportunities with', opps.length, 'opportunities');
+      if (setLoading) setLoading(true);
+
+      try {
+        const apiBase = process.env.REACT_APP_API_URL ?? '';
+        const response = await fetch(`${apiBase}/api/gemini/rank-opportunities`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          console.log('Rank response:', data);
+          if (data?.ranked_ids && Array.isArray(data.ranked_ids)) {
+            callback(data.ranked_ids);
+          }
+        } else {
+          console.error('Rank endpoint returned status', response.status);
+        }
+      } catch (err) {
+        console.error('Error calling rank-opportunities:', err);
+      } finally {
+        if (setLoading) setLoading(false);
+      }
+    }, 500);
+  }, [roomCode]); // only depends on roomCode now - stable identity
 
   // Scroll to bottom when new messages arrive
   const scrollToBottom = () => {
@@ -140,6 +197,9 @@ const Chat = ({ roomCode, userId, masterId, paginatedOpportunities = [], opportu
     return () => {
       stopped = true;
       clearInterval(pollInterval);
+      if (rankTimeoutRef.current) {
+        clearTimeout(rankTimeoutRef.current);
+      }
     };
   }, [roomCode]);
 
@@ -175,6 +235,9 @@ const Chat = ({ roomCode, userId, masterId, paginatedOpportunities = [], opportu
               }
               return [...prev, newMsg];
             });
+
+            // Trigger ranking whenever a new message arrives
+            triggerRanking();
 
             // fetch username if not cached
             setUsernames((prev) => {
@@ -226,7 +289,7 @@ const Chat = ({ roomCode, userId, masterId, paginatedOpportunities = [], opportu
       console.log('Cleaning up messages subscription');
       supabase.removeChannel(channel);
     };
-  }, [roomCode]);
+  }, [roomCode, triggerRanking]);
 
   // Handle sending a message
   const handleSendMessage = async (e) => {
@@ -273,6 +336,8 @@ const Chat = ({ roomCode, userId, masterId, paginatedOpportunities = [], opportu
             return prev;
           });
         }
+        // Trigger ranking after sending a message
+        triggerRanking();
         inputRef.current?.focus();
       }
     } catch (err) {
@@ -287,96 +352,6 @@ const Chat = ({ roomCode, userId, masterId, paginatedOpportunities = [], opportu
 
   const isMaster = (uid) => {
     return uid === masterId;
-  };
-
-  // Ask WorldAI: calls backend endpoint and inserts returned recommendation as a message
-  const handleAskWorldAI = async () => {
-    if (!paginatedOpportunities || paginatedOpportunities.length === 0) {
-      alert('No opportunities available to analyze. Please wait for opportunities to load.');
-      return;
-    }
-
-    setAskWorldAILoading(true);
-
-    try {
-      // Ensure any pending messages are committed before querying
-      // Wait a brief moment to ensure the latest message is in the database
-      await new Promise(resolve => setTimeout(resolve, 100));
-
-      // Send only the currently displayed (paginated) opportunities (up to 5) to the backend
-      const displayedOpportunities = paginatedOpportunities.map(opp => ({
-        id: opp.id || null,
-        name: opp.name || '',
-        link: opp.link || '',
-        country: opp.country || '',
-      }));
-
-      const payload = {
-        room_code: roomCode,
-        displayed_opportunities: displayedOpportunities,
-      };
-
-      console.log('Calling recommend-opportunity with paginated opportunities:', displayedOpportunities);
-      console.log('Room code:', roomCode, '- Backend will fetch latest message from database');
-
-      // apiBase: allow same-origin by default. If your backend runs on a different origin, set REACT_APP_API_URL.
-      const apiBase = process.env.REACT_APP_API_URL ?? '';
-      const endpoint = `${apiBase}/api/gemini/recommend-opportunity`;
-
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload),
-      });
-
-      if (!response.ok) {
-        const text = await response.text().catch(() => '');
-        console.error('Recommend endpoint returned non-OK status', response.status, text);
-        let parsed = null;
-        try {
-          parsed = text ? JSON.parse(text) : null;
-        } catch (err) {
-          parsed = null;
-        }
-        const humanMessage = parsed?.detail ? JSON.stringify(parsed.detail, null, 2) : text || `HTTP ${response.status}`;
-        alert(`Failed to get recommendation (status ${response.status}):\n\n${humanMessage}`);
-        setAskWorldAILoading(false);
-        return;
-      }
-
-      const data = await response.json().catch(() => null);
-
-      const recommendationText = data?.recommendation || data?.result || JSON.stringify(data) || 'No recommendation received.';
-      const recommendationMessage = `WorldAI Recommendation:\n\n${recommendationText}`;
-
-      // Insert recommendation into messages table (so it appears in chat)
-      // We insert with current userId (you might want to use a dedicated system userId instead)
-      const { data: messageData, error: messageError } = await supabase
-        .from('messages')
-        .insert({
-          room_code: roomCode,
-          user_id: userId,
-          message: recommendationMessage,
-        })
-        .select()
-        .single();
-
-      if (messageError) {
-        console.error('Error sending recommendation message:', messageError);
-        // show recommendation to user even if DB insert failed
-        alert(`WorldAI Recommendation:\n\n${recommendationText}`);
-      } else {
-        console.log('Recommendation message inserted:', messageData);
-      }
-    } catch (error) {
-      console.error('Error calling WorldAI:', error);
-      const msg = error?.message || String(error);
-      alert(`Failed to get recommendation from WorldAI: ${msg}`);
-    } finally {
-      setAskWorldAILoading(false);
-    }
   };
 
   if (loading) {
@@ -421,21 +396,6 @@ const Chat = ({ roomCode, userId, masterId, paginatedOpportunities = [], opportu
         )}
         <div ref={messagesEndRef} />
       </div>
-
-      <button
-        className="ask-worldai-btn"
-        onClick={handleAskWorldAI}
-        disabled={askWorldAILoading || !paginatedOpportunities || paginatedOpportunities.length === 0}
-      >
-        {askWorldAILoading ? (
-          <span className="ask-worldai-loading">
-            <span>⏳</span>
-            <span>Analyzing opportunities...</span>
-          </span>
-        ) : (
-          'Ask WorldAI'
-        )}
-      </button>
 
       <form className="chat-input-form" onSubmit={handleSendMessage}>
         <input

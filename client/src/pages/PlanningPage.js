@@ -23,6 +23,8 @@ const PlanningPage = ({ user }) => {
   const [opportunities, setOpportunities] = useState([]);
   const [paginatedOpportunities, setPaginatedOpportunities] = useState([]);
   const [opportunitiesData, setOpportunitiesData] = useState(null);
+  const [rankedOpportunityIds, setRankedOpportunityIds] = useState(null);
+  const [rankingLoading, setRankingLoading] = useState(false);
   const [catsActive, setCatsActive] = useState(false);
   const [cats, setCats] = useState([]);
   const catIntervalRef = useRef(null);
@@ -699,10 +701,12 @@ const PlanningPage = ({ user }) => {
           />
         </div>
         {/* Chat and Opportunities as overlays */}
-        <Chat roomCode={roomCode} userId={user?.id} masterId={masterId} paginatedOpportunities={paginatedOpportunities} opportunitiesData={opportunitiesData} />
-        <OpportunitiesPanel 
-          roomCode={roomCode} 
+        <Chat roomCode={roomCode} userId={user?.id} masterId={masterId} allOpportunities={opportunities} onRankUpdate={(ids) => setRankedOpportunityIds(ids)} onRankingLoadingChange={(v) => setRankingLoading(v)} />
+        <OpportunitiesPanel
+          roomCode={roomCode}
           selectedCountry={selectedCountry}
+          rankedOpportunityIds={rankedOpportunityIds}
+          rankingLoading={rankingLoading}
           onOpportunitySelect={(lat, lng, name) => {
             console.log('PlanningPage: onOpportunitySelect called with:', { lat, lng, name });
             if (lat !== null && lat !== undefined && lng !== null && lng !== undefined) {
