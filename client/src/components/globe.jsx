@@ -699,7 +699,7 @@ const GlobeComponent = ({ roomCode, isMaster, user, opportunityMarker, opportuni
       .arcStartLng(d => d.startLng)
       .arcEndLat(d => d.endLat)
       .arcEndLng(d => d.endLng)
-      .arcColor(() => '#7c3aed') // Purple color to match theme
+      .arcColor(() => '#1c67e6') // IMC blue to match theme
       .arcStroke(() => 2)
       .arcLabel(() => '') // Label will be updated via useEffect
       .onArcClick(d => {
@@ -1394,8 +1394,8 @@ const GlobeComponent = ({ roomCode, isMaster, user, opportunityMarker, opportuni
             top: "50%",
             left: "50%",
             transform: "translate(-50%, -50%)",
-            backgroundColor: "rgba(10, 12, 25, 0.9)",
-            color: "#f8fafc",
+            backgroundColor: "var(--panel-bg)",
+            color: "var(--text-color)",
             padding: "12px 20px",
             borderRadius: "8px",
             fontSize: "16px",
@@ -1403,7 +1403,7 @@ const GlobeComponent = ({ roomCode, isMaster, user, opportunityMarker, opportuni
             zIndex: 2000,
             pointerEvents: "none",
             boxShadow: "0 4px 16px rgba(0, 0, 0, 0.3)",
-            border: "1px solid rgba(124, 58, 237, 0.5)",
+            border: "1px solid var(--panel-border)",
           }}
         >
           Estimated Flight Time: {hoveredArc.flightTime.toFixed(1)} hours

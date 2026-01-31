@@ -77,6 +77,38 @@
   font-size: 14px;
 }
 
+.public-rooms-page .btn {
+  border: none;
+  border-radius: 999px;
+  padding: 10px 18px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s, color 0.2s;
+}
+
+.public-rooms-page .btn-primary {
+  background: linear-gradient(135deg, #0f3b88, #1c67e6);
+  color: #ffffff;
+  box-shadow: 0 12px 30px rgba(16, 59, 136, 0.35);
+}
+
+.public-rooms-page .btn-primary:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 16px 35px rgba(16, 59, 136, 0.45);
+}
+
+.public-rooms-page .btn-link {
+  background: transparent;
+  border: 1px solid var(--panel-border);
+  color: var(--text-color);
+  padding: 8px 16px;
+}
+
+.public-rooms-page .btn-link:hover {
+  border-color: rgba(28, 103, 230, 0.45);
+  color: var(--accent-strong);
+}
+
 .page-title {
   font-size: 36px;
   font-weight: bold;

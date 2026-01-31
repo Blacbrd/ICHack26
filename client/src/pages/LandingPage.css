@@ -496,7 +496,7 @@
 .public-room-code {
   font-size: 14px;
   color: var(--muted-color);
-  font-family: 'Space Grotesk', monospace;
+  font-family: 'JetBrains Mono', 'SFMono-Regular', Menlo, Monaco, Consolas, 'Courier New', monospace;
   margin-bottom: 4px;
 }
 

@@ -59,6 +59,7 @@
   color: var(--text-color);
   margin: 0;
   letter-spacing: 0.04em;
+  font-family: var(--font-display);
 }
 
 .planning-header-actions {
@@ -98,7 +99,6 @@
   cursor: pointer;
   transition: transform 0.2s, box-shadow 0.2s, background 0.3s;
   box-shadow: var(--button-shadow);
-  margin-left: auto;
   width: auto; /* ensure it sizes to content */
   min-width: 80px;
   max-width: 160px;
@@ -140,7 +140,11 @@
   justify-content: center;
   align-items: center;
   overflow: hidden;
-  background: radial-gradient(circle at 30% 20%, rgba(15, 59, 136, 0.4), rgba(5, 8, 18, 0.85));
+  background: radial-gradient(circle at 30% 20%, rgba(15, 59, 136, 0.35), rgba(5, 8, 18, 0.85));
+}
+
+.planning-page.light .planning-content > .globe-wrapper {
+  background: radial-gradient(circle at 30% 20%, rgba(15, 59, 136, 0.18), rgba(245, 248, 255, 0.9));
 }
 
 /* ===== CHAT OVERLAY ===== */
@@ -170,6 +174,7 @@
   background: var(--panel-bg);
   border-radius: 12px;
   padding: 12px;
+  border: 1px solid var(--panel-border);
 }
 
 /* Purple heading */
@@ -188,6 +193,11 @@
   padding: 14px;
   margin-bottom: 12px;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+}
+
+.planning-page.light .opportunity-card {
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 2px 10px rgba(15, 59, 136, 0.12);
 }
 
 .opportunity-card h3 {
@@ -230,27 +240,27 @@
   align-items: center;
   justify-content: center;
   height: 100vh;
-  background: #f7fafc;
+  background: var(--page-bg);
 }
 
 .planning-loading p,
 .planning-error p {
   font-size: 18px;
-  color: #666;
+  color: var(--muted-color);
   margin-bottom: 16px;
 }
 
 .planning-placeholder {
   text-align: center;
   padding: 48px;
-  background: white;
+  background: var(--panel-bg);
   border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--panel-shadow);
 }
 
 .planning-placeholder p {
   font-size: 18px;
-  color: #666;
+  color: var(--muted-color);
 }
 
 /* ===== BUTTON CONTAINER ===== */
