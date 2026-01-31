@@ -17,6 +17,8 @@ const OpportunitiesPanel = ({
   const [error, setError] = useState(null);
   const [showAllOpportunities, setShowAllOpportunities] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [pendingOpportunity, setPendingOpportunity] = useState(null);
   const itemsPerPage = 5;
   const debounceTimerRef = useRef(null);
 
@@ -394,83 +396,19 @@ const OpportunitiesPanel = ({
 
   const handleSelectThis = (opportunity, e) => {
     e.stopPropagation(); // Prevent tile click
-    
-    // Check if this is the specific Shinjuku opportunity (for flight route)
-    const shinjukuLat = 35.6897;
-    const shinjukuLng = 139.6997;
-    const isShinjukuOpportunity = opportunity.lat && opportunity.lng &&
-      Math.abs(opportunity.lat - shinjukuLat) < 0.0001 &&
-      Math.abs(opportunity.lng - shinjukuLng) < 0.0001;
-    
-    if (isShinjukuOpportunity) {
-      // For Shinjuku opportunity: keep it selected to show the flight route
-      alert(`Congratulations! You've selected "${opportunity.name}". The flight route from Manchester will be displayed.`);
-      
-      // Clear country selection
-      if (onCountrySelect) {
-        onCountrySelect(null);
-      }
-      
-      // Set the opportunity marker (keep it selected)
-      if (onOpportunitySelect) {
-        onOpportunitySelect(opportunity.lat, opportunity.lng, opportunity.name);
-      }
-      
-      // Update database to keep the opportunity selected
-      if (roomCode) {
-        supabase
-          .from('rooms')
-          .update({
-            selected_opportunity_lat: opportunity.lat,
-            selected_opportunity_lng: opportunity.lng,
-            selected_country: null,
-          })
-          .eq('room_code', roomCode);
-      }
-      
-      // Clear opportunity selection locally
-      setSelectedOpportunityId(null);
-      setShowAllOpportunities(true);
-    } else {
-      // For other opportunities: show congrats and reset (original behavior)
-      alert(`Congratulations! You've selected "${opportunity.name}". The globe will reset to its default position.`);
-      
-      // Clear country selection first (this ensures the reset condition is met)
-      if (onCountrySelect) {
-        onCountrySelect(null);
-      }
-      
-      // First, ensure the opportunity marker is set (if not already set)
-      // This ensures that hadOpportunity will be true when we clear it, triggering the reset
-      if (onOpportunitySelect) {
-        onOpportunitySelect(opportunity.lat, opportunity.lng, opportunity.name);
-      }
-      
-      // Clear opportunity selection locally
-      setSelectedOpportunityId(null);
-      setShowAllOpportunities(true);
-      
-      // Clear opportunity marker from database (including country)
-      if (roomCode) {
-        supabase
-          .from('rooms')
-          .update({
-            selected_opportunity_lat: null,
-            selected_opportunity_lng: null,
-            selected_country: null,
-          })
-          .eq('room_code', roomCode);
-      }
+    setPendingOpportunity(opportunity);
+    setConfirmOpen(true);
+  };
 
-      // Now clear the globe marker after a short delay
-      // This ensures the opportunity marker was set first, so hadOpportunity will be true
-      // The globe reset requires both opportunity and country to be cleared
-      setTimeout(() => {
-        if (onOpportunitySelect) {
-          onOpportunitySelect(null, null, null);
-        }
-      }, 100);
+  const handleConfirmSelection = (confirmed) => {
+    setConfirmOpen(false);
+    if (!confirmed) {
+      setPendingOpportunity(null);
+      return;
     }
+
+    // Placeholder: backend actions will be added later.
+    setPendingOpportunity(null);
   };
 
   if (loading) {
@@ -579,6 +517,33 @@ const OpportunitiesPanel = ({
           </>
         )}
       </div>
+
+      {confirmOpen && (
+        <div className="confirm-overlay">
+          <div className="confirm-dialog" role="dialog" aria-modal="true">
+            <p className="confirm-title">Are you sure?</p>
+            <p className="confirm-subtitle">
+              {pendingOpportunity ? `Select \"${pendingOpportunity.name}\"?` : 'Select this opportunity?'}
+            </p>
+            <div className="confirm-actions">
+              <button
+                type="button"
+                className="confirm-button confirm-secondary"
+                onClick={() => handleConfirmSelection(false)}
+              >
+                No
+              </button>
+              <button
+                type="button"
+                className="confirm-button confirm-primary"
+                onClick={() => handleConfirmSelection(true)}
+              >
+                Yes
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
