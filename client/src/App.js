@@ -8,6 +8,7 @@ import JoinRoomPage from './pages/JoinRoomPage';
 import PublicRoomsPage from './pages/PublicRoomsPage';
 import RoomPage from './pages/RoomPage';
 import PlanningPage from './pages/PlanningPage';
+import MyProfile from './pages/MyProfile';
 import './App.css';
 
 function App() {
@@ -69,9 +70,17 @@ function App() {
           path="/room/:code" 
           element={user ? <RoomPage user={user} /> : <Navigate to="/login" replace />} 
         />
+        <Route
+          path="/planning/:code"
+          element={user ? <PlanningPage user={user} /> : <Navigate to="/login" replace />}
+        />
+        <Route
+          path="/chat/:code"
+          element={user ? <ChatPage user={user} /> : <Navigate to="/login" replace />}
+        />
         <Route 
-          path="/planning/:code" 
-          element={user ? <PlanningPage user={user} /> : <Navigate to="/login" replace />} 
+          path="/profile" 
+          element={user ? <MyProfile user={user} /> : <Navigate to="/login" replace />} 
         />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
