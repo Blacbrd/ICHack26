@@ -1,0 +1,156 @@
+.charity-post-page {
+    --bg-gradient: linear-gradient(135deg, #f5f8ff 0%, #edf3ff 50%, #dfe9ff 100%);
+    min-height: 100vh;
+    background: var(--bg-gradient);
+    color: #0b1224;
+    font-family: system-ui, -apple-system, sans-serif;
+    display: flex;
+    flex-direction: column;
+}
+
+.charity-post-page.dark {
+    --bg-gradient: radial-gradient(circle at 20% 20%, #0b1327, #05080f);
+    color: #f6f8ff;
+}
+
+.cp-container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 40px 20px;
+    width: 100%;
+    flex: 1;
+}
+
+.cp-card {
+    background: rgba(255, 255, 255, 0.9);
+    border-radius: 24px;
+    padding: 32px;
+    box-shadow: 0 10px 40px rgba(15, 59, 136, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.5);
+}
+
+.charity-post-page.dark .cp-card {
+    background: rgba(15, 18, 35, 0.85);
+    border-color: rgba(255, 255, 255, 0.1);
+    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.4);
+}
+
+.cp-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 30px;
+}
+
+.cp-title {
+    font-size: 2rem;
+    font-weight: 700;
+    margin: 0;
+    background: linear-gradient(135deg, #0f3b88, #1c67e6);
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.charity-post-page.dark .cp-title {
+    background: linear-gradient(135deg, #4dabf7, #74c0fc);
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.cp-form-group {
+    margin-bottom: 24px;
+}
+
+.cp-label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 600;
+    font-size: 1.1rem;
+}
+
+.cp-textarea {
+    width: 100%;
+    min-height: 200px;
+    padding: 16px;
+    border-radius: 16px;
+    border: 2px solid rgba(15, 59, 136, 0.1);
+    background: rgba(255, 255, 255, 0.8);
+    font-size: 1rem;
+    resize: vertical;
+    transition: all 0.2s;
+    color: inherit;
+    font-family: inherit;
+}
+
+.charity-post-page.dark .cp-textarea {
+    background: rgba(0, 0, 0, 0.2);
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+.cp-textarea:focus {
+    outline: none;
+    border-color: #1c67e6;
+    box-shadow: 0 0 0 4px rgba(28, 103, 230, 0.1);
+}
+
+.cp-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 16px;
+    align-items: center;
+}
+
+.btn-post {
+    background: linear-gradient(135deg, #0f3b88, #1c67e6);
+    color: white;
+    border: none;
+    padding: 12px 32px;
+    border-radius: 12px;
+    font-weight: 600;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+    box-shadow: 0 4px 12px rgba(15, 59, 136, 0.2);
+}
+
+.btn-post:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 16px rgba(15, 59, 136, 0.3);
+}
+
+.btn-post:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.cp-back-btn {
+    background: transparent;
+    border: 1px solid rgba(15, 59, 136, 0.2);
+    padding: 8px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 500;
+    color: inherit;
+}
+
+.charity-post-page.dark .cp-back-btn {
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+.cp-success {
+    background: rgba(16, 185, 129, 0.1);
+    color: #059669;
+    padding: 12px;
+    border-radius: 12px;
+    margin-bottom: 20px;
+    text-align: center;
+    border: 1px solid rgba(16, 185, 129, 0.2);
+}
+
+.charity-post-page.dark .cp-success {
+    background: rgba(16, 185, 129, 0.2);
+    color: #34d399;
+}
