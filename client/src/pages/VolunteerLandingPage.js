@@ -557,7 +557,14 @@ const VolunteerLandingPage = ({ user }) => {
                       <span className="post-time">{post.time}</span>
                     </div>
                   </div>
-                  <div className="post-body">{post.content}</div>
+                  <div className="post-body">
+                    {post.content}
+                    {post.image && (
+                      <div style={{ marginTop: '12px', borderRadius: '12px', overflow: 'hidden' }}>
+                        <img src={post.image} alt="Update" style={{ width: '100%', height: 'auto', display: 'block' }} />
+                      </div>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>

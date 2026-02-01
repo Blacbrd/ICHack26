@@ -30,16 +30,17 @@
   grid-template-columns: 300px 1fr 320px;
   /* Adjusted right column width */
   gap: 24px;
+  grid-template-rows: minmax(0, 1fr);
   max-width: 1400px;
   margin: 0 auto;
   height: calc(100vh - 120px);
 }
 
-/* Middle column wrapper - stacks button and feed vertically */
 .middle-column-wrapper {
   display: flex;
   flex-direction: column;
   gap: 24px;
+  min-height: 0;
 }
 
 /* Explore Button Container */
@@ -72,15 +73,20 @@
 
 /* Flat color shift animation - no gradients */
 @keyframes colorShift {
-  0%, 100% {
+
+  0%,
+  100% {
     background: #1c67e6;
   }
+
   25% {
     background: #1858c4;
   }
+
   50% {
     background: #0f3b88;
   }
+
   75% {
     background: #2c7dff;
   }
@@ -152,9 +158,12 @@
 }
 
 @keyframes textDistort {
-  0%, 100% {
+
+  0%,
+  100% {
     transform: scaleX(1) scaleY(1);
   }
+
   50% {
     transform: scaleX(0.98) scaleY(1.02);
   }
@@ -196,30 +205,40 @@
 }
 
 @keyframes shape1Move {
-  0%, 100% {
+
+  0%,
+  100% {
     transform: translateY(0) rotate(0deg);
   }
+
   50% {
     transform: translateY(100%) rotate(180deg);
   }
 }
 
 @keyframes shape2Move {
-  0%, 100% {
+
+  0%,
+  100% {
     transform: translateY(0) rotate(0deg);
   }
+
   50% {
     transform: translateY(-100%) rotate(-180deg);
   }
 }
 
 @keyframes shape3Move {
-  0%, 100% {
+
+  0%,
+  100% {
     transform: translateX(0) rotate(0deg) scale(1);
   }
+
   33% {
     transform: translateX(-50%) rotate(120deg) scale(1.2);
   }
+
   66% {
     transform: translateX(50%) rotate(240deg) scale(0.8);
   }
@@ -300,6 +319,11 @@
 }
 
 /* --- MIDDLE COL: CHARITY FEED --- */
+.middle-column {
+  flex: 1;
+  min-height: 0;
+}
+
 .feed-section {
   flex: 1;
   overflow-y: auto;
