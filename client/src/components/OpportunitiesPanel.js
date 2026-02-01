@@ -12,6 +12,10 @@ const OpportunitiesPanel = ({
   onOpportunitiesDataChange,
   rankedOpportunityIds,
   rankingLoading,
+  // --- NEW PROPS FOR SELECTION ---
+  selectedCharities,
+  onToggleCharity,
+  // -------------------------------
 }) => {
   const [opportunities, setOpportunities] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -630,7 +634,7 @@ const OpportunitiesPanel = ({
               >
                 <div className="opportunity-title">{opp.name}</div>
                 <div className="opportunity-country">{opp.country}</div>
-                <div className="opportunity-actions">
+                <div className="opportunity-actions" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   {opp.link && (
                     <a
                       href={opp.link}
@@ -638,16 +642,39 @@ const OpportunitiesPanel = ({
                       rel="noopener noreferrer"
                       className="opportunity-link"
                       onClick={(e) => e.stopPropagation()}
+                      style={{ color: '#3b82f6', textDecoration: 'none' }}
                     >
                       Learn more →
                     </a>
                   )}
-                  <button
-                    className="opportunity-select-button"
-                    onClick={(e) => handleSelectThis(opp, e)}
-                  >
-                    Select this
-                  </button>
+                  
+                  <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                    <button
+                      className="opportunity-select-button"
+                      onClick={(e) => handleSelectThis(opp, e)}
+                    >
+                      Select this
+                    </button>
+                    
+                    {/* --- NEW CHECKBOX FOR MULTI-SELECTION --- */}
+                    <input 
+                      type="checkbox" 
+                      style={{ 
+                        width: '20px', 
+                        height: '20px', 
+                        cursor: 'pointer',
+                        transform: 'scale(1.2)',
+                        accentColor: '#3b82f6'
+                      }}
+                      checked={selectedCharities && selectedCharities.some(c => c.id === opp.id)}
+                      disabled={selectedCharities && !selectedCharities.some(c => c.id === opp.id) && selectedCharities.length >= 5}
+                      onChange={() => onToggleCharity && onToggleCharity(opp)}
+                      onClick={(e) => e.stopPropagation()} // Prevent clicking the checkbox from triggering tile selection
+                      title={selectedCharities && !selectedCharities.some(c => c.id === opp.id) && selectedCharities.length >= 5 
+                        ? "You can only select up to 5 charities" 
+                        : "Select this charity"}
+                    />
+                  </div>
                 </div>
               </div>
             ))}

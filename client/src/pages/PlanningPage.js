@@ -26,6 +26,12 @@ const PlanningPage = ({ user }) => {
   const [opportunitiesData, setOpportunitiesData] = useState(null); // grouped by country if needed
   const [rankedOpportunityIds, setRankedOpportunityIds] = useState(null);
   const [rankingLoading, setRankingLoading] = useState(false);
+  
+  // --- NEW STATE FOR MULTI-SELECTION ---
+  const [selectedCharities, setSelectedCharities] = useState([]); // Array of objects
+  const [showSelectedPopup, setShowSelectedPopup] = useState(false);
+  // -------------------------------------
+  
   // ... (kept your fun UI/game state)
   const [catsActive, setCatsActive] = useState(false);
   const [cats, setCats] = useState([]);
@@ -52,6 +58,29 @@ const PlanningPage = ({ user }) => {
   const toggleTheme = () => {
     setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'));
   };
+
+  // --- NEW HANDLER FOR CHARITY SELECTION ---
+  const toggleCharitySelection = (charity) => {
+    setSelectedCharities((prev) => {
+      const exists = prev.find((c) => c.id === charity.id);
+      if (exists) {
+        // Remove it
+        return prev.filter((c) => c.id !== charity.id);
+      } else {
+        // Add it (check limit)
+        if (prev.length >= 5) {
+          alert("You can only select up to 5 charities.");
+          return prev;
+        }
+        return [...prev, charity];
+      }
+    });
+
+    // NOTE: If you want to sync this list to Supabase for everyone to see,
+    // you would add a supabase.update() call here to save `selectedCharities`
+    // to a JSON column in your 'rooms' table.
+  };
+  // -----------------------------------------
 
   // ------------- LOAD ROOM + PARTICIPANT -------------
   useEffect(() => {
@@ -150,6 +179,7 @@ const PlanningPage = ({ user }) => {
           country: (row.country || '').toLowerCase(),
           link: row.link || null,
           name: row.name || '(no name)',
+          id: row.charity_id, // Added id for selection tracking
           charity_id: row.charity_id,
           email: row.email || null,
           causes: row.causes || [],
@@ -271,14 +301,6 @@ const PlanningPage = ({ user }) => {
     };
   }, [roomCode, navigate, isMaster, selectedCountry, opportunityMarker]);
 
-  // ------------- Cat invasion, mouse, explosion, and cleanup (kept same) -------------
-  // ... (all your existing cat/waft/explosion/hanzila code stays exactly the same)
-  // For brevity I keep your code but it is unchanged — copy/paste from your original file:
-  // startCatInvasion, stopCatInvasion, handleMouseDown, handleMouseUp, handleMouseMove,
-  // useEffect for bounds, ESC handler, handleExplosionClick, handleExplosionEnd, handleHanzilaClick,
-  // final cleanup effect, handleLeaveRoom, etc.
-  // -------------------------------
-  // (I'm including those functions below exactly as you had them.)
 
   // Cat invasion functionality (same as your original)
   const startCatInvasion = () => {
@@ -542,6 +564,16 @@ const PlanningPage = ({ user }) => {
     <div className={`planning-page ${theme}`}>
       <div className="planning-header">
         <h1>Planning Room: {roomCode}</h1>
+        
+        {/* NEW BUTTON FOR SHOWING SELECTED CHARITIES */}
+        <button 
+          className="btn btn-primary"
+          style={{ margin: '0 20px' }}
+          onClick={() => setShowSelectedPopup(true)}
+        >
+          Show selected charities ({selectedCharities.length})
+        </button>
+
         <div className="planning-header-actions">
           <button type="button" className="theme-toggle" onClick={toggleTheme}>
             {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
@@ -707,6 +739,12 @@ const PlanningPage = ({ user }) => {
           selectedCountry={selectedCountry}
           rankedOpportunityIds={rankedOpportunityIds}
           rankingLoading={rankingLoading}
+          
+          // --- NEW PROPS FOR SELECTION ---
+          selectedCharities={selectedCharities}
+          onToggleCharity={toggleCharitySelection}
+          // -------------------------------
+
           onOpportunitySelect={(lat, lng, name) => {
             if (lat !== null && lat !== undefined && lng !== null && lng !== undefined) {
               setOpportunityMarker({ lat, lng, name });
@@ -762,6 +800,88 @@ const PlanningPage = ({ user }) => {
             setShowDinosaurGame(false);
           }}
         />
+      )}
+
+      {/* --- NEW SELECTED CHARITIES POPUP --- */}
+      {showSelectedPopup && (
+        <div 
+          className="selected-charities-overlay"
+          onClick={() => setShowSelectedPopup(false)} // Close when clicking background
+          style={{
+            position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh',
+            backgroundColor: 'rgba(0,0,0,0.6)', zIndex: 20000,
+            display: 'flex', alignItems: 'center', justifyContent: 'center'
+          }}
+        >
+          <div 
+            className="selected-charities-modal"
+            onClick={(e) => e.stopPropagation()} // Prevent close when clicking modal content
+            style={{
+              backgroundColor: theme === 'dark' ? '#1f2937' : '#fff',
+              color: theme === 'dark' ? '#fff' : '#000',
+              padding: '2rem', borderRadius: '12px',
+              maxWidth: '500px', width: '90%', maxHeight: '80vh', overflowY: 'auto'
+            }}
+          >
+            <h2>Selected Charities</h2>
+            <p style={{ marginBottom: '1rem', opacity: 0.7 }}>
+              You have selected {selectedCharities.length} / 5 charities.
+            </p>
+            
+            <div className="modal-list">
+              {selectedCharities.length === 0 && <p>No charities selected yet.</p>}
+              
+              {selectedCharities.map(opp => (
+                <div key={opp.id} style={{ 
+                    border: '1px solid #4b5563', 
+                    borderRadius: '8px', 
+                    padding: '12px', 
+                    marginBottom: '10px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '8px'
+                  }}>
+                  <div style={{ fontWeight: 'bold', fontSize: '1.1rem' }}>{opp.name}</div>
+                  <div style={{ fontSize: '0.9rem', opacity: 0.8 }}>{opp.country}</div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '5px' }}>
+                    {opp.link && (
+                      <a 
+                        href={opp.link} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        style={{ color: '#3b82f6', textDecoration: 'none' }}
+                      >
+                        Learn more →
+                      </a>
+                    )}
+                    <input 
+                      type="checkbox" 
+                      checked={true} // Always checked in the "Selected" list
+                      onChange={() => toggleCharitySelection(opp)}
+                      style={{ transform: 'scale(1.5)', cursor: 'pointer' }}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <button 
+              onClick={() => setShowSelectedPopup(false)}
+              style={{
+                marginTop: '1.5rem',
+                padding: '0.5rem 1rem',
+                backgroundColor: '#3b82f6',
+                color: 'white',
+                border: 'none',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                float: 'right'
+              }}
+            >
+              Close
+            </button>
+          </div>
+        </div>
       )}
     </div>
   );
