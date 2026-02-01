@@ -630,6 +630,21 @@ const PlanningPage = ({ user }) => {
       <div className="planning-header">
         <h1>Planning Room: {roomCode}</h1>
         <div className="planning-header-actions">
+          <button
+            className="btn-show-selected"
+            onClick={() => setShowSelectedPopup(true)}
+            style={{
+              padding: '8px 16px',
+              backgroundColor: '#10b981',
+              color: 'white',
+              border: 'none',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              fontWeight: '600'
+            }}
+          >
+            Show Selected ({selectedCharities.length})
+          </button>
           <button className="theme-toggle" onClick={toggleTheme}>
             {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
           </button>
