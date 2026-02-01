@@ -46,6 +46,7 @@ const PlanningPage = ({ user }) => {
   const lastMasterActionRef = useRef(Date.now());
   const [showDinosaurGame, setShowDinosaurGame] = useState(false);
   const [theme, setTheme] = useTheme('dark');
+  const [voiceSelectedIndex, setVoiceSelectedIndex] = useState(null);
 
   const toggleTheme = () => {
     setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'));
@@ -709,6 +710,7 @@ const PlanningPage = ({ user }) => {
           allOpportunities={opportunities}
           onRankUpdate={(ids) => setRankedOpportunityIds(ids)}
           onRankingLoadingChange={(v) => setRankingLoading(v)}
+          selectedCountry={selectedCountry}
           onVoiceCountrySelect={(country) => {
             setSelectedCountry(country);
             setOpportunityMarker(null);
@@ -722,6 +724,11 @@ const PlanningPage = ({ user }) => {
                 })
                 .eq('room_code', roomCode);
             }
+          }}
+          onVoiceOpportunitySelect={(index) => {
+            // Pass the index to OpportunitiesPanel via state
+            console.log('Voice requesting opportunity at index:', index);
+            setVoiceSelectedIndex(index);
           }}
         />
         <OpportunitiesPanel
@@ -766,6 +773,8 @@ const PlanningPage = ({ user }) => {
           onOpportunitiesDataChange={(data) => {
             setOpportunitiesData(data);
           }}
+          voiceSelectedIndex={voiceSelectedIndex}
+          onVoiceSelectionHandled={() => setVoiceSelectedIndex(null)}
         />
       </div>
       {/* Dinosaur Game Toggle Button - only for non-master users */}

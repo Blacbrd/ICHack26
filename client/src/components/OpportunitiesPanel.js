@@ -12,6 +12,8 @@ const OpportunitiesPanel = ({
   onOpportunitiesDataChange,
   rankedOpportunityIds,
   rankingLoading,
+  voiceSelectedIndex,
+  onVoiceSelectionHandled,
 }) => {
   const [opportunities, setOpportunities] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -262,6 +264,51 @@ const OpportunitiesPanel = ({
       // No change — do nothing (stops infinite loops caused by repeated identical events)
     }
   }, [paginatedOpportunities, onPaginatedOpportunitiesChange]);
+
+  // Handle voice selection by index
+  useEffect(() => {
+    if (voiceSelectedIndex === null || voiceSelectedIndex === undefined) return;
+
+    // Get the opportunity at the specified index from paginated list
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const visibleOpps = displayedOpportunities.slice(startIndex, startIndex + itemsPerPage);
+    const opp = visibleOpps[voiceSelectedIndex];
+
+    if (opp) {
+      console.log('Voice selecting opportunity:', opp.name, 'at index', voiceSelectedIndex);
+
+      // Set local state to show only this opportunity
+      setSelectedOpportunityId(opp.id);
+      setShowAllOpportunities(false);
+
+      // Clear country selection
+      if (onCountrySelect) {
+        onCountrySelect(null);
+      }
+
+      // Notify parent of opportunity selection
+      if (onOpportunitySelect) {
+        onOpportunitySelect(opp.lat, opp.lng, opp.name);
+      }
+
+      // Update database
+      if (roomCode) {
+        supabase
+          .from('rooms')
+          .update({
+            selected_opportunity_lat: opp.lat,
+            selected_opportunity_lng: opp.lng,
+            selected_country: null,
+          })
+          .eq('room_code', roomCode);
+      }
+    }
+
+    // Notify parent that we've handled the voice selection
+    if (onVoiceSelectionHandled) {
+      onVoiceSelectionHandled();
+    }
+  }, [voiceSelectedIndex]);
 
   // Load initial selected opportunity from database
   useEffect(() => {

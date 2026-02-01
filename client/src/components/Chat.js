@@ -85,7 +85,45 @@ function extractCountry(text) {
   return null;
 }
 
-const Chat = ({ roomCode, userId, masterId, allOpportunities = [], onRankUpdate, onRankingLoadingChange, onVoiceCountrySelect }) => {
+const ORDINAL_MAP = {
+  'first': 0,
+  'one': 0,
+  '1st': 0,
+  'first one': 0,
+  'number one': 0,
+  'second': 1,
+  'two': 1,
+  '2nd': 1,
+  'second one': 1,
+  'number two': 1,
+  'third': 2,
+  'three': 2,
+  '3rd': 2,
+  'third one': 2,
+  'number three': 2,
+  'fourth': 3,
+  'four': 3,
+  '4th': 3,
+  'fourth one': 3,
+  'number four': 3,
+  'fifth': 4,
+  'five': 4,
+  '5th': 4,
+  'fifth one': 4,
+  'number five': 4,
+};
+
+function extractOrdinal(text) {
+  const lower = text.toLowerCase().trim();
+  // Check longer phrases first to avoid partial matches
+  const sorted = Object.entries(ORDINAL_MAP).sort((a, b) => b[0].length - a[0].length);
+  for (const [phrase, index] of sorted) {
+    if (lower.includes(phrase)) return index;
+  }
+  return null;
+}
+
+const Chat = ({ roomCode, userId, masterId, allOpportunities = [], onRankUpdate, onRankingLoadingChange, onVoiceCountrySelect, onVoiceOpportunitySelect, selectedCountry }) => {
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(true);
@@ -455,6 +493,7 @@ const Chat = ({ roomCode, userId, masterId, allOpportunities = [], onRankUpdate,
           const formData = new FormData();
           formData.append('file', blob, 'recording.webm');
           formData.append('model_id', 'scribe_v1');
+          formData.append('language_code', 'en');
 
           const res = await fetch('https://api.elevenlabs.io/v1/speech-to-text', {
             method: 'POST',
@@ -473,12 +512,23 @@ const Chat = ({ roomCode, userId, masterId, allOpportunities = [], onRankUpdate,
           const transcript = data.text || '';
           console.log('Voice transcript:', transcript);
 
+          // If a country is already selected, check for ordinal selection
+          if (selectedCountry) {
+            const ordinalIndex = extractOrdinal(transcript);
+            if (ordinalIndex !== null && onVoiceOpportunitySelect) {
+              console.log('Voice selected opportunity index:', ordinalIndex);
+              onVoiceOpportunitySelect(ordinalIndex);
+              return;
+            }
+          }
+
+          // Otherwise, try to extract a country name
           const country = extractCountry(transcript);
           if (country && onVoiceCountrySelect) {
             console.log('Voice selected country:', country);
             onVoiceCountrySelect(country);
           } else {
-            console.log('No country found in transcript:', transcript);
+            console.log('No country or ordinal found in transcript:', transcript);
           }
         } catch (err) {
           console.error('Error calling ElevenLabs STT:', err);
