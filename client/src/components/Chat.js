@@ -129,6 +129,21 @@ function checkGoBack(text) {
   return goBackPhrases.some(phrase => lower.includes(phrase));
 }
 
+// Extract message after "send" command
+function extractSendMessage(text) {
+  const lower = text.toLowerCase();
+  const sendIndex = lower.indexOf('send');
+  if (sendIndex === -1) return null;
+
+  // Get everything after "send"
+  const afterSend = text.slice(sendIndex + 4).trim();
+  // Remove leading punctuation and whitespace
+  const cleaned = afterSend.replace(/^[^a-zA-Z0-9]+/, '').trim();
+  // Remove trailing period if it's the only punctuation at the end
+  const withoutTrailingPeriod = cleaned.replace(/\.\s*$/, '').trim();
+  return withoutTrailingPeriod.length > 0 ? withoutTrailingPeriod : null;
+}
+
 // Normalize text: remove punctuation, lowercase, split into words
 function normalizeText(s) {
   return s.toLowerCase().replace(/[^a-z0-9\s]/g, ' ').split(/\s+/).filter(w => w.length > 0);
@@ -648,7 +663,31 @@ const Chat = ({ roomCode, userId, masterId, allOpportunities = [], onRankUpdate,
           const transcript = data.text || '';
           console.log('Voice transcript:', transcript);
 
-          // Check for "go back" command first
+          // Check for "send" command first (send chat message)
+          const sendMessage = extractSendMessage(transcript);
+          if (sendMessage) {
+            console.log('Voice command: send message:', sendMessage);
+            // Send the message via the chat
+            try {
+              const { error } = await supabase
+                .from('messages')
+                .insert({
+                  room_code: roomCode,
+                  user_id: userId,
+                  message: sendMessage,
+                });
+              if (error) {
+                console.error('Error sending voice message:', error);
+              } else {
+                console.log('Voice message sent successfully');
+              }
+            } catch (err) {
+              console.error('Error sending voice message:', err);
+            }
+            return;
+          }
+
+          // Check for "go back" command
           if (checkGoBack(transcript)) {
             console.log('Voice command: go back');
             if (onVoiceGoBack) {
