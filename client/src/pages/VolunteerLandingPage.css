@@ -204,37 +204,18 @@
   object-fit: cover;
 }
 
-.profile-info-compact {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  overflow: hidden;
-  gap: 2px;
-  /* Slight gap between name and email */
-}
-
 .profile-name {
+  flex: 1;
   font-weight: 700;
   font-size: 1.05rem;
   color: #ffffff;
-  /* Force white text */
   margin: 0;
   line-height: 1.2;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-}
-
-.profile-email {
-  font-size: 0.8rem;
-  color: rgba(255, 255, 255, 0.85);
-  /* Slightly muted white */
-  margin: 0;
-  line-height: 1.2;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  display: flex;
+  align-items: center;
 }
 
 .my-rooms-section {

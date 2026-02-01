@@ -338,10 +338,7 @@ const VolunteerLandingPage = ({ user }) => {
     <div className={`volunteer-page ${theme}`}>
       <header className="landing-nav">
         <div className="logo-section" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <img src="/imc-logo.svg" alt="IMC Logo" style={{ height: '40px' }} />
-          <div style={{ display: 'flex', flexDirection: 'column' }}>
-            <span style={{ fontWeight: '700', fontSize: '18px' }}>VisaWorld</span>
-          </div>
+          <img src="/imcharitable-white.png" alt="IMCharitable" style={{ height: '40px' }} />
         </div>
         <div className="nav-actions" style={{ display: 'flex', gap: '10px' }}>
           <button type="button" className="volunteer-btn-signout" onClick={toggleTheme}>
@@ -401,11 +398,11 @@ const VolunteerLandingPage = ({ user }) => {
                 alt="Profile"
               />
             </div>
-            <div className="profile-info-compact">
-              <div className="profile-name">
-                {user?.user_metadata?.username || user?.user_metadata?.full_name || 'Volunteer'}
-              </div>
-              <div className="profile-email">{user?.email}</div>
+            <div className="profile-name">
+              {(() => {
+                const name = user?.user_metadata?.username || user?.user_metadata?.full_name || 'Volunteer';
+                return name.charAt(0).toUpperCase() + name.slice(1);
+              })()}
             </div>
             <button
               className="btn-settings"

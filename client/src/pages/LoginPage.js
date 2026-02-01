@@ -247,11 +247,7 @@ const LoginPage = () => {
       </button>
       <div className="login-container">
         <div className="login-logo">
-          <img className="login-logo-mark" src="/imc-logo.svg" alt="IMC Trading Logo" />
-          <div className="login-logo-text">
-            <h1 className="login-title">VisaWorld</h1>
-            <p className="login-tagline">Wereld van Leven</p>
-          </div>
+          <img className="login-logo-mark" src="/imcharitable-white.png" alt="IMCharitable" style={{ height: '50px' }} />
         </div>
 
         <p className="login-subtitle">{isSignUp ? 'Create an account' : 'Sign in to your account'}</p>

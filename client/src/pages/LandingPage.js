@@ -6,7 +6,7 @@ import './LandingPage.css';
 
 const UserIcon = (props) => (
   <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+    <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" />
   </svg>
 );
 
@@ -184,7 +184,7 @@ const LandingPage = ({ user }) => {
         throw new Error('Failed to generate unique room code');
       }
 
-            // Create room
+      // Create room
       // No room name input in UI — use default name based on generated code
       const sanitizedRoomName = '';
 
@@ -282,13 +282,13 @@ const LandingPage = ({ user }) => {
               .select('username, email')
               .eq('id', room.master_id)
               .maybeSingle();
-            
+
             if (!profileError && creatorProfile) {
               // Use username if available, otherwise use email prefix, otherwise use email
-              creatorUsername = creatorProfile.username || 
-                               creatorProfile.email?.split('@')[0] || 
-                               creatorProfile.email || 
-                               null;
+              creatorUsername = creatorProfile.username ||
+                creatorProfile.email?.split('@')[0] ||
+                creatorProfile.email ||
+                null;
             }
           } catch (err) {
             console.error('Error fetching creator profile:', err);
@@ -404,13 +404,7 @@ const LandingPage = ({ user }) => {
       <div className="landing-shell">
         <header className="landing-nav">
           <div className="brand-cluster">
-            <div className="brand-mark">
-              <img src="/imc-logo.svg" alt="IMC Trading Logo" />
-            </div>
-            <div className="brand-copy">
-              <span className="brand-name">VisaWorld</span>
-              <span className="brand-tagline">Wereld van Leven</span>
-            </div>
+            <img src="/imcharitable-white.png" alt="IMCharitable" style={{ height: '40px' }} />
           </div>
           <div className="nav-actions">
             <div className="language-control">
