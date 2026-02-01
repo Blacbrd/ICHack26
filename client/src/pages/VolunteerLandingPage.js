@@ -34,27 +34,28 @@ const VolunteerLandingPage = ({ user }) => {
   const newsItems = [
     {
       id: 1,
-      tag: "Urgent",
       title: "Turkey-Syria Earthquake Response",
       snippet: "International aid teams requesting additional translators and medical logistics volunteers in Hatay province immediately."
     },
     {
       id: 2,
-      tag: "Alert",
       title: "Flash Floods in Pakistan",
       snippet: "Rising water levels in Sindh have displaced thousands. Emergency shelter construction volunteers needed for Phase 2 relief."
     },
     {
       id: 3,
-      tag: "Update",
       title: "Wildfire Recovery: Rhodes",
       snippet: "Reforestation projects are opening for registration starting next week. Local transport provided from Athens."
     },
     {
       id: 4,
-      tag: "Local",
-      title: "Food Bank Shortages",
-      snippet: "City-wide call for evening shift volunteers to assist with meal prep and distribution in downtown centers."
+      title: "Hurricane Relief: Florida Gulf Coast",
+      snippet: "Ongoing recovery efforts in Fort Myers and Naples require volunteers for debris removal and home reconstruction support."
+    },
+    {
+      id: 5,
+      title: "Los Angeles Wildfires",
+      snippet: "Multiple wildfires across LA County have displaced thousands. Urgent need for evacuation support volunteers and emergency supply distribution in Pasadena and Altadena areas."
     },
   ];
 
@@ -517,7 +518,6 @@ const VolunteerLandingPage = ({ user }) => {
           <div className="news-list">
             {newsItems.map(news => (
               <div key={news.id} className="news-item">
-                <span className="news-badge">{news.tag}</span>
                 <div className="news-headline">{news.title}</div>
                 <div className="news-snippet">{news.snippet}</div>
               </div>
