@@ -30,6 +30,7 @@ const RoomPage = ({ user }) => {
   const [roomName, setRoomName] = useState('');
   const [roomDescription, setRoomDescription] = useState('');
   const [descriptionError, setDescriptionError] = useState('');
+  const [isParticipant, setIsParticipant] = useState(false);
   const planningStartedRef = useRef(false);
   const [theme, setTheme] = useTheme('dark');
   const [language, setLanguage] = useState(() => {
@@ -66,6 +67,9 @@ const RoomPage = ({ user }) => {
       signOut: 'Sign Out',
       languageAria: 'Select language',
       leaveRoom: 'Leave Room',
+      joinRoom: 'Join Room',
+      previewMode: 'You are viewing this room.',
+      joinToParticipate: 'Join to participate in planning.',
     },
     es: {
       waitingTitle: 'Esperando Para Comenzar',
@@ -87,6 +91,9 @@ const RoomPage = ({ user }) => {
       signOut: 'Cerrar sesión',
       languageAria: 'Selecciona idioma',
       leaveRoom: 'Salir de la sala',
+      joinRoom: 'Unirse a la sala',
+      previewMode: 'Estás viendo esta sala.',
+      joinToParticipate: 'Únete para participar.',
     },
     fr: {
       waitingTitle: 'En Attente du Départ',
@@ -277,7 +284,7 @@ const RoomPage = ({ user }) => {
         return;
       }
 
-      // Check if user is in room, if not add them
+      // Check if user is in room
       const { data: existing, error: checkError } = await supabase
         .from('room_participants')
         .select('*')
@@ -285,20 +292,10 @@ const RoomPage = ({ user }) => {
         .eq('user_id', user.id)
         .maybeSingle();
 
-      // Only insert if user is not already in the room
-      if (!existing && !checkError) {
-        const { error: insertError } = await supabase
-          .from('room_participants')
-          .insert({
-            room_code: roomCode,
-            user_id: user.id,
-            is_master: false,
-          });
-
-        // 409 Conflict means user is already in room, which is fine
-        if (insertError && insertError.code !== '23505') {
-          console.error('Error adding participant:', insertError);
-        }
+      if (existing) {
+        setIsParticipant(true);
+      } else {
+        setIsParticipant(false);
       }
 
       await refreshParticipants();
@@ -529,10 +526,39 @@ const RoomPage = ({ user }) => {
       if (error) throw error;
 
       // Left successfully, redirect to home
-      navigate('/');
+      navigate('/', { state: { activeTab: isPublic ? 'public-rooms' : 'my-rooms' } });
     } catch (err) {
       console.error('Error leaving room:', err);
       alert('Failed to leave room.');
+    }
+  };
+
+  const handleJoinRoom = async () => {
+    try {
+      const { error } = await supabase
+        .from('room_participants')
+        .insert({
+          room_code: roomCode,
+          user_id: userId,
+          is_master: false,
+        });
+
+      if (error) {
+        if (error.code === '23505') {
+          // Already joined
+          setIsParticipant(true);
+        } else {
+          throw error;
+        }
+      } else {
+        setIsParticipant(true);
+        // fetchMyRooms(); // Refresh the list in the landing page (if we were there)
+        // actually fetchMyRooms is not available here, but verify join success
+        refreshParticipants();
+      }
+    } catch (err) {
+      console.error('Error joining room:', err);
+      alert('Failed to join room.');
     }
   };
 
@@ -594,7 +620,7 @@ const RoomPage = ({ user }) => {
             <h2 className="room-title">{copy.waitingTitle}</h2>
             <p className="room-description">
               {copy.waitingIntro} <span className="code-highlight">{roomCode}</span>.{' '}
-              {isMaster ? copy.waitingHost : copy.waitingGuest}
+              {isMaster ? copy.waitingHost : (isParticipant ? copy.waitingGuest : copy.previewMode)}
             </p>
           </div>
 
@@ -676,12 +702,25 @@ const RoomPage = ({ user }) => {
 
           {!isMaster && (
             <div className="waiting-message">
-              <p>{copy.waitingGuest}</p>
-              <div className="guest-actions" style={{ marginTop: '20px', display: 'flex', justifyContent: 'center' }}>
-                <button onClick={handleLeaveRoom} className="btn btn-delete">
-                  {copy.leaveRoom}
-                </button>
-              </div>
+              {!isParticipant ? (
+                <>
+                  <p>{copy.joinToParticipate}</p>
+                  <div className="guest-actions" style={{ marginTop: '20px', display: 'flex', justifyContent: 'center' }}>
+                    <button onClick={handleJoinRoom} className="btn btn-primary btn-large">
+                      {copy.joinRoom}
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <p>{copy.waitingGuest}</p>
+                  <div className="guest-actions" style={{ marginTop: '20px', display: 'flex', justifyContent: 'center' }}>
+                    <button onClick={handleLeaveRoom} className="btn btn-delete">
+                      {copy.leaveRoom}
+                    </button>
+                  </div>
+                </>
+              )}
             </div>
           )}
         </div>

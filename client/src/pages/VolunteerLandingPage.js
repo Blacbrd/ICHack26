@@ -1,16 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
 import useTheme from '../lib/useTheme';
 import './VolunteerLandingPage.css';
 
 const VolunteerLandingPage = ({ user }) => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [theme, setTheme] = useTheme('dark');
   const [myRooms, setMyRooms] = useState([]);
   const [loadingRooms, setLoadingRooms] = useState(true);
   const [creating, setCreating] = useState(false);
-  const [activeRoomTab, setActiveRoomTab] = useState('my-rooms'); // 'my-rooms' or 'public-rooms'
+  const [activeRoomTab, setActiveRoomTab] = useState(location.state?.activeTab || 'my-rooms'); // 'my-rooms' or 'public-rooms'
   const [publicRooms, setPublicRooms] = useState([]);
   const [expandedDescription, setExpandedDescription] = useState(null);
   const [renamingRoom, setRenamingRoom] = useState(null); // room_code of room being renamed
@@ -19,6 +20,12 @@ const VolunteerLandingPage = ({ user }) => {
   // Toggle Theme Helper
   const toggleTheme = () => {
     setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'));
+  };
+
+  const handleTabChange = (tab) => {
+    setActiveRoomTab(tab);
+    // Update URL state so browser back button remembers the active tab
+    navigate('.', { state: { activeTab: tab }, replace: true });
   };
 
   // --- MOCK DATA ---
@@ -511,13 +518,13 @@ const VolunteerLandingPage = ({ user }) => {
             <div className="room-tabs">
               <button
                 className={`room-tab ${activeRoomTab === 'my-rooms' ? 'active' : ''}`}
-                onClick={() => setActiveRoomTab('my-rooms')}
+                onClick={() => handleTabChange('my-rooms')}
               >
                 My Rooms
               </button>
               <button
                 className={`room-tab ${activeRoomTab === 'public-rooms' ? 'active' : ''}`}
-                onClick={() => setActiveRoomTab('public-rooms')}
+                onClick={() => handleTabChange('public-rooms')}
               >
                 Public Rooms
               </button>
@@ -673,7 +680,7 @@ const VolunteerLandingPage = ({ user }) => {
                   <div className="mini-rooms-list">
                     {publicRooms.map(room => (
                       <div key={room.id} className="public-room-item">
-                        <div className="public-room-info" onClick={() => handleJoinPublicRoom(room.room_code)}>
+                        <div className="public-room-info" onClick={() => navigate(`/room/${room.room_code}`)}>
                           <span className="mini-room-name">{room.name || `Room ${room.room_code}`}</span>
                           <span className="mini-room-code">#{room.room_code}</span>
                           <span className="public-room-meta">
