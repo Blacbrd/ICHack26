@@ -58,30 +58,90 @@ const VolunteerLandingPage = ({ user }) => {
     },
   ];
 
-  // Middle Column: Charity Feed (Read Only for Volunteers)
-  const charityPosts = [
-    {
-      id: 1,
-      charity: "Red Cross International",
-      initials: "RC",
-      time: "2 hours ago",
-      content: "We are deploying 3 new mobile clinics to the flood-affected regions. We are looking for logistics coordinators who can join remotely or on-site. Check the public rooms for 'Flood Relief 2024' to join the planning."
-    },
-    {
-      id: 2,
-      charity: "Habitat for Humanity",
-      initials: "HH",
-      time: "5 hours ago",
-      content: "Big thanks to the volunteer team from Room #88291! They successfully mapped out the housing reconstruction plan for the Kathmandu project. Incredible work!"
-    },
-    {
-      id: 3,
-      charity: "World Central Kitchen",
-      initials: "WC",
-      time: "1 day ago",
-      content: "Our relief kitchens are now operational. We need volunteers to help manage the supply chain data. If you have experience in logistics, please join our open planning room."
-    }
-  ];
+  // Middle Column: Charity Feed
+  const [charityPosts, setCharityPosts] = useState([]);
+
+  useEffect(() => {
+    const fetchCharityPosts = async () => {
+      try {
+        const { data: posts, error } = await supabase
+          .from('posts')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .limit(20);
+
+        if (error) {
+          console.error('Error fetching posts:', error);
+          return;
+        }
+
+        if (!posts || posts.length === 0) {
+          setCharityPosts([]);
+          return;
+        }
+
+        // Get unique charity IDs
+        const charityIds = [...new Set(posts.map(p => p.charity_id))];
+
+        // Fetch charity details
+        const { data: charities } = await supabase
+          .from('charities')
+          .select('charity_id, name') // Assuming 'name' exists, based on context
+          .in('charity_id', charityIds);
+
+        const charityMap = {};
+        if (charities) {
+          charities.forEach(c => {
+            charityMap[c.charity_id] = c.name;
+          });
+        }
+
+        const formatted = posts.map(p => {
+          const name = charityMap[p.charity_id] || 'Unknown Charity';
+          const initials = name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+
+          // Simple time ago format
+          const date = new Date(p.created_at);
+          const now = new Date();
+          const diffInSeconds = Math.floor((now - date) / 1000);
+          let timeString = 'Just now';
+
+          if (diffInSeconds > 86400) timeString = Math.floor(diffInSeconds / 86400) + ' days ago';
+          else if (diffInSeconds > 3600) timeString = Math.floor(diffInSeconds / 3600) + ' hours ago';
+          else if (diffInSeconds > 60) timeString = Math.floor(diffInSeconds / 60) + ' minutes ago';
+
+          // Parse image_urls if it comes back as a string (common if column type is text instead of array)
+          let imgs = p.image_urls;
+          if (typeof imgs === 'string') {
+            try {
+              // Try JSON parse (e.g., '["url"]')
+              imgs = JSON.parse(imgs);
+            } catch (e) {
+              // Try Postgres array format (e.g., '{url,url}')
+              if (imgs.startsWith('{') && imgs.endsWith('}')) {
+                imgs = imgs.slice(1, -1).split(',');
+              }
+            }
+          }
+
+          return {
+            id: p.id,
+            charity: name,
+            initials: initials,
+            time: timeString,
+            content: p.content,
+            image: Array.isArray(imgs) && imgs.length > 0 ? imgs[0] : null
+          };
+        });
+
+        setCharityPosts(formatted);
+      } catch (err) {
+        console.error('Exception fetching charity posts:', err);
+      }
+    };
+
+    fetchCharityPosts();
+  }, []);
 
   // --- LOGIC ---
 
@@ -465,24 +525,51 @@ const VolunteerLandingPage = ({ user }) => {
           </div>
         </section>
 
-        {/* MIDDLE COLUMN: CHARITY FEED (READ ONLY) */}
-        <section className="dashboard-card middle-column">
-          <h3 className="card-title">Latest Updates</h3>
-          <div className="feed-section">
-            {charityPosts.map(post => (
-              <div key={post.id} className="feed-post">
-                <div className="post-header">
-                  <div className="charity-avatar">{post.initials}</div>
-                  <div className="post-info">
-                    <span className="charity-name">{post.charity}</span>
-                    <span className="post-time">{post.time}</span>
+        {/* MIDDLE COLUMN WRAPPER: BUTTON + CHARITY FEED */}
+        <div className="middle-column-wrapper">
+          {/* BEGIN EXPLORING BUTTON - Full Width */}
+          <div className="explore-button-container">
+            <button
+              className="btn-explore-main"
+              onClick={handleBeginExploring}
+              disabled={creating}
+            >
+              <span className="btn-explore-border"></span>
+              <span className="btn-explore-shape btn-explore-shape-1"></span>
+              <span className="btn-explore-shape btn-explore-shape-2"></span>
+              <span className="btn-explore-shape btn-explore-shape-3"></span>
+              <span className="btn-explore-text">
+                {creating ? 'Creating Room...' : 'Begin Exploring'}
+              </span>
+            </button>
+          </div>
+
+          {/* MIDDLE COLUMN: CHARITY FEED (READ ONLY) */}
+          <section className="dashboard-card middle-column">
+            <h3 className="card-title">Latest Updates</h3>
+            <div className="feed-section">
+              {charityPosts.map(post => (
+                <div key={post.id} className="feed-post">
+                  <div className="post-header">
+                    <div className="charity-avatar">{post.initials}</div>
+                    <div className="post-info">
+                      <span className="charity-name">{post.charity}</span>
+                      <span className="post-time">{post.time}</span>
+                    </div>
+                  </div>
+                  <div className="post-body">
+                    {post.content}
+                    {post.image && (
+                      <div style={{ marginTop: '12px', borderRadius: '12px', overflow: 'hidden' }}>
+                        <img src={post.image} alt="Update" style={{ width: '100%', height: 'auto', display: 'block' }} />
+                      </div>
+                    )}
                   </div>
                 </div>
-                <div className="post-body">{post.content}</div>
-              </div>
-            ))}
-          </div>
-        </section>
+              ))}
+            </div>
+          </section>
+        </div>
 
         {/* RIGHT COLUMN: PROFILE & ROOMS */}
         <section className="dashboard-card right-column">
@@ -669,13 +756,6 @@ const VolunteerLandingPage = ({ user }) => {
                   >
                     Join Room
                   </button>
-                  <button
-                    className="btn-full btn-begin-exploring"
-                    onClick={handleBeginExploring}
-                    disabled={creating}
-                  >
-                    {creating ? 'Creating...' : 'Begin Exploring'}
-                  </button>
                 </div>
               </>
             )}
@@ -732,13 +812,6 @@ const VolunteerLandingPage = ({ user }) => {
                   >
                     Join Room
                   </button>
-                  <button
-                    className="btn-full btn-begin-exploring"
-                    onClick={handleBeginExploring}
-                    disabled={creating}
-                  >
-                    {creating ? 'Creating...' : 'Begin Exploring'}
-                  </button>
                 </div>
               </>
             )}
@@ -746,7 +819,7 @@ const VolunteerLandingPage = ({ user }) => {
         </section>
 
       </main>
-    </div>
+    </div >
   );
 };
 

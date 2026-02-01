@@ -263,7 +263,24 @@ const CharityReferrals = ({ user }) => {
 
   return (
     <div className="cr-container">
-      <h1 className="cr-title">Charity Referrals</h1>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+        <h1 className="cr-title" style={{ margin: 0 }}>Charity Referrals</h1>
+        <button
+          onClick={() => navigate('/charity-post')}
+          style={{
+            padding: '10px 20px',
+            backgroundColor: '#1c67e6',
+            color: 'white',
+            border: 'none',
+            borderRadius: '8px',
+            cursor: 'pointer',
+            fontWeight: '600',
+            boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
+          }}
+        >
+          Post Update
+        </button>
+      </div>
 
       {loading ? (
         <p>Loading referrals…</p>

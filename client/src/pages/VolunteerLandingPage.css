@@ -30,9 +30,218 @@
   grid-template-columns: 300px 1fr 320px;
   /* Adjusted right column width */
   gap: 24px;
+  grid-template-rows: minmax(0, 1fr);
   max-width: 1400px;
   margin: 0 auto;
   height: calc(100vh - 120px);
+}
+
+.middle-column-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  min-height: 0;
+}
+
+/* Explore Button Container */
+.explore-button-container {
+  width: 100%;
+}
+
+.btn-explore-main {
+  position: relative;
+  width: 100%;
+  padding: 28px 44px;
+  font-size: 1.35rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  background: #1c67e6;
+  color: white;
+  border: none;
+  border-radius: 0;
+  cursor: pointer;
+  box-shadow: none;
+  transition: all 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  clip-path: polygon(5% 0%, 95% 0%, 100% 50%, 95% 100%, 5% 100%, 0% 50%);
+  animation: colorShift 6s ease-in-out infinite;
+}
+
+/* Flat color shift animation - no gradients */
+@keyframes colorShift {
+
+  0%,
+  100% {
+    background: #1c67e6;
+  }
+
+  25% {
+    background: #1858c4;
+  }
+
+  50% {
+    background: #0f3b88;
+  }
+
+  75% {
+    background: #2c7dff;
+  }
+}
+
+/* Animated traveling border */
+.btn-explore-border {
+  position: absolute;
+  top: 0;
+  left: 5%;
+  right: 5%;
+  bottom: 0;
+  border-top: 3px dashed rgba(255, 255, 255, 0.6);
+  border-bottom: 3px dashed rgba(255, 255, 255, 0.6);
+  border-radius: 0;
+  animation: dashTravel 2s linear infinite;
+  pointer-events: none;
+  z-index: 5;
+}
+
+@keyframes dashTravel {
+  to {
+    stroke-dashoffset: -100%;
+    border-spacing: 20px;
+  }
+}
+
+/* Hover effect - keep hexagon shape */
+.btn-explore-main:hover:not(:disabled) {
+  transform: scale(1.03);
+  letter-spacing: 0.18em;
+  filter: brightness(1.15) drop-shadow(0 0 20px rgba(28, 103, 230, 0.5));
+}
+
+.btn-explore-main:hover:not(:disabled) .btn-explore-border {
+  border-width: 4px;
+  animation: dashTravel 1s linear infinite;
+}
+
+/* Make shapes move on hover */
+.btn-explore-main:hover:not(:disabled) .btn-explore-shape-1 {
+  transform: translate(-30px, -20px) rotate(45deg) scale(1.2);
+}
+
+.btn-explore-main:hover:not(:disabled) .btn-explore-shape-2 {
+  transform: translate(30px, 20px) rotate(-45deg) scale(1.2);
+}
+
+.btn-explore-main:hover:not(:disabled) .btn-explore-shape-3 {
+  transform: translate(20px, -15px) rotate(90deg) scale(1.3);
+}
+
+.btn-explore-main:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.btn-explore-main:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  animation: none;
+}
+
+/* Button text - stagger animation */
+.btn-explore-text {
+  position: relative;
+  z-index: 10;
+  display: inline-block;
+  animation: textDistort 3s ease-in-out infinite;
+}
+
+@keyframes textDistort {
+
+  0%,
+  100% {
+    transform: scaleX(1) scaleY(1);
+  }
+
+  50% {
+    transform: scaleX(0.98) scaleY(1.02);
+  }
+}
+
+/* Geometric shapes inside button */
+.btn-explore-shape {
+  position: absolute;
+  background: rgba(255, 255, 255, 0.15);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.btn-explore-shape-1 {
+  width: 40px;
+  height: 40px;
+  top: -20px;
+  left: 20%;
+  clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
+  animation: shape1Move 5s ease-in-out infinite;
+}
+
+.btn-explore-shape-2 {
+  width: 30px;
+  height: 30px;
+  bottom: -15px;
+  right: 30%;
+  clip-path: polygon(50% 0%, 100% 38%, 82% 100%, 18% 100%, 0% 38%);
+  animation: shape2Move 6s ease-in-out infinite;
+}
+
+.btn-explore-shape-3 {
+  width: 35px;
+  height: 35px;
+  top: 50%;
+  right: 10%;
+  clip-path: polygon(30% 0%, 70% 0%, 100% 30%, 100% 70%, 70% 100%, 30% 100%, 0% 70%, 0% 30%);
+  animation: shape3Move 7s ease-in-out infinite;
+}
+
+@keyframes shape1Move {
+
+  0%,
+  100% {
+    transform: translateY(0) rotate(0deg);
+  }
+
+  50% {
+    transform: translateY(100%) rotate(180deg);
+  }
+}
+
+@keyframes shape2Move {
+
+  0%,
+  100% {
+    transform: translateY(0) rotate(0deg);
+  }
+
+  50% {
+    transform: translateY(-100%) rotate(-180deg);
+  }
+}
+
+@keyframes shape3Move {
+
+  0%,
+  100% {
+    transform: translateX(0) rotate(0deg) scale(1);
+  }
+
+  33% {
+    transform: translateX(-50%) rotate(120deg) scale(1.2);
+  }
+
+  66% {
+    transform: translateX(50%) rotate(240deg) scale(0.8);
+  }
 }
 
 /* Common Card Styles */
@@ -110,6 +319,11 @@
 }
 
 /* --- MIDDLE COL: CHARITY FEED --- */
+.middle-column {
+  flex: 1;
+  min-height: 0;
+}
+
 .feed-section {
   flex: 1;
   overflow-y: auto;

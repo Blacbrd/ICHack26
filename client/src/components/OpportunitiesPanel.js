@@ -32,6 +32,16 @@ const OpportunitiesPanel = ({
   const itemsPerPage = 5;
   const debounceTimerRef = useRef(null);
 
+  // Helper function to title case country names (single or multiple words)
+  const toTitleCase = (str) => {
+    if (!str) return '';
+    return str
+      .toLowerCase()
+      .split(' ')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
+  };
+
   // Store the full grouped data (object keyed by country)
   const [opportunitiesData, setOpportunitiesData] = useState(null);
   const [filteredOpportunities, setFilteredOpportunities] = useState([]);
@@ -233,16 +243,16 @@ const OpportunitiesPanel = ({
 
     // Normalize the selected country for comparison
     const normalizedSelected = selectedCountry.toLowerCase().trim();
-    
+
     // Filter opportunities based on country match
     const filtered = opportunities.filter((opp) => {
       const oppCountry = opp.country ? opp.country.toLowerCase().trim() : '';
-      
+
       // Direct match
       if (oppCountry === normalizedSelected) {
         return true;
       }
-      
+
       // Check for common variations
       const countryGroups = {
         'united states': ['usa', 'united states of america', 'us', 'u.s.', 'u.s.a.'],
@@ -299,8 +309,8 @@ const OpportunitiesPanel = ({
   // Compute displayed opportunities (either all filtered or only the selected one),
   // then apply AI ranking if available
   const displayedOpportunities = useMemo(() => {
-    const base = showAllOpportunities 
-      ? filteredOpportunities 
+    const base = showAllOpportunities
+      ? filteredOpportunities
       : filteredOpportunities.filter((opp) => opp.id === selectedOpportunityId);
 
     // Apply AI ranking if we have ranked IDs
@@ -561,7 +571,7 @@ const OpportunitiesPanel = ({
       Math.abs(opportunity.lng - shinjukuLng) < 0.0001;
 
     if (isShinjukuOpportunity) {
-      alert(`Congratulations! You've selected "${opportunity.name}". The flight route from Manchester will be displayed.`);
+      console.log(`Congratulations! You've selected "${opportunity.name}". The flight route from Manchester will be displayed.`);
 
       if (onCountrySelect) {
         try { onCountrySelect(null); } catch (e) { console.error(e); }
@@ -585,7 +595,7 @@ const OpportunitiesPanel = ({
       setSelectedOpportunityId(null);
       setShowAllOpportunities(true);
     } else {
-      alert(`Congratulations! You've selected "${opportunity.name}". The globe will reset to its default position.`);
+      console.log(`Congratulations! You've selected "${opportunity.name}". The globe will zoom to show this location.`);
 
       if (onCountrySelect) {
         try { onCountrySelect(null); } catch (e) { console.error(e); }
@@ -595,15 +605,12 @@ const OpportunitiesPanel = ({
         try { onOpportunitySelect(opportunity.lat, opportunity.lng, opportunity.name); } catch (e) { console.error(e); }
       }
 
-      setSelectedOpportunityId(null);
-      setShowAllOpportunities(true);
-
       if (roomCode) {
         supabase
           .from('rooms')
           .update({
-            selected_opportunity_lat: null,
-            selected_opportunity_lng: null,
+            selected_opportunity_lat: opportunity.lat,
+            selected_opportunity_lng: opportunity.lng,
             selected_country: null,
           })
           .eq('room_code', roomCode);
@@ -615,6 +622,8 @@ const OpportunitiesPanel = ({
           try { onOpportunitySelect(null, null, null); } catch (e) { console.error(e); }
         }
       }, 100);
+      setSelectedOpportunityId(null);
+      setShowAllOpportunities(true);
     }
   };
 
@@ -693,8 +702,8 @@ const OpportunitiesPanel = ({
                 onClick={() => handleTileClick(opp)}
               >
                 <div className="opportunity-title">{opp.name}</div>
-                <div className="opportunity-country">{opp.country}</div>
-                <div className="opportunity-actions" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div className="opportunity-country">{toTitleCase(opp.country)}</div>
+                <div className="opportunity-actions">
                   {opp.link && (
                     <a
                       href={opp.link}
@@ -707,7 +716,7 @@ const OpportunitiesPanel = ({
                       Learn more →
                     </a>
                   )}
-                  
+
                   <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
                     <button
                       className="opportunity-select-button"
@@ -715,13 +724,13 @@ const OpportunitiesPanel = ({
                     >
                       Select this
                     </button>
-                    
+
                     {/* --- NEW CHECKBOX FOR MULTI-SELECTION --- */}
-                    <input 
-                      type="checkbox" 
-                      style={{ 
-                        width: '20px', 
-                        height: '20px', 
+                    <input
+                      type="checkbox"
+                      style={{
+                        width: '20px',
+                        height: '20px',
                         cursor: 'pointer',
                         transform: 'scale(1.2)',
                         accentColor: '#3b82f6'
@@ -730,8 +739,8 @@ const OpportunitiesPanel = ({
                       disabled={selectedCharities && !selectedCharities.some(c => c.id === opp.id) && selectedCharities.length >= 5}
                       onChange={() => onToggleCharity && onToggleCharity(opp)}
                       onClick={(e) => e.stopPropagation()} // Prevent clicking the checkbox from triggering tile selection
-                      title={selectedCharities && !selectedCharities.some(c => c.id === opp.id) && selectedCharities.length >= 5 
-                        ? "You can only select up to 5 charities" 
+                      title={selectedCharities && !selectedCharities.some(c => c.id === opp.id) && selectedCharities.length >= 5
+                        ? "You can only select up to 5 charities"
                         : "Select this charity"}
                     />
                   </div>
@@ -740,23 +749,25 @@ const OpportunitiesPanel = ({
             ))}
 
             {/* Pagination Controls */}
-            {displayedOpportunities.length > itemsPerPage && (
-              <div className="pagination-controls">
-                <button className="pagination-button" onClick={handlePreviousPage} disabled={currentPage === 1} title="Previous page">
-                  ← Previous
-                </button>
-                <span className="pagination-info">
-                  Page {currentPage} of {totalPages}
-                </span>
-                <button className="pagination-button" onClick={handleNextPage} disabled={currentPage === totalPages} title="Next page">
-                  Next →
-                </button>
-              </div>
-            )}
+            {
+              displayedOpportunities.length > itemsPerPage && (
+                <div className="pagination-controls">
+                  <button className="pagination-button" onClick={handlePreviousPage} disabled={currentPage === 1} title="Previous page">
+                    ← Previous
+                  </button>
+                  <span className="pagination-info">
+                    Page {currentPage} of {totalPages}
+                  </span>
+                  <button className="pagination-button" onClick={handleNextPage} disabled={currentPage === totalPages} title="Next page">
+                    Next →
+                  </button>
+                </div>
+              )
+            }
           </>
         )}
-      </div>
-    </div>
+      </div >
+    </div >
   );
 };
 

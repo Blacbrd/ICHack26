@@ -450,9 +450,9 @@ const PlanningPage = ({ user }) => {
         const screenHeight = window.innerHeight;
 
         return cat.x > -cat.size &&
-               cat.y > -cat.size &&
-               catRight < screenWidth + cat.size &&
-               catBottom < screenHeight + cat.size;
+          cat.y > -cat.size &&
+          catRight < screenWidth + cat.size &&
+          catBottom < screenHeight + cat.size;
       }));
     };
 
@@ -658,21 +658,11 @@ const PlanningPage = ({ user }) => {
     <div className={`planning-page ${theme}`}>
       <div className="planning-header">
         <h1>Planning Room: {roomCode}</h1>
-
-        {/* Selected charities button (multi-select panel) */}
-        <button
-          className="btn btn-primary"
-          style={{ margin: '0 20px' }}
-          onClick={() => setShowSelectedPopup(true)}
-        >
-          Show selected charities ({selectedCharities.length})
-        </button>
-
         <div className="planning-header-actions">
-          <button type="button" className="theme-toggle" onClick={toggleTheme}>
+          <button className="theme-toggle" onClick={toggleTheme}>
             {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
           </button>
-          <button onClick={handleLeaveRoom} className="btn btn-leave-room">Leave Room</button>
+          <button className="btn-leave-room" onClick={handleLeaveRoom}>Leave Room</button>
         </div>
       </div>
 
@@ -867,9 +857,9 @@ const PlanningPage = ({ user }) => {
           initialOpportunities={opportunities}
           initialOpportunitiesData={opportunitiesData}
 
-          // update local paginated/opportunities if child decides to notify:
-          // (child will call these stable handlers)
-          // onPaginatedOpportunitiesChange passed above already points to handlePaginatedOpportunitiesChange
+        // update local paginated/opportunities if child decides to notify:
+        // (child will call these stable handlers)
+        // onPaginatedOpportunitiesChange passed above already points to handlePaginatedOpportunitiesChange
         />
       </div>
 
