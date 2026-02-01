@@ -61,6 +61,10 @@ app.include_router(rank_opportunities_router, prefix="/api/gemini", tags=["gemin
 from routers.gmap.router import router as gmap_router
 app.include_router(gmap_router, prefix="/api/gmap", tags=["gmap"])
 
+# Mount the news router
+from routers.news.router import router as news_router
+app.include_router(news_router, prefix="/api/news", tags=["news"])
+
 
 @app.get("/", response_class=HTMLResponse)
 def root():
