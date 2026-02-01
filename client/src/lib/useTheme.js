@@ -15,6 +15,8 @@ const useTheme = (defaultTheme = 'dark') => {
       return;
     }
     localStorage.setItem(THEME_STORAGE_KEY, theme);
+    
+    document.body.className = theme;
   }, [theme]);
 
   return [theme, setTheme];

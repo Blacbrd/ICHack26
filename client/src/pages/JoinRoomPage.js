@@ -17,7 +17,7 @@ const JoinRoomPage = ({ user }) => {
 
   const handleJoin = async (e) => {
     e.preventDefault();
-    
+
     if (!roomCode || roomCode.length !== 6) {
       setError('Please enter a valid 6-digit room code');
       return;
@@ -126,10 +126,9 @@ const JoinRoomPage = ({ user }) => {
       </button>
       <div className="join-room-container">
         <div className="join-room-logo">
-          <img className="join-room-logo-mark" src="/imc-logo.svg" alt="IMC Trading Logo" />
+          <img className="join-room-logo-mark" src="/imcharitable-white.png" alt="IMCharitable" style={{ height: '50px' }} />
           <div className="join-room-logo-text">
             <h1 className="page-title">Join Room</h1>
-            <p className="join-room-tagline">VisaWorld · Wereld van Leven</p>
           </div>
         </div>
         <p className="page-subtitle">

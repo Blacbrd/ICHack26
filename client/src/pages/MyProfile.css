@@ -1,40 +1,94 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
+/* --- 1. BASE VARIABLES (LIGHT MODE) --- */
+/* These apply by default, but are immediately overridden if .dark class is present */
 .myprofile-page {
+  /* Light Theme Colors */
+  --bg-gradient: linear-gradient(135deg, #f7f9ff 0%, #eef3ff 55%, #e5ecff 100%);
+  --panel-bg: rgba(255, 255, 255, 0.95);
+  --panel-border: rgba(15, 59, 136, 0.18);
+  --text-color: #0b1224;
+  --muted-color: #5b6b86;
+  --input-bg: rgba(255, 255, 255, 0.8);
+
+  /* Brand Gradients */
+  --primary-gradient: linear-gradient(135deg, #0f3b88, #1c67e6);
+  --secondary-gradient: linear-gradient(135deg, #0b2a5b, #1c67e6);
+  --danger-red: #ef4444;
+
+  /* Calendar Specifics (Light) */
+  --cal-header-bg: rgba(248, 250, 252, 0.8);
+  --cal-today-bg: rgba(28, 103, 230, 0.05);
+  --cal-slot-hover: rgba(28, 103, 230, 0.02);
+
+  /* Layout & Font */
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
   min-height: 100vh;
-  background: #fafafa;
+  background: var(--bg-gradient);
   padding: 40px 20px;
   display: flex;
   justify-content: center;
   align-items: flex-start;
+  color: var(--text-color);
+  transition: background 0.3s ease, color 0.3s ease;
 }
+
+/* --- 2. DARK MODE OVERRIDES (ACTIVE DEFAULT) --- */
+/* Because your JS sets theme='dark', this block activates immediately */
+.myprofile-page.dark {
+  /* Dark Theme Colors */
+  --bg-gradient: radial-gradient(circle at 20% 20%, #0b1327, #070a12);
+  --panel-bg: rgba(6, 10, 22, 0.94);
+  --panel-border: rgba(28, 103, 230, 0.25);
+  --text-color: #f6f8ff;
+  --muted-color: #b7c3da;
+  --input-bg: rgba(15, 18, 35, 0.6);
+  /* Darker inputs */
+
+  /* Adjusted Gradients for Dark Mode */
+  --primary-gradient: linear-gradient(135deg, #0f3b88, #2c7dff);
+
+  /* Calendar Specifics (Dark) */
+  --cal-header-bg: rgba(255, 255, 255, 0.05);
+  --cal-today-bg: rgba(28, 103, 230, 0.15);
+  --cal-slot-hover: rgba(255, 255, 255, 0.05);
+}
+
+/* --- LAYOUT & COMPONENTS --- */
 
 .myprofile-container {
   width: 100%;
-  max-width: 600px;
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  max-width: 800px;
+  background: var(--panel-bg);
+  border-radius: 24px;
+  border: 1px solid var(--panel-border);
+  box-shadow: 0 20px 45px rgba(0, 0, 0, 0.12);
+  overflow: hidden;
 }
 
 .myprofile-header {
-  padding: 32px 32px 24px;
-  border-bottom: 1px solid #e5e5e5;
+  padding: 32px 40px 24px;
+  border-bottom: 1px solid var(--panel-border);
+  /* Slight tint for header separation */
+  background: linear-gradient(to right, rgba(28, 103, 230, 0.05), transparent);
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
 }
 
 .myprofile-header h1 {
   margin: 0;
   font-size: 24px;
-  font-weight: 600;
-  color: #171717;
+  font-weight: 700;
+  color: var(--text-color);
+  font-family: var(--font-display, inherit);
 }
 
 .profile-content {
-  padding: 32px;
+  padding: 40px;
 }
 
-/* Section Styles */
+/* Section Headings */
 .info-section {
   margin-bottom: 32px;
 }
@@ -45,38 +99,45 @@
 
 .info-section h2 {
   font-size: 14px;
-  font-weight: 600;
-  color: #171717;
+  font-weight: 700;
+  color: var(--text-color);
   margin: 0 0 16px;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.05em;
+  border-bottom: 2px solid var(--panel-border);
+  padding-bottom: 8px;
+  display: inline-block;
+  opacity: 0.9;
 }
 
-/* Input Styles */
+/* Inputs */
 .input-group {
-  margin-bottom: 12px;
+  margin-bottom: 16px;
 }
 
 .input-field {
   width: 100%;
-  padding: 10px 14px;
-  border: 1px solid #e5e5e5;
-  border-radius: 6px;
+  padding: 12px 16px;
+  border: 1px solid var(--panel-border);
+  border-radius: 12px;
   font-size: 15px;
   font-family: inherit;
-  transition: all 0.15s ease;
-  background: white;
-  color: #171717;
+  transition: all 0.2s ease;
+  background: var(--input-bg);
+  /* Adapts to theme */
+  color: var(--text-color);
   box-sizing: border-box;
 }
 
 .input-field:focus {
   outline: none;
-  border-color: #171717;
+  border-color: #1c67e6;
+  box-shadow: 0 0 0 3px rgba(28, 103, 230, 0.15);
 }
 
-.input-field::placeholder {
-  color: #a3a3a3;
+.input-field:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 /* File Upload */
@@ -95,305 +156,205 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  padding: 10px 16px;
-  border: 1px solid #e5e5e5;
-  border-radius: 6px;
+  gap: 10px;
+  padding: 14px 20px;
+  border: 1px dashed var(--panel-border);
+  border-radius: 12px;
   cursor: pointer;
-  transition: all 0.15s ease;
-  background: white;
-  color: #171717;
+  transition: all 0.2s ease;
+  background: rgba(28, 103, 230, 0.05);
+  color: #1c67e6;
   font-size: 14px;
-  font-weight: 500;
+  font-weight: 600;
+}
+
+.myprofile-page.dark .file-upload-label {
+  color: #6aa5ff;
+  /* Lighter blue for dark mode text */
 }
 
 .file-upload-label:hover {
-  background: #fafafa;
-  border-color: #d4d4d4;
+  background: rgba(28, 103, 230, 0.1);
+  border-color: #1c67e6;
+  transform: translateY(-1px);
 }
 
-.file-upload-label svg {
-  width: 20px;
-  height: 20px;
-  flex-shrink: 0;
+/* CV Display Card */
+.cv-display {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+  background: var(--panel-bg);
+  border: 1px solid var(--panel-border);
+  border-radius: 12px;
 }
 
-/* Calendar Styles */
+.cv-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+}
+
+.cv-info svg {
+  color: #1c67e6;
+}
+
+.myprofile-page.dark .cv-info svg {
+  color: #6aa5ff;
+}
+
+.cv-view-link {
+  color: #1c67e6;
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 600;
+  margin-left: 12px;
+}
+
+.myprofile-page.dark .cv-view-link {
+  color: #6aa5ff;
+}
+
+.cv-remove-btn {
+  background: transparent;
+  border: 1px solid var(--panel-border);
+  color: var(--muted-color);
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.cv-remove-btn:hover {
+  background: rgba(239, 68, 68, 0.1);
+  color: var(--danger-red);
+  border-color: var(--danger-red);
+}
+
+/* Calendar Container */
 .calendar-instructions {
   margin: 0 0 16px;
-  font-size: 13px;
-  color: #737373;
+  font-size: 14px;
+  color: var(--muted-color);
 }
 
 .calendar-wrapper {
-  border: 1px solid #e5e5e5;
-  border-radius: 6px;
-  padding: 16px;
-  background: white;
-  margin-bottom: 12px;
+  border: 1px solid var(--panel-border);
+  border-radius: 16px;
+  padding: 20px;
+  background: var(--panel-bg);
+  margin-bottom: 16px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
 }
 
+/* Summary Box (Bottom of Calendar) */
 .slots-summary {
-  padding: 12px 14px;
-  background: #fafafa;
-  border-radius: 6px;
+  padding: 14px 18px;
+  background: rgba(28, 103, 230, 0.05);
+  border-radius: 12px;
+  border: 1px solid var(--panel-border);
 }
 
 .summary-text {
   margin: 0;
-  font-size: 13px;
-  color: #737373;
-  font-weight: 500;
-}
-
-/* FullCalendar Customizations */
-.fc {
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
-}
-
-.fc .fc-button {
-  background: #171717;
-  border-color: #171717;
-  color: white;
-  font-size: 13px;
-  padding: 6px 12px;
-  border-radius: 6px;
-  font-weight: 500;
-  text-transform: capitalize;
-}
-
-.fc .fc-button:hover {
-  background: #262626;
-  border-color: #262626;
-}
-
-.fc .fc-button:disabled {
-  opacity: 0.4;
-  background: #171717;
-  border-color: #171717;
-}
-
-.fc .fc-button-active {
-  background: #262626 !important;
-  border-color: #262626 !important;
-}
-
-.fc .fc-toolbar-title {
-  font-size: 18px;
+  font-size: 14px;
+  color: #1c67e6;
   font-weight: 600;
-  color: #171717;
+  text-align: center;
+}
+
+.myprofile-page.dark .summary-text {
+  color: #6aa5ff;
+}
+
+/* Theme Toggle Button */
+.theme-toggle {
+  border: 1px solid var(--panel-border);
+  background: var(--panel-bg);
+  color: var(--text-color);
+  border-radius: 999px;
+  padding: 8px 18px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.12);
+  transition: all 0.2s ease;
+}
+
+.theme-toggle:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 20px 45px rgba(0, 0, 0, 0.18);
+}
+
+/* FullCalendar Overrides for Dark Mode */
+.fc {
+  font-family: 'Inter', system-ui, sans-serif;
+  --fc-border-color: var(--panel-border);
+  --fc-button-bg-color: #0f3b88;
+  --fc-button-border-color: #0f3b88;
+  --fc-button-hover-bg-color: #1c67e6;
+  --fc-button-hover-border-color: #1c67e6;
+  --fc-today-bg-color: var(--cal-today-bg);
+}
+
+.myprofile-page.dark .fc {
+  /* Adjust button colors for dark mode visibility */
+  --fc-button-bg-color: #1c67e6;
+  --fc-button-border-color: #1c67e6;
+  --fc-button-hover-bg-color: #2c7dff;
 }
 
 .fc .fc-col-header-cell {
-  padding: 12px 4px;
+  background: var(--cal-header-bg);
+  color: var(--muted-color);
   font-weight: 600;
-  font-size: 12px;
-  color: #171717;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
-  background: #fafafa;
-}
-
-.fc .fc-timegrid-slot {
-  height: 3em;
-}
-
-.fc .fc-timegrid-slot-label {
   font-size: 12px;
-  color: #737373;
-}
-
-.fc .fc-event {
-  border-radius: 4px;
-  padding: 2px 4px;
-  font-size: 12px;
-  font-weight: 500;
-  cursor: pointer;
-}
-
-.fc .fc-event:hover {
-  opacity: 0.9;
-}
-
-.fc .fc-highlight {
-  background: rgba(23, 23, 23, 0.1);
+  padding: 10px 0;
 }
 
 .fc .fc-daygrid-day-number {
-  padding: 8px;
-  font-size: 13px;
-  color: #171717;
-}
-
-.fc .fc-day-today {
-  background: rgba(23, 23, 23, 0.03) !important;
-}
-
-.fc-theme-standard td, 
-.fc-theme-standard th {
-  border-color: #e5e5e5;
-}
-
-.fc-theme-standard .fc-scrollgrid {
-  border-color: #e5e5e5;
-}
-
-/* Availability Form */
-.availability-form {
-  display: grid;
-  grid-template-columns: 1fr 1fr auto;
-  gap: 8px;
-  margin-bottom: 16px;
-}
-
-.date-input,
-.time-select {
-  margin-bottom: 0;
-}
-
-.add-btn {
-  padding: 10px 20px;
-  background: #171717;
-  color: white;
-  border: none;
-  border-radius: 6px;
-  font-size: 14px;
+  color: var(--text-color);
   font-weight: 500;
-  cursor: pointer;
-  transition: all 0.15s ease;
-  white-space: nowrap;
-}
-
-.add-btn:hover:not(:disabled) {
-  background: #262626;
-}
-
-.add-btn:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
-
-/* Slots List */
-.slots-list {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.slot-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 12px 14px;
-  background: #fafafa;
-  border-radius: 6px;
-  transition: all 0.15s ease;
-}
-
-.slot-item:hover {
-  background: #f5f5f5;
-}
-
-.slot-info {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.slot-date {
-  font-size: 14px;
-  font-weight: 500;
-  color: #171717;
-}
-
-.slot-time {
-  font-size: 13px;
-  color: #737373;
-}
-
-.remove-btn {
-  background: transparent;
-  border: none;
-  color: #a3a3a3;
-  cursor: pointer;
-  font-size: 24px;
-  line-height: 1;
-  padding: 4px 8px;
-  transition: all 0.15s ease;
-  border-radius: 4px;
-}
-
-.remove-btn:hover {
-  background: #e5e5e5;
-  color: #171717;
 }
 
 /* Save Button */
 .save-button {
   width: 100%;
-  padding: 12px 24px;
-  background: #171717;
+  padding: 16px 24px;
+  background: var(--primary-gradient);
   color: white;
   border: none;
-  border-radius: 6px;
-  font-size: 15px;
-  font-weight: 500;
+  border-radius: 16px;
+  font-size: 16px;
+  font-weight: 600;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: all 0.2s ease;
+  box-shadow: 0 10px 25px rgba(16, 59, 136, 0.3);
+  margin-top: 10px;
 }
 
 .save-button:hover {
-  background: #262626;
+  transform: translateY(-2px);
+  filter: brightness(1.1);
 }
 
-.save-button:active {
-  transform: scale(0.98);
-}
-
-/* Responsive Design */
+/* Responsive */
 @media (max-width: 640px) {
   .myprofile-page {
-    padding: 20px 16px;
+    padding: 20px 10px;
   }
 
-  .myprofile-header {
-    padding: 24px 20px 20px;
-  }
-
+  .myprofile-header,
   .profile-content {
     padding: 24px 20px;
-  }
-
-  .availability-form {
-    grid-template-columns: 1fr;
-  }
-
-  .add-btn {
-    width: 100%;
-  }
-
-  .slot-item {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 8px;
-  }
-
-  .remove-btn {
-    align-self: flex-end;
   }
 
   .fc .fc-toolbar {
     flex-direction: column;
     gap: 12px;
   }
-
-  .fc .fc-toolbar-chunk {
-    display: flex;
-    justify-content: center;
-  }
-
-  .calendar-wrapper {
-    padding: 12px;
-  }
 }
-

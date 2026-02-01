@@ -1,6 +1,5 @@
 /* VolunteerLandingPage.css */
 .volunteer-page {
-  /* --- COPIED FROM LandingPage.css & JoinRoomPage.css TO MATCH THEME --- */
   --bg-gradient: linear-gradient(135deg, #f7f9ff 0%, #eef3ff 55%, #e5ecff 100%);
   --panel-bg: rgba(255, 255, 255, 0.95);
   --panel-border: rgba(15, 59, 136, 0.18);
@@ -8,7 +7,7 @@
   --muted-color: #5b6b86;
   --primary-gradient: linear-gradient(135deg, #0f3b88, #1c67e6);
   --secondary-gradient: linear-gradient(135deg, #0b2a5b, #1c67e6);
-  
+
   font-family: var(--font-sans, system-ui, sans-serif);
   min-height: 100vh;
   background: var(--bg-gradient);
@@ -16,7 +15,6 @@
   padding: 20px;
 }
 
-/* Force Dark Mode Default if user prefers, or standard .dark class support */
 .volunteer-page.dark {
   --bg-gradient: radial-gradient(circle at 20% 20%, #0b1327, #070a12);
   --panel-bg: rgba(6, 10, 22, 0.94);
@@ -29,7 +27,8 @@
 /* --- GRID LAYOUT --- */
 .volunteer-layout {
   display: grid;
-  grid-template-columns: 300px 1fr 300px;
+  grid-template-columns: 300px 1fr 320px;
+  /* Adjusted right column width */
   gap: 24px;
   max-width: 1400px;
   margin: 0 auto;
@@ -42,7 +41,7 @@
   border: 1px solid var(--panel-border);
   border-radius: 24px;
   padding: 24px;
-  box-shadow: 0 20px 45px rgba(0,0,0,0.12); /* Increased shadow for depth */
+  box-shadow: 0 20px 45px rgba(0, 0, 0, 0.12);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -70,9 +69,9 @@
 }
 
 .news-item {
-  background: rgba(28, 103, 230, 0.05); /* Slight blue tint */
-  padding: 12px;
-  border-radius: 12px;
+  background: rgba(28, 103, 230, 0.05);
+  padding: 16px;
+  border-radius: 16px;
   border: 1px solid var(--panel-border);
   transition: transform 0.2s;
   cursor: pointer;
@@ -83,10 +82,23 @@
   border-color: #2c7dff;
 }
 
+.news-badge {
+  display: inline-block;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #ef4444;
+  /* Red for urgency */
+  background: rgba(239, 68, 68, 0.1);
+  padding: 4px 8px;
+  border-radius: 6px;
+  margin-bottom: 8px;
+}
+
 .news-headline {
-  font-weight: 600;
-  font-size: 0.95rem;
-  margin-bottom: 6px;
+  font-weight: 700;
+  font-size: 1rem;
+  margin-bottom: 8px;
   line-height: 1.3;
   color: var(--text-color);
 }
@@ -94,149 +106,431 @@
 .news-snippet {
   font-size: 0.85rem;
   color: var(--muted-color);
+  line-height: 1.5;
 }
 
-/* --- MIDDLE COL: MY ROOMS --- */
-.middle-column {
-  border-color: rgba(28, 103, 230, 0.3); /* Stronger border for center focus */
-}
-
-.rooms-list {
+/* --- MIDDLE COL: CHARITY FEED --- */
+.feed-section {
   flex: 1;
   overflow-y: auto;
-  margin-bottom: 20px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 20px;
+  padding-right: 8px;
+  /* Space for scrollbar */
 }
 
-.room-item {
-  background: rgba(255,255,255,0.03); /* Subtle bg for dark mode */
-  padding: 16px;
-  border-radius: 16px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+.feed-post {
+  background: var(--panel-bg);
   border: 1px solid var(--panel-border);
-  cursor: pointer;
-  transition: all 0.2s;
+  border-radius: 20px;
+  padding: 20px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.02);
 }
 
-.room-item:hover {
-  background: rgba(28, 103, 230, 0.1);
-  transform: translateX(4px);
+.post-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
 }
 
-.room-name {
+.charity-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--primary-gradient);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: bold;
+  font-size: 14px;
+}
+
+.post-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.charity-name {
+  font-weight: 700;
+  color: var(--text-color);
+  font-size: 0.95rem;
+}
+
+.post-time {
+  font-size: 0.8rem;
+  color: var(--muted-color);
+}
+
+.post-body {
+  font-size: 0.95rem;
+  line-height: 1.6;
+  color: var(--text-color);
+  white-space: pre-wrap;
+}
+
+/* --- RIGHT COL: PROFILE & ROOMS --- */
+.volunteer-profile-section {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  /* Keeps spacing balanced */
+  gap: 12px;
+  margin-bottom: 24px;
+  padding: 16px;
+  border-radius: 20px;
+  background: var(--primary-gradient);
+  /* Matches Begin Exploring button */
+  box-shadow: 0 10px 25px rgba(15, 59, 136, 0.25);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.profile-avatar {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.1);
+  flex-shrink: 0;
+}
+
+.profile-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.profile-name {
+  flex: 1;
+  font-weight: 700;
+  font-size: 1.05rem;
+  color: #ffffff;
+  margin: 0;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: flex;
+  align-items: center;
+}
+
+.my-rooms-section {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  /* Contains scrollable list */
+}
+
+/* Room Tabs */
+.room-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+  border-bottom: 2px solid var(--panel-border);
+  padding-bottom: 0;
+}
+
+.room-tab {
+  flex: 1;
+  padding: 10px 16px;
+  background: transparent;
+  border: none;
+  border-bottom: 3px solid transparent;
+  font-size: 0.85rem;
   font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted-color);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-bottom: -2px;
+}
+
+.room-tab:hover {
+  color: var(--text-color);
+  background: rgba(28, 103, 230, 0.05);
+}
+
+.room-tab.active {
+  color: #1c67e6;
+  border-bottom-color: #1c67e6;
+  background: rgba(28, 103, 230, 0.08);
+}
+
+.my-rooms-title {
+  font-size: 0.9rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--muted-color);
+  margin-bottom: 12px;
+  letter-spacing: 0.05em;
+}
+
+.mini-rooms-list {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.mini-room-item {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--panel-border);
+  border-radius: 12px;
+  padding: 12px;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.mini-room-item:hover {
+  background: rgba(28, 103, 230, 0.1);
+}
+
+.mini-room-name {
+  font-weight: 600;
+  font-size: 0.9rem;
   display: block;
   color: var(--text-color);
+  margin-bottom: 2px;
 }
 
-.room-code {
-  font-size: 0.8rem;
+.mini-room-code {
+  font-size: 0.75rem;
   color: var(--muted-color);
   font-family: monospace;
 }
 
-.room-arrow {
-  font-size: 1.2rem;
-  color: var(--muted-color);
+/* Room item structure */
+.mini-room-content {
+  flex: 1;
+  cursor: pointer;
+  min-width: 0;
 }
 
-.action-buttons-container {
+.mini-room-info {
   display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+
+/* Role badge (Admin/Member) */
+.mini-room-role {
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.mini-room-role.admin {
+  background: rgba(28, 103, 230, 0.15);
+  color: #1c67e6;
+  border: 1px solid rgba(28, 103, 230, 0.3);
+}
+
+.mini-room-role.member {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--muted-color);
+  border: 1px solid var(--panel-border);
+}
+
+/* Rename input */
+.room-rename-input {
+  background: var(--panel-bg);
+  border: 1px solid var(--panel-border);
+  border-radius: 6px;
+  padding: 4px 8px;
+  color: var(--text-color);
+  font-size: 0.9rem;
+  font-weight: 600;
+  outline: none;
+  width: 120px;
+  transition: all 0.2s;
+}
+
+.room-rename-input:focus {
+  border-color: #1c67e6;
+  box-shadow: 0 0 0 2px rgba(28, 103, 230, 0.1);
+}
+
+/* Room action buttons */
+.mini-room-actions {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.btn-rename,
+.btn-room-delete,
+.btn-rename-confirm,
+.btn-rename-cancel {
+  background: transparent;
+  border: 1px solid var(--panel-border);
+  border-radius: 6px;
+  padding: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  color: var(--text-color);
+  position: relative;
+}
+
+.btn-rename:hover,
+.btn-room-delete:hover {
+  background: rgba(28, 103, 230, 0.1);
+  border-color: #1c67e6;
+  color: #1c67e6;
+}
+
+/* Disabled state for non-admin rooms */
+.btn-rename:disabled,
+.btn-room-delete:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.btn-rename:disabled:hover,
+.btn-room-delete:disabled:hover {
+  background: transparent;
+  border-color: var(--panel-border);
+  color: var(--text-color);
+}
+
+/* Tooltip for disabled buttons */
+.btn-rename:disabled::after,
+.btn-room-delete:disabled::after {
+  content: attr(title);
+  position: absolute;
+  bottom: 100%;
+  right: 0;
+  transform: translateY(-4px);
+  background: rgba(0, 0, 0, 0.9);
+  color: white;
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-size: 11px;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s, transform 0.2s;
+  z-index: 1000;
+  max-width: 150px;
+}
+
+.btn-rename:disabled:hover::after,
+.btn-room-delete:disabled:hover::after {
+  opacity: 1;
+  transform: translateY(-8px);
+}
+
+.btn-rename-confirm {
+  color: #10b981;
+  font-size: 16px;
+  font-weight: bold;
+  padding: 4px 10px;
+}
+
+.btn-rename-confirm:hover {
+  background: rgba(16, 185, 129, 0.1);
+  border-color: #10b981;
+}
+
+.btn-rename-cancel {
+  color: #ef4444;
+  font-size: 16px;
+  font-weight: bold;
+  padding: 4px 10px;
+}
+
+.btn-rename-cancel:hover {
+  background: rgba(239, 68, 68, 0.1);
+  border-color: #ef4444;
+}
+
+.empty-rooms-state {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  color: var(--muted-color);
+  padding: 0 10px;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  margin-bottom: 20px;
+}
+
+.room-actions {
+  display: flex;
+  flex-direction: column;
   gap: 12px;
   margin-top: auto;
 }
 
-.action-btn {
-  flex: 1;
+.btn-full {
+  width: 100%;
   padding: 14px;
-  border-radius: 16px;
+  border-radius: 14px;
   border: none;
   font-weight: 600;
+  font-size: 0.95rem;
   cursor: pointer;
   transition: transform 0.2s, box-shadow 0.2s;
-  color: #ffffff; /* Always white text */
+  color: white;
 }
 
-.btn-create {
+.btn-join-room {
+  background: var(--secondary-gradient);
+  box-shadow: 0 4px 12px rgba(11, 42, 91, 0.2);
+}
+
+.btn-begin-exploring {
   background: var(--primary-gradient);
-  box-shadow: 0 10px 20px rgba(16, 59, 136, 0.3);
+  box-shadow: 0 4px 12px rgba(15, 59, 136, 0.3);
 }
 
-.btn-join {
-  background: var(--secondary-gradient); /* Darker blue */
-  box-shadow: 0 10px 20px rgba(16, 59, 136, 0.3);
-}
-
-.action-btn:hover {
+.btn-full:hover {
   transform: translateY(-2px);
   filter: brightness(1.1);
 }
 
-/* --- RIGHT COL: PROFILE --- */
-.profile-section {
-  text-align: center;
-  margin-bottom: 24px;
-}
-
-.profile-avatar {
-  width: 80px;
-  height: 80px;
-  background: rgba(28, 103, 230, 0.1);
+.btn-settings {
+  background: rgba(255, 255, 255, 0.15);
+  border: none;
+  color: #ffffff;
+  cursor: pointer;
+  width: 36px;
+  /* Fixed width/height for perfect circle */
+  height: 36px;
   border-radius: 50%;
-  margin: 0 auto 12px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 2rem;
-  border: 1px solid var(--panel-border);
+  transition: background 0.2s, transform 0.2s;
+  flex-shrink: 0;
 }
 
-.profile-name {
-  font-weight: 700;
-  font-size: 1.1rem;
-  color: var(--text-color);
+.btn-settings:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: rotate(60deg);
 }
 
-.profile-email {
-  font-size: 0.9rem;
-  color: var(--muted-color);
-}
-
-.level-section {
-  background: rgba(0,0,0,0.1);
-  padding: 16px;
-  border-radius: 16px;
-  margin-bottom: 24px;
-  border: 1px solid var(--panel-border);
-}
-
-.progress-bar-bg {
-  height: 8px;
-  background: rgba(255,255,255,0.1);
-  border-radius: 4px;
-  overflow: hidden;
-  margin-top: 8px;
-}
-
-.progress-bar-fill {
-  height: 100%;
-  background: #2c7dff; /* Brand Blue */
-  width: 60%;
-}
-
-.history-list {
-  text-align: left;
-}
-
-.history-item {
-  font-size: 0.9rem;
-  padding: 8px 0;
-  border-bottom: 1px solid var(--panel-border);
-  color: var(--muted-color);
+.volunteer-page.dark .btn-settings:hover {
+  background: rgba(255, 255, 255, 0.3);
 }
 
 /* --- HEADER --- */
@@ -249,35 +543,95 @@
   background: var(--panel-bg);
   border-radius: 20px;
   border: 1px solid var(--panel-border);
-  box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
 }
 
-.logo-section h2 {
-  margin: 0;
-  color: var(--text-color);
-}
-
-.btn-profile-signout {
-  padding: 8px 16px;
-  background: transparent;
+.volunteer-btn-signout {
   border: 1px solid var(--panel-border);
-  border-radius: 20px;
+  background: var(--panel-bg);
   color: var(--text-color);
+  border-radius: 999px;
+  padding: 8px 18px;
+  font-size: 14px;
+  font-weight: 600;
   cursor: pointer;
+  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.12);
+  transition: all 0.2s ease;
 }
 
-.btn-profile-signout:hover {
-  border-color: #ef4444;
-  color: #ef4444;
+.volunteer-btn-signout:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 20px 45px rgba(0, 0, 0, 0.18);
 }
 
-/* RESPONSIVE */
+/* Public Room Items */
+.public-room-item {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--panel-border);
+  border-radius: 12px;
+  padding: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+  position: relative;
+}
+
+.public-room-item:hover {
+  background: rgba(28, 103, 230, 0.1);
+  transform: translateX(4px);
+}
+
+.public-room-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.public-room-meta {
+  font-size: 0.7rem;
+  color: var(--muted-color);
+  display: block;
+  margin-top: 2px;
+}
+
+.btn-expand-description {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: transparent;
+  border: none;
+  color: var(--muted-color);
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.btn-expand-description:hover {
+  color: #1c67e6;
+  transform: scale(1.1);
+}
+
+.public-room-description {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--panel-border);
+  font-size: 0.8rem;
+  color: var(--muted-color);
+  line-height: 1.4;
+}
+
+.public-room-description p {
+  margin: 0;
+}
+
 @media (max-width: 1024px) {
   .volunteer-layout {
     grid-template-columns: 1fr;
     height: auto;
   }
-  
+
   .dashboard-card {
     min-height: 400px;
   }
