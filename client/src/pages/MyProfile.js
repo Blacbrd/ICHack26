@@ -51,6 +51,31 @@ const MyProfile = ({ user }) => {
             setName(profile.username || '');
             setCvUrl(profile.cv_url || null);
           }
+
+          // Fetch availability slots
+          const { data: slots, error: slotsError } = await supabase
+            .from('availability_slots')
+            .select('*')
+            .eq('user_id', user.id)
+            .order('start_time', { ascending: true });
+
+          if (slotsError) {
+            console.error('Error fetching availability:', slotsError);
+          } else if (slots) {
+            // Convert database format to FullCalendar format
+            const formattedSlots = slots.map(slot => ({
+              id: slot.id.toString(),
+              title: 'Available',
+              start: new Date(slot.start_time),
+              end: new Date(slot.end_time),
+              backgroundColor: '#171717',
+              borderColor: '#171717',
+              extendedProps: {
+                durationMinutes: slot.duration_minutes
+              }
+            }));
+            setAvailabilitySlots(formattedSlots);
+          }
         }
       } catch (error) {
         console.error('Error fetching user data:', error);
@@ -158,7 +183,9 @@ const MyProfile = ({ user }) => {
     }
   };
 
-  const handleDateSelect = (selectInfo) => {
+  const handleDateSelect = async (selectInfo) => {
+    if (!userId) return;
+
     const calendarApi = selectInfo.view.calendar;
     calendarApi.unselect();
 
@@ -166,44 +193,67 @@ const MyProfile = ({ user }) => {
     const end = selectInfo.end;
     const durationMinutes = (end - start) / (1000 * 60);
 
-    const newEvent = {
-      id: Date.now().toString(),
-      title: 'Available',
-      start: start,
-      end: end,
-      backgroundColor: '#171717',
-      borderColor: '#171717',
-      extendedProps: {
-        durationMinutes: durationMinutes
-      }
-    };
+    try {
+      // Save to database
+      const { data, error } = await supabase
+        .from('availability_slots')
+        .insert({
+          user_id: userId,
+          start_time: start.toISOString(),
+          end_time: end.toISOString(),
+          duration_minutes: durationMinutes
+        })
+        .select()
+        .single();
 
-    setAvailabilitySlots([...availabilitySlots, newEvent]);
+      if (error) throw error;
+
+      // Add to local state
+      const newEvent = {
+        id: data.id.toString(),
+        title: 'Available',
+        start: start,
+        end: end,
+        backgroundColor: '#171717',
+        borderColor: '#171717',
+        extendedProps: {
+          durationMinutes: durationMinutes
+        }
+      };
+
+      setAvailabilitySlots([...availabilitySlots, newEvent]);
+    } catch (error) {
+      console.error('Error saving availability slot:', error);
+      alert('Error saving availability slot: ' + error.message);
+    }
   };
 
-  const handleEventClick = (clickInfo) => {
-    if (window.confirm(`Delete availability slot on ${clickInfo.event.start.toLocaleString()}?`)) {
+  const handleEventClick = async (clickInfo) => {
+    if (!window.confirm(`Delete availability slot on ${clickInfo.event.start.toLocaleString()}?`)) {
+      return;
+    }
+
+    try {
+      // Delete from database
+      const { error } = await supabase
+        .from('availability_slots')
+        .delete()
+        .eq('id', parseInt(clickInfo.event.id));
+
+      if (error) throw error;
+
+      // Remove from calendar
       clickInfo.event.remove();
       setAvailabilitySlots(availabilitySlots.filter(slot => slot.id !== clickInfo.event.id));
+    } catch (error) {
+      console.error('Error deleting availability slot:', error);
+      alert('Error deleting availability slot: ' + error.message);
     }
   };
 
   const handleSave = () => {
-    const formattedAvailability = availabilitySlots.map(slot => ({
-      id: slot.id,
-      startTime: slot.start.toISOString(),
-      endTime: slot.end.toISOString(),
-      durationMinutes: slot.extendedProps.durationMinutes,
-      date: slot.start.toLocaleDateString(),
-      timeRange: `${slot.start.toLocaleTimeString()} - ${slot.end.toLocaleTimeString()}`
-    }));
-
-    console.log('Saving profile:', {
-      name,
-      email,
-      cv: selectedFile,
-      availability: formattedAvailability
-    });
+    // Availability is saved automatically when slots are added/removed
+    // This button now just confirms to the user
     alert('Profile saved successfully!');
   };
 
