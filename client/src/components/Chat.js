@@ -196,16 +196,48 @@ function getCountryCode(country) {
   return lower.replace(/[^a-z]/g, '').slice(0, 3);
 }
 
+const ORDINAL_WORDS = {
+  'first': 1, 'second': 2, 'third': 3, 'fourth': 4, 'fifth': 5,
+  'sixth': 6, 'seventh': 7, 'eighth': 8, 'ninth': 9, 'tenth': 10,
+  'eleventh': 11, 'twelfth': 12, 'thirteenth': 13, 'fourteenth': 14, 'fifteenth': 15,
+  'sixteenth': 16, 'seventeenth': 17, 'eighteenth': 18, 'nineteenth': 19, 'twentieth': 20,
+  'twenty-first': 21, 'twenty first': 21, 'twentyfirst': 21,
+  'twenty-second': 22, 'twenty second': 22, 'twentysecond': 22,
+  'twenty-third': 23, 'twenty third': 23, 'twentythird': 23,
+  'twenty-fourth': 24, 'twenty fourth': 24, 'twentyfourth': 24,
+  'twenty-fifth': 25, 'twenty fifth': 25, 'twentyfifth': 25,
+  'twenty-sixth': 26, 'twenty sixth': 26, 'twentysixth': 26,
+  'twenty-seventh': 27, 'twenty seventh': 27, 'twentyseventh': 27,
+  'twenty-eighth': 28, 'twenty eighth': 28, 'twentyeighth': 28,
+  'twenty-ninth': 29, 'twenty ninth': 29, 'twentyninth': 29,
+  'thirtieth': 30, 'thirty-first': 31, 'thirty first': 31, 'thirtyfirst': 31,
+};
+
 function parseDate(dateStr) {
-  // Extract day number (handles 1st, 2nd, 3rd, 21st, 22nd, 23rd, etc.)
+  const lower = dateStr.toLowerCase();
+  let day = null;
+
+  // First try to extract day number (handles 1st, 2nd, 3rd, 21st, 22nd, 23rd, etc.)
   const dayMatch = dateStr.match(/(\d{1,2})(?:st|nd|rd|th)?/i);
-  if (!dayMatch) return null;
-  const day = dayMatch[1].padStart(2, '0');
+  if (dayMatch) {
+    day = dayMatch[1];
+  } else {
+    // Try ordinal words (first, second, fifth, etc.)
+    for (const [word, num] of Object.entries(ORDINAL_WORDS)) {
+      if (lower.includes(word)) {
+        day = num.toString();
+        break;
+      }
+    }
+  }
+
+  if (!day) return null;
+  day = day.padStart(2, '0');
 
   // Extract month
   let month = null;
   for (const [name, num] of Object.entries(MONTH_MAP)) {
-    if (dateStr.toLowerCase().includes(name)) {
+    if (lower.includes(name)) {
       month = num;
       break;
     }
@@ -216,38 +248,109 @@ function parseDate(dateStr) {
   return `26${month}${day}`;
 }
 
-function extractFlightBooking(text) {
+function extractFlightBooking(text, selectedCountry) {
   const lower = text.toLowerCase();
 
   // Check for "book a flight" or "book flight"
   if (!lower.includes('book') || !lower.includes('flight')) return null;
 
-  // Pattern: "from X to Y from DATE to DATE"
-  // Try to extract: from [origin] to [destination] from [date1] to [date2]
-  const fromToPattern = /from\s+(.+?)\s+to\s+(.+?)\s+from\s+(.+?)\s+to\s+(.+?)(?:\.|$)/i;
-  const match = text.match(fromToPattern);
+  let origin = null;
+  let destination = null;
+  let departDate = null;
+  let returnDate = null;
 
-  if (!match) {
-    // Try alternative pattern: "from X to Y DATE to DATE"
-    const altPattern = /from\s+(.+?)\s+to\s+(.+?)\s+(\d{1,2}(?:st|nd|rd|th)?\s+\w+)\s+to\s+(\d{1,2}(?:st|nd|rd|th)?\s+\w+)/i;
-    const altMatch = text.match(altPattern);
-    if (altMatch) {
-      return {
-        origin: altMatch[1].trim(),
-        destination: altMatch[2].trim(),
-        departDate: altMatch[3].trim(),
-        returnDate: altMatch[4].trim(),
-      };
+  // Try to find dates first - pattern: "from DATE to DATE" at the end
+  // Includes full month names and short forms (jan, feb, mar, apr, may, jun, jul, aug, sep, sept, oct, nov, dec)
+  // Also handles ordinal words (first, fifth, twenty-first, etc.) and numeric ordinals (1st, 5th, 21st)
+  // Handles optional "the" before dates
+  const monthNames = 'january|february|march|april|may|june|july|august|september|october|november|december|jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec';
+  const ordinalWords = 'first|second|third|fourth|fifth|sixth|seventh|eighth|ninth|tenth|eleventh|twelfth|thirteenth|fourteenth|fifteenth|sixteenth|seventeenth|eighteenth|nineteenth|twentieth|twenty[- ]?first|twenty[- ]?second|twenty[- ]?third|twenty[- ]?fourth|twenty[- ]?fifth|twenty[- ]?sixth|twenty[- ]?seventh|twenty[- ]?eighth|twenty[- ]?ninth|thirtieth|thirty[- ]?first';
+  const dayPattern = `(?:\\d{1,2}(?:st|nd|rd|th)?|${ordinalWords})`;
+  const datePattern = new RegExp(`from\\s+(?:the\\s+)?(${dayPattern}\\s+(?:of\\s+)?(?:${monthNames}))\\s+to\\s+(?:the\\s+)?(${dayPattern}\\s+(?:of\\s+)?(?:${monthNames}))`, 'i');
+  const dateMatch = text.match(datePattern);
+
+  if (dateMatch) {
+    departDate = dateMatch[1].trim();
+    returnDate = dateMatch[2].trim();
+
+    // Remove the date part to parse countries
+    const beforeDates = text.slice(0, dateMatch.index).trim();
+
+    // Case 1: "book a flight from X to Y" (full origin and destination)
+    const fullPattern = /from\s+(.+?)\s+to\s+(.+?)$/i;
+    const fullMatch = beforeDates.match(fullPattern);
+
+    if (fullMatch) {
+      origin = fullMatch[1].trim();
+      destination = fullMatch[2].trim();
+    } else {
+      // Case 2: "book a flight to Y" (no origin, use Edinburgh)
+      const toOnlyPattern = /to\s+(.+?)$/i;
+      const toMatch = beforeDates.match(toOnlyPattern);
+
+      if (toMatch) {
+        origin = 'edinburgh'; // Default origin
+        destination = toMatch[1].trim();
+      } else {
+        // Case 3: "book a flight" with just dates (no origin or destination)
+        // Use Edinburgh as origin, selected country as destination
+        origin = 'edinburgh';
+        destination = selectedCountry || null;
+      }
     }
+  } else {
+    // Try older patterns as fallback
+    // Pattern: "from X to Y from DATE to DATE"
+    const fromToPattern = /from\s+(.+?)\s+to\s+(.+?)\s+from\s+(.+?)\s+to\s+(.+?)(?:\.|$)/i;
+    const match = text.match(fromToPattern);
+
+    if (match) {
+      // Check if first "from X" looks like a country or a date
+      const firstFrom = match[1].trim().toLowerCase();
+      const looksLikeDate = /\d/.test(firstFrom) || Object.keys(MONTH_MAP).some(m => firstFrom.includes(m));
+
+      if (looksLikeDate) {
+        // "from DATE to DEST from DATE to DATE" - no origin specified
+        origin = 'edinburgh';
+        destination = match[2].trim();
+        departDate = match[1].trim();
+        returnDate = match[3].trim();
+      } else {
+        origin = match[1].trim();
+        destination = match[2].trim();
+        departDate = match[3].trim();
+        returnDate = match[4].trim();
+      }
+    } else {
+      // Try: "to Y from DATE to DATE"
+      const toFromPattern = /to\s+(.+?)\s+from\s+(.+?)\s+to\s+(.+?)(?:\.|$)/i;
+      const toFromMatch = text.match(toFromPattern);
+
+      if (toFromMatch) {
+        origin = 'edinburgh';
+        destination = toFromMatch[1].trim();
+        departDate = toFromMatch[2].trim();
+        returnDate = toFromMatch[3].trim();
+      }
+    }
+  }
+
+  // If no destination but we have a selected country, use that
+  if (!destination && selectedCountry) {
+    destination = selectedCountry;
+  }
+
+  // If no origin, default to Edinburgh
+  if (!origin) {
+    origin = 'edinburgh';
+  }
+
+  if (!destination || !departDate || !returnDate) {
+    console.log('Could not fully parse flight booking:', { origin, destination, departDate, returnDate });
     return null;
   }
 
-  return {
-    origin: match[1].trim(),
-    destination: match[2].trim(),
-    departDate: match[3].trim(),
-    returnDate: match[4].trim(),
-  };
+  return { origin, destination, departDate, returnDate };
 }
 
 function buildSkyscannerUrl(booking) {
@@ -784,7 +887,7 @@ const Chat = ({ roomCode, userId, masterId, allOpportunities = [], onRankUpdate,
           console.log('Voice transcript:', transcript);
 
           // Check for "book a flight" command first
-          const flightBooking = extractFlightBooking(transcript);
+          const flightBooking = extractFlightBooking(transcript, selectedCountry);
           if (flightBooking) {
             console.log('Voice command: book flight:', flightBooking);
             const url = buildSkyscannerUrl(flightBooking);
