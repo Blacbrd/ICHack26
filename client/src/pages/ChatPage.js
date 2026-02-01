@@ -222,6 +222,15 @@ const ChatPage = ({ user, profile }) => {
     }
   };
 
+  const handleLeaveChat = () => {
+    // Navigate to charity referrals for charity users, otherwise to home
+    if (isCharity) {
+      navigate('/charity-referrals');
+    } else {
+      navigate('/');
+    }
+  };
+
   const getUsername = (uid) => usernames[uid] || `User ${uid?.substring?.(0, 8) ?? uid}`;
   const isMasterUser = (uid) => uid === masterId;
 
@@ -253,7 +262,7 @@ const ChatPage = ({ user, profile }) => {
             {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
           </button>
           {isCharity && <button className="chat-page-close-btn" onClick={handleCloseChatRoom}>Close Chat Room</button>}
-          <button className="chat-page-btn" onClick={() => navigate('/')}>Leave</button>
+          <button className="chat-page-btn" onClick={handleLeaveChat}>Leave</button>
         </div>
       </div>
 

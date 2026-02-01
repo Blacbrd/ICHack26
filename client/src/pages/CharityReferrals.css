@@ -68,3 +68,35 @@
 
 .cr-participants-list { margin-top: 8px; }
 .cr-participant { padding:6px 0; border-bottom: 1px dashed #eee; }
+
+.cr-container {
+  padding: 24px;
+}
+
+.cr-title {
+  font-size: 28px;
+  font-weight: 600;
+  margin-bottom: 16px;
+}
+
+.cr-referral-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-top: 12px;
+}
+
+.cr-referral-card {
+  padding: 18px;
+  border-radius: 12px;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  min-width: 220px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.cr-referral-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 18px rgba(0,0,0,0.08);
+}
