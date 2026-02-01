@@ -53,6 +53,7 @@ const LoginPage = () => {
   const [address, setAddress] = useState('');
   const [country, setCountry] = useState('');
   const [link, setLink] = useState('');
+  const [isRemote, setIsRemote] = useState(false);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -137,8 +138,8 @@ const LoginPage = () => {
   };
 
   const validateCharityFields = () => {
-    if (!address) {
-      setError('Address is required for charities.');
+    if (!isRemote && !address) {
+      setError('Address is required for charities (unless remote).');
       return false;
     }
     if (!country) {
@@ -218,12 +219,15 @@ const LoginPage = () => {
         }
 
         if (isCharity) {
-          // Geocode the address to get lat/lon
-          const coords = await addressToLatLng(address);
-          if (!coords) {
-            setError('Could not find coordinates for the provided address. Please check the address and try again.');
-            setLoading(false);
-            return;
+          // Geocode the address to get lat/lon (skip if remote)
+          let coords = null;
+          if (!isRemote) {
+            coords = await addressToLatLng(address);
+            if (!coords) {
+              setError('Could not find coordinates for the provided address. Please check the address and try again.');
+              setLoading(false);
+              return;
+            }
           }
 
           // Insert charity record into charities table
@@ -231,8 +235,8 @@ const LoginPage = () => {
             charity_id: userId,
             name: username || (email ? email.split('@')[0] : 'Charity'),
             email,
-            lat: coords.lat,
-            lon: coords.lon,
+            lat: coords?.lat || null,
+            lon: coords?.lon || null,
             country,
             causes,
             link: link || null,
@@ -382,8 +386,19 @@ const LoginPage = () => {
                     placeholder="Address"
                     value={address}
                     onChange={(e) => setAddress(e.target.value)}
-                    required
+                    required={!isRemote}
+                    disabled={isRemote}
+                    style={isRemote ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
                   />
+
+                  <label className="remote-checkbox">
+                    <input
+                      type="checkbox"
+                      checked={isRemote}
+                      onChange={(e) => setIsRemote(e.target.checked)}
+                    />
+                    Remote Opportunity
+                  </label>
 
                   <select className="form-input" value={country} onChange={(e) => setCountry(e.target.value)} required>
                     <option value="">Select Country</option>
