@@ -802,25 +802,36 @@ const PlanningPage = ({ user }) => {
         />
       )}
 
-      {/* --- NEW SELECTED CHARITIES POPUP --- */}
+{/* --- NEW SELECTED CHARITIES POPUP --- */}
       {showSelectedPopup && (
         <div 
           className="selected-charities-overlay"
-          onClick={() => setShowSelectedPopup(false)} // Close when clicking background
+          onClick={() => setShowSelectedPopup(false)}
           style={{
-            position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh',
-            backgroundColor: 'rgba(0,0,0,0.6)', zIndex: 20000,
-            display: 'flex', alignItems: 'center', justifyContent: 'center'
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            width: '100vw',
+            height: '100vh',
+            backgroundColor: 'rgba(0,0,0,0.6)',
+            zIndex: 20000,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
           }}
         >
           <div 
             className="selected-charities-modal"
-            onClick={(e) => e.stopPropagation()} // Prevent close when clicking modal content
+            onClick={(e) => e.stopPropagation()}
             style={{
               backgroundColor: theme === 'dark' ? '#1f2937' : '#fff',
               color: theme === 'dark' ? '#fff' : '#000',
-              padding: '2rem', borderRadius: '12px',
-              maxWidth: '500px', width: '90%', maxHeight: '80vh', overflowY: 'auto'
+              padding: '2rem',
+              borderRadius: '12px',
+              maxWidth: '500px',
+              width: '90%',
+              maxHeight: '80vh',
+              overflowY: 'auto'
             }}
           >
             <h2>Selected Charities</h2>
@@ -829,34 +840,52 @@ const PlanningPage = ({ user }) => {
             </p>
             
             <div className="modal-list">
-              {selectedCharities.length === 0 && <p>No charities selected yet.</p>}
+              {selectedCharities.length === 0 && (
+                <p>No charities selected yet.</p>
+              )}
               
               {selectedCharities.map(opp => (
-                <div key={opp.id} style={{ 
-                    border: '1px solid #4b5563', 
-                    borderRadius: '8px', 
-                    padding: '12px', 
+                <div
+                  key={opp.id}
+                  style={{
+                    border: '1px solid #4b5563',
+                    borderRadius: '8px',
+                    padding: '12px',
                     marginBottom: '10px',
                     display: 'flex',
                     flexDirection: 'column',
                     gap: '8px'
-                  }}>
-                  <div style={{ fontWeight: 'bold', fontSize: '1.1rem' }}>{opp.name}</div>
-                  <div style={{ fontSize: '0.9rem', opacity: 0.8 }}>{opp.country}</div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '5px' }}>
+                  }}
+                >
+                  <div style={{ fontWeight: 'bold', fontSize: '1.1rem' }}>
+                    {opp.name}
+                  </div>
+                  <div style={{ fontSize: '0.9rem', opacity: 0.8 }}>
+                    {opp.country}
+                  </div>
+
+                  <div
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      marginTop: '5px'
+                    }}
+                  >
                     {opp.link && (
-                      <a 
-                        href={opp.link} 
-                        target="_blank" 
+                      <a
+                        href={opp.link}
+                        target="_blank"
                         rel="noopener noreferrer"
                         style={{ color: '#3b82f6', textDecoration: 'none' }}
                       >
                         Learn more →
                       </a>
                     )}
-                    <input 
-                      type="checkbox" 
-                      checked={true} // Always checked in the "Selected" list
+
+                    <input
+                      type="checkbox"
+                      checked={true}
                       onChange={() => toggleCharitySelection(opp)}
                       style={{ transform: 'scale(1.5)', cursor: 'pointer' }}
                     />
@@ -865,21 +894,46 @@ const PlanningPage = ({ user }) => {
               ))}
             </div>
 
-            <button 
-              onClick={() => setShowSelectedPopup(false)}
+            {/* --- BUTTON ROW --- */}
+            <div
               style={{
                 marginTop: '1.5rem',
-                padding: '0.5rem 1rem',
-                backgroundColor: '#3b82f6',
-                color: 'white',
-                border: 'none',
-                borderRadius: '6px',
-                cursor: 'pointer',
-                float: 'right'
+                display: 'flex',
+                justifyContent: 'flex-end',
+                gap: '10px'
               }}
             >
-              Close
-            </button>
+              <button
+                onClick={() => {
+                  // Placeholder for future functionality
+                  console.log("Choices confirmed (placeholder)");
+                }}
+                style={{
+                  padding: '0.5rem 1rem',
+                  backgroundColor: '#10b981',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '6px',
+                  cursor: 'pointer'
+                }}
+              >
+                Confirm Choices
+              </button>
+
+              <button
+                onClick={() => setShowSelectedPopup(false)}
+                style={{
+                  padding: '0.5rem 1rem',
+                  backgroundColor: '#3b82f6',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '6px',
+                  cursor: 'pointer'
+                }}
+              >
+                Close
+              </button>
+            </div>
           </div>
         </div>
       )}
