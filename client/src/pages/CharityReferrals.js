@@ -2,9 +2,10 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
+import useTheme from '../lib/useTheme';
 import './CharityReferrals.css';
 
-// Small modal component
+// Modal component
 const Modal = ({ open, onClose, children, ariaLabel }) => {
   if (!open) return null;
 
@@ -34,10 +35,12 @@ const Modal = ({ open, onClose, children, ariaLabel }) => {
   );
 };
 
-const CharityReferrals = ({ user }) => {
+const CharityReferrals = ({ user, profile }) => {
   const navigate = useNavigate();
+  const [theme, setTheme] = useTheme('light');
 
   const [referrals, setReferrals] = useState([]);
+  const [recentPosts, setRecentPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeRoomParticipants, setActiveRoomParticipants] = useState([]);
   const [modalOpen, setModalOpen] = useState(false);
@@ -45,6 +48,26 @@ const CharityReferrals = ({ user }) => {
   const [selectedReferral, setSelectedReferral] = useState(null);
   const [deleting, setDeleting] = useState(false);
   const [creatingChat, setCreatingChat] = useState(false);
+  const [charityInfo, setCharityInfo] = useState(null);
+
+  const toggleTheme = () => setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'));
+
+  // Fetch charity info
+  useEffect(() => {
+    if (!user) return;
+
+    const fetchCharityInfo = async () => {
+      const { data } = await supabase
+        .from('charities')
+        .select('name, email')
+        .eq('charity_id', user.id)
+        .single();
+
+      if (data) setCharityInfo(data);
+    };
+
+    fetchCharityInfo();
+  }, [user]);
 
   // Fetch referrals
   useEffect(() => {
@@ -87,19 +110,61 @@ const CharityReferrals = ({ user }) => {
     fetchReferrals();
   }, [user]);
 
-  // Generate unique room code
+  // Fetch recent posts
+  useEffect(() => {
+    if (!user) return;
+
+    const fetchRecentPosts = async () => {
+      const { data } = await supabase
+        .from('posts')
+        .select('id, content, image_urls, created_at')
+        .eq('charity_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(3);
+
+      if (data) {
+        const formatted = data.map(p => {
+          let imgs = p.image_urls;
+          if (typeof imgs === 'string') {
+            try { imgs = JSON.parse(imgs); } catch { imgs = []; }
+          }
+          return {
+            id: p.id,
+            content: p.content,
+            image: Array.isArray(imgs) && imgs.length > 0 ? imgs[0] : null,
+            time: formatTimeAgo(new Date(p.created_at))
+          };
+        });
+        setRecentPosts(formatted);
+      }
+    };
+
+    fetchRecentPosts();
+  }, [user]);
+
+  const formatTimeAgo = (date) => {
+    const now = new Date();
+    const diffInSeconds = Math.floor((now - date) / 1000);
+    if (diffInSeconds > 86400) return Math.floor(diffInSeconds / 86400) + 'd ago';
+    if (diffInSeconds > 3600) return Math.floor(diffInSeconds / 3600) + 'h ago';
+    if (diffInSeconds > 60) return Math.floor(diffInSeconds / 60) + 'm ago';
+    return 'Just now';
+  };
+
   const generateRoomCode = () => {
     const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
     let result = '';
     for (let i = 0; i < 6; i++) {
-      result += characters.charAt(
-        Math.floor(Math.random() * characters.length)
-      );
+      result += characters.charAt(Math.floor(Math.random() * characters.length));
     }
     return result;
   };
 
-  // Open referral modal
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    navigate('/login');
+  };
+
   const handleOpenRoom = async (room) => {
     if (!room) return;
 
@@ -148,18 +213,15 @@ const CharityReferrals = ({ user }) => {
     }
 
     const names = (parts || []).map((p) => {
-      const profile = profilesById[p.user_id];
-      return profile?.username
-        ? profile.username
-        : `User ${String(p.user_id).slice(0, 8)}`;
+      const pr = profilesById[p.user_id];
+      return pr?.username ? pr.username : `User ${String(p.user_id).slice(0, 8)}`;
     });
 
     setActiveRoomParticipants(names);
-    setModalTitle(`Room ${room.room_id} — ${roomCode}`);
+    setModalTitle(room.room_name || `Room ${roomCode}`);
     setModalOpen(true);
   };
 
-  // Deny referral (delete)
   const handleDeny = async () => {
     if (!selectedReferral?.referral_id) return;
 
@@ -185,7 +247,6 @@ const CharityReferrals = ({ user }) => {
     setDeleting(false);
   };
 
-  // Confirm referral → create chat
   const handleConfirm = async () => {
     if (!selectedReferral?.room_code) {
       alert('No referral selected or room code not available.');
@@ -261,96 +322,155 @@ const CharityReferrals = ({ user }) => {
     setCreatingChat(false);
   };
 
+  const charityName = charityInfo?.name || profile?.username || 'Charity';
+  const charityInitials = charityName.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+
   return (
-    <div className="cr-container">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-        <h1 className="cr-title" style={{ margin: 0 }}>Charity Referrals</h1>
-        <button
-          onClick={() => navigate('/charity-post')}
-          style={{
-            padding: '10px 20px',
-            backgroundColor: '#1c67e6',
-            color: 'white',
-            border: 'none',
-            borderRadius: '8px',
-            cursor: 'pointer',
-            fontWeight: '600',
-            boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
-          }}
-        >
-          Post Update
-        </button>
-      </div>
-
-      {loading ? (
-        <p>Loading referrals…</p>
-      ) : referrals.length === 0 ? (
-        <p>No referrals found for this charity account.</p>
-      ) : (
-        <div className="cr-referral-grid">
-          {referrals.map((r) => (
-            <div
-              key={r.referral_id}
-              className="cr-referral-card"
-              role="button"
-              tabIndex={0}
-              onClick={() => handleOpenRoom(r)}
-            >
-              <div>RoomID: {r.room_id}</div>
-              <small>
-                {r.room_code
-                  ? `Code: ${r.room_code}`
-                  : 'No code available'}
-              </small>
-              {r.room_name && <div>{r.room_name}</div>}
-            </div>
-          ))}
+    <div className={`charity-page ${theme}`}>
+      {/* Navigation Header */}
+      <nav className="charity-nav">
+        <div className="charity-nav-left">
+          <img src="/imcharitable.png" alt="Logo" className="charity-logo" />
+          <span className="charity-nav-title">{charityName}</span>
         </div>
-      )}
+        <div className="charity-nav-right">
+          <button className="btn-theme-toggle" onClick={toggleTheme}>
+            {theme === 'dark' ? '☀️ Light' : '🌙 Dark'}
+          </button>
+          <button className="btn-signout" onClick={handleSignOut}>
+            Sign Out
+          </button>
+        </div>
+      </nav>
 
+      {/* Main Layout */}
+      <main className="charity-layout">
+        {/* LEFT COLUMN: Recent Posts */}
+        <section className="dashboard-card left-column">
+          <h3 className="card-title">Recent Posts</h3>
+          {recentPosts.length === 0 ? (
+            <div className="empty-posts">
+              You haven't posted any updates yet. Share your first update with volunteers!
+            </div>
+          ) : (
+            <div className="posts-preview">
+              {recentPosts.map(post => (
+                <div key={post.id} className="post-preview-item">
+                  {post.image && (
+                    <img src={post.image} alt="" className="post-preview-image" />
+                  )}
+                  <div className="post-preview-content">{post.content}</div>
+                  <div className="post-preview-time">{post.time}</div>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+
+        {/* MIDDLE COLUMN */}
+        <div className="middle-column-wrapper">
+          {/* Create Post Button */}
+          <button
+            className="btn-create-post"
+            onClick={() => navigate('/charity-post')}
+          >
+            ✨ Create Post
+          </button>
+
+          {/* Referrals Dashboard */}
+          <section className="dashboard-card middle-column">
+            <h3 className="card-title">Volunteer Referrals</h3>
+            {loading ? (
+              <div className="empty-referrals">Loading referrals...</div>
+            ) : referrals.length === 0 ? (
+              <div className="empty-referrals">
+                No referrals yet.<br />
+                When volunteer groups choose your charity during planning, they'll appear here.
+              </div>
+            ) : (
+              <div className="referrals-section">
+                {referrals.map((r) => (
+                  <div
+                    key={r.referral_id}
+                    className="referral-card"
+                    onClick={() => handleOpenRoom(r)}
+                    role="button"
+                    tabIndex={0}
+                  >
+                    <div className="referral-header">
+                      <span className="referral-room-name">
+                        {r.room_name || `Room ${r.room_id}`}
+                      </span>
+                      {r.room_code && (
+                        <span className="referral-room-code">{r.room_code}</span>
+                      )}
+                    </div>
+                    <div className="referral-meta">
+                      Received {formatTimeAgo(new Date(r.created_at))}
+                    </div>
+                    <span className="referral-status">Pending Review</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
+        </div>
+
+        {/* RIGHT COLUMN: Dashboard & Stats */}
+        <section className="dashboard-card right-column">
+          <div className="charity-profile-section">
+            <div className="profile-name">Dashboard</div>
+          </div>
+
+          <div className="stats-section">
+            <h3 className="card-title">Quick Stats</h3>
+            <div className="stats-grid">
+              <div className="stat-item">
+                <div className="stat-value">{referrals.length}</div>
+                <div className="stat-label">Referrals</div>
+              </div>
+              <div className="stat-item">
+                <div className="stat-value">{recentPosts.length}</div>
+                <div className="stat-label">Posts</div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </main>
+
+      {/* Modal */}
       <Modal
         open={modalOpen}
         onClose={() => setModalOpen(false)}
         ariaLabel="Room participants"
       >
-        <h3>{modalTitle}</h3>
+        <h3 className="cr-modal-title">{modalTitle}</h3>
 
-        {activeRoomParticipants.map((u, i) => (
-          <div key={i}>{u}</div>
-        ))}
+        <div className="cr-modal-participants">
+          {activeRoomParticipants.length === 0 ? (
+            <div className="cr-participant">No participants found</div>
+          ) : (
+            activeRoomParticipants.map((u, i) => (
+              <div key={i} className="cr-participant">{u}</div>
+            ))
+          )}
+        </div>
 
         <div className="cr-modal-actions">
-          <button 
-            onClick={handleConfirm} 
+          <button
+            className="btn-confirm"
+            onClick={handleConfirm}
             disabled={creatingChat}
-            style={{
-              backgroundColor: 'green',
-              color: 'white',
-              border: 'none',
-              padding: '10px 20px',
-              borderRadius: '4px',
-              cursor: creatingChat ? 'not-allowed' : 'pointer',
-              opacity: creatingChat ? 0.7 : 1,
-              marginRight: '10px'
-            }}
           >
-            {creatingChat ? 'Creating Chat...' : 'Confirm'}
+            {creatingChat ? 'Creating Chat...' : '✓ Accept & Chat'}
           </button>
 
           <button
+            className="btn-deny"
             onClick={handleDeny}
             disabled={deleting}
-            style={{
-              backgroundColor: 'red',
-              color: 'white',
-              border: 'none',
-              padding: '10px 20px',
-              borderRadius: '4px',
-              cursor: deleting ? 'not-allowed' : 'pointer',
-              opacity: deleting ? 0.7 : 1
-            }}
           >
-            {deleting ? 'Deleting…' : 'Deny'}
+            {deleting ? 'Deleting...' : '✕ Decline'}
           </button>
         </div>
       </Modal>

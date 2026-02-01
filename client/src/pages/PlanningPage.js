@@ -509,40 +509,11 @@ const PlanningPage = ({ user }) => {
   }, []);
 
   // ----------------- Leave room -----------------
-  const handleLeaveRoom = async () => {
-    if (!user) return;
-
-    if (isMaster) {
-      if (!window.confirm('Are you sure you want to leave and delete this room? All participants will be returned to the landing page.')) {
-        return;
-      }
-
-      const { error } = await supabase
-        .from('rooms')
-        .delete()
-        .eq('room_code', roomCode)
-        .eq('master_id', userId);
-
-      if (error) {
-        alert('Failed to delete room.');
-        console.error('Error deleting room:', error);
-      } else {
-        navigate('/');
-      }
-    } else {
-      const { error } = await supabase
-        .from('room_participants')
-        .delete()
-        .eq('room_code', roomCode)
-        .eq('user_id', userId);
-
-      if (error) {
-        alert('Failed to leave room.');
-        console.error('Error leaving room:', error);
-      } else {
-        navigate('/');
-      }
+  const handleLeaveRoom = () => {
+    if (!window.confirm('Are you sure you want to leave this room?')) {
+      return;
     }
+    navigate('/');
   };
 
   // ----------------- Memoized callbacks for OpportunitiesPanel -----------------
@@ -659,6 +630,21 @@ const PlanningPage = ({ user }) => {
       <div className="planning-header">
         <h1>Planning Room: {roomCode}</h1>
         <div className="planning-header-actions">
+          <button
+            className="btn-show-selected"
+            onClick={() => setShowSelectedPopup(true)}
+            style={{
+              padding: '8px 16px',
+              backgroundColor: '#10b981',
+              color: 'white',
+              border: 'none',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              fontWeight: '600'
+            }}
+          >
+            Show Selected ({selectedCharities.length})
+          </button>
           <button className="theme-toggle" onClick={toggleTheme}>
             {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
           </button>
