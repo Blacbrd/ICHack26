@@ -35,6 +35,50 @@
   height: calc(100vh - 120px);
 }
 
+/* Middle column wrapper - stacks button and feed vertically */
+.middle-column-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* Explore Button Container */
+.explore-button-container {
+  width: 100%;
+}
+
+.btn-explore-main {
+  width: 100%;
+  padding: 24px 32px;
+  font-size: 1.25rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  background: var(--primary-gradient);
+  color: white;
+  border: none;
+  border-radius: 20px;
+  cursor: pointer;
+  box-shadow: 0 8px 24px rgba(15, 59, 136, 0.35);
+  transition: all 0.3s ease;
+}
+
+.btn-explore-main:hover:not(:disabled) {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 32px rgba(15, 59, 136, 0.45);
+  filter: brightness(1.1);
+}
+
+.btn-explore-main:active:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.btn-explore-main:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  transform: none;
+}
+
 /* Common Card Styles */
 .dashboard-card {
   background: var(--panel-bg);

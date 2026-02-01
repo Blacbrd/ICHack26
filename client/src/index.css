@@ -23,6 +23,11 @@
   box-sizing: border-box;
 }
 
+html {
+  background: var(--imc-ivory);
+  overscroll-behavior: none;
+}
+
 body {
   margin: 0;
   font-family: var(--font-sans);
@@ -30,6 +35,7 @@ body {
   -moz-osx-font-smoothing: grayscale;
   color: var(--imc-ink);
   background: var(--imc-ivory);
+  overscroll-behavior: none;
 }
 
 code {

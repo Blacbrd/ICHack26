@@ -465,24 +465,38 @@ const VolunteerLandingPage = ({ user }) => {
           </div>
         </section>
 
-        {/* MIDDLE COLUMN: CHARITY FEED (READ ONLY) */}
-        <section className="dashboard-card middle-column">
-          <h3 className="card-title">Latest Updates</h3>
-          <div className="feed-section">
-            {charityPosts.map(post => (
-              <div key={post.id} className="feed-post">
-                <div className="post-header">
-                  <div className="charity-avatar">{post.initials}</div>
-                  <div className="post-info">
-                    <span className="charity-name">{post.charity}</span>
-                    <span className="post-time">{post.time}</span>
-                  </div>
-                </div>
-                <div className="post-body">{post.content}</div>
-              </div>
-            ))}
+        {/* MIDDLE COLUMN WRAPPER: BUTTON + CHARITY FEED */}
+        <div className="middle-column-wrapper">
+          {/* BEGIN EXPLORING BUTTON - Full Width */}
+          <div className="explore-button-container">
+            <button
+              className="btn-explore-main"
+              onClick={handleBeginExploring}
+              disabled={creating}
+            >
+              {creating ? 'Creating Room...' : 'Begin Exploring'}
+            </button>
           </div>
-        </section>
+
+          {/* MIDDLE COLUMN: CHARITY FEED (READ ONLY) */}
+          <section className="dashboard-card middle-column">
+            <h3 className="card-title">Latest Updates</h3>
+            <div className="feed-section">
+              {charityPosts.map(post => (
+                <div key={post.id} className="feed-post">
+                  <div className="post-header">
+                    <div className="charity-avatar">{post.initials}</div>
+                    <div className="post-info">
+                      <span className="charity-name">{post.charity}</span>
+                      <span className="post-time">{post.time}</span>
+                    </div>
+                  </div>
+                  <div className="post-body">{post.content}</div>
+                </div>
+              ))}
+            </div>
+          </section>
+        </div>
 
         {/* RIGHT COLUMN: PROFILE & ROOMS */}
         <section className="dashboard-card right-column">
@@ -669,13 +683,6 @@ const VolunteerLandingPage = ({ user }) => {
                   >
                     Join Room
                   </button>
-                  <button
-                    className="btn-full btn-begin-exploring"
-                    onClick={handleBeginExploring}
-                    disabled={creating}
-                  >
-                    {creating ? 'Creating...' : 'Begin Exploring'}
-                  </button>
                 </div>
               </>
             )}
@@ -731,13 +738,6 @@ const VolunteerLandingPage = ({ user }) => {
                     onClick={() => navigate('/join')}
                   >
                     Join Room
-                  </button>
-                  <button
-                    className="btn-full btn-begin-exploring"
-                    onClick={handleBeginExploring}
-                    disabled={creating}
-                  >
-                    {creating ? 'Creating...' : 'Begin Exploring'}
                   </button>
                 </div>
               </>
