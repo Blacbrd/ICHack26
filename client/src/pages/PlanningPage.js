@@ -1,5 +1,5 @@
 // PlanningPage.js
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
 import GlobeComponent from '../components/globe';
@@ -13,6 +13,7 @@ const PlanningPage = ({ user }) => {
   const { code } = useParams();
   const navigate = useNavigate();
   const roomCode = (code || '').toString().toUpperCase();
+
   const [loading, setLoading] = useState(true);
   const [roomExists, setRoomExists] = useState(false);
   const [error, setError] = useState('');
@@ -55,6 +56,9 @@ const PlanningPage = ({ user }) => {
   const lastMasterActionRef = useRef(Date.now());
   const [showDinosaurGame, setShowDinosaurGame] = useState(false);
   const [theme, setTheme] = useTheme('dark');
+
+  // New loading for confirm action
+  const [confirmLoading, setConfirmLoading] = useState(false);
 
   const toggleTheme = () => {
     setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'));
@@ -201,7 +205,7 @@ const PlanningPage = ({ user }) => {
   // ------------- LOAD OPPORTUNITIES FROM 'charities' TABLE -------------
   useEffect(() => {
     // Fetch all charities -> transform to the old "opportunity" shape your UI expects:
-    // { latlon: [lat, lon], country: 'united kingdom', link: '...', name: '...' }
+    // { latlon: [lat, lng], country: 'united kingdom', link: '...', name: '...' }
     // Also build grouped data keyed by lowercase country string.
     const fetchCharities = async () => {
       try {
@@ -259,7 +263,7 @@ const PlanningPage = ({ user }) => {
 
     // Optionally, you could create a realtime subscription to 'charities' for live updates.
     // For now I'm only doing a single fetch — add realtime if desired.
-  }, [selectedCharityIds]); // Run when charity IDs change
+  }, [selectedCharityIds]);
 
   // ------------- Realtime subscription for rooms (deletion + updates) -------------
   useEffect(() => {
@@ -602,16 +606,98 @@ const PlanningPage = ({ user }) => {
     }
   };
 
+  // Memoized callbacks passed to OpportunitiesPanel to avoid re-creating functions each render:
+  const handleOpportunitySelect = useCallback((lat, lng, name) => {
+    if (lat !== null && lat !== undefined && lng !== null && lng !== undefined) {
+      setOpportunityMarker({ lat, lng, name });
+      setSelectedCountry(null);
+    } else {
+      setOpportunityMarker(null);
+    }
+  }, []);
+
+  const handleCountrySelect = useCallback((country) => {
+    setSelectedCountry(country);
+    setOpportunityMarker(null);
+    if (roomCode) {
+      supabase
+        .from('rooms')
+        .update({
+          selected_opportunity_lat: null,
+          selected_opportunity_lng: null,
+          selected_country: country || null
+        })
+        .eq('room_code', roomCode);
+    }
+  }, [roomCode]);
+
+  const handleOpportunitiesChange = useCallback((opps) => {
+    setOpportunities(opps);
+  }, []);
+
+  const handlePaginatedOpportunitiesChange = useCallback((paginatedOpps) => {
+    setPaginatedOpportunities(paginatedOpps);
+  }, []);
+
+  const handleOpportunitiesDataChange = useCallback((data) => {
+    setOpportunitiesData(data);
+  }, []);
+
+  // -----------------------
+  // Updated confirm handler
+  // -----------------------
   const handleConfirmChoices = async () => {
+    // Basic validation
+    if (!selectedCharityIds || selectedCharityIds.length === 0) {
+      alert('No charities selected to refer. Please select at least one charity.');
+      return;
+    }
+    if (!roomCode) {
+      alert('Room code missing. Cannot create referrals.');
+      return;
+    }
+
+    setConfirmLoading(true);
+
     try {
-      // You can add any confirmation logic here
-      console.log('Choices confirmed:', selectedCharities);
-      alert(`Confirmed ${selectedCharities.length} charity selections!`);
-      setShowSelectedPopup(false);
+      // Fetch room id first
+      const { data: roomData, error: roomError } = await supabase
+        .from('rooms')
+        .select('id')
+        .eq('room_code', roomCode)
+        .single();
+
+      if (roomError || !roomData) {
+        throw new Error('Unable to find room id for referrals.');
+      }
+
+      const roomId = roomData.id;
+      const inserts = selectedCharityIds.map(cid => ({ room_id: roomId, charity_id: cid }));
+
+      // Insert referrals client-side
+      const { data: inserted, error: insertError } = await supabase
+        .from('referrals')
+        .insert(inserts)
+        .select('*');
+
+      if (insertError) {
+        console.error('Error inserting referrals:', insertError);
+        alert('Failed to create referrals: ' + (insertError.message || JSON.stringify(insertError)));
+      } else {
+        const createdCount = Array.isArray(inserted) ? inserted.length : (inserted ? 1 : 0);
+        alert(`Successfully created ${createdCount} referral${createdCount === 1 ? '' : 's'}.`);
+        console.log('Referrals created:', inserted);
+        setShowSelectedPopup(false);
+      }
     } catch (err) {
-      console.error('Error confirming choices:', err);
+      console.error('Unexpected error creating referrals:', err);
+      alert('Unexpected error creating referrals. See console for details.');
+      setShowSelectedPopup(false);
+    } finally {
+      setConfirmLoading(false);
     }
   };
+  // ------------------------------------------------
 
   if (loading) {
     return (
@@ -825,37 +911,32 @@ const PlanningPage = ({ user }) => {
           onToggleCharity={toggleCharitySelection}
           // -------------------------------
 
-          onOpportunitySelect={(lat, lng, name) => {
-            if (lat !== null && lat !== undefined && lng !== null && lng !== undefined) {
-              setOpportunityMarker({ lat, lng, name });
-              setSelectedCountry(null);
-            } else {
-              setOpportunityMarker(null);
-            }
-          }}
-          onCountrySelect={(country) => {
-            setSelectedCountry(country);
-            setOpportunityMarker(null);
-            if (roomCode) {
-              supabase
-                .from('rooms')
-                .update({
-                  selected_opportunity_lat: null,
-                  selected_opportunity_lng: null,
-                  selected_country: country || null
-                })
-                .eq('room_code', roomCode);
-            }
-          }}
-          onOpportunitiesChange={(opps) => {
-            setOpportunities(opps);
-          }}
-          onPaginatedOpportunitiesChange={(paginatedOpps) => {
-            setPaginatedOpportunities(paginatedOpps);
-          }}
-          onOpportunitiesDataChange={(data) => {
-            setOpportunitiesData(data);
-          }}
+          onOpportunitySelect={handleOpportunitySelect}
+          onCountrySelect={handleCountrySelect}
+          onOpportunitiesChange={handleOpportunitiesChange}
+          onPaginatedOpportunitiesChange={handlePaginatedOpportunitiesChange}
+          onOpportunitiesDataChange={handleOpportunitiesDataChange}
+
+          onOpportunitiesChangeLocal={(opps) => setOpportunities(opps)}
+          onPaginatedOpportunitiesChangeLocal={(paginatedOpps) => setPaginatedOpportunities(paginatedOpps)}
+
+          onOpportunitiesDataChangeLocal={(data) => setOpportunitiesData(data)}
+
+          onOpportunitiesChangeParent={handleOpportunitiesChange}
+          onPaginatedOpportunitiesChangeParent={handlePaginatedOpportunitiesChange}
+          onOpportunitiesDataChangeParent={handleOpportunitiesDataChange}
+
+          onCountrySelectParent={handleCountrySelect}
+          onOpportunitySelectParent={handleOpportunitySelect}
+
+          onToggleCharityParent={toggleCharitySelection}
+
+          onRankedOpportunityIdsUpdate={(ids) => setRankedOpportunityIds(ids)}
+          
+          onRankingLoadingChange={(v) => setRankingLoading(v)}
+
+          onShowDinosaur={() => setShowDinosaurGame(true)}
+
           // provide current fetched data directly so panel doesn't need to re-fetch the JSON:
           initialOpportunities={opportunities}
           initialOpportunitiesData={opportunitiesData}
@@ -985,16 +1066,18 @@ const PlanningPage = ({ user }) => {
             >
               <button
                 onClick={handleConfirmChoices}
+                disabled={confirmLoading}
                 style={{
                   padding: '0.5rem 1rem',
                   backgroundColor: '#10b981',
                   color: 'white',
                   border: 'none',
                   borderRadius: '6px',
-                  cursor: 'pointer'
+                  cursor: confirmLoading ? 'not-allowed' : 'pointer',
+                  opacity: confirmLoading ? 0.8 : 1
                 }}
               >
-                Confirm Choices
+                {confirmLoading ? 'Creating referrals...' : `Confirm Choices (${selectedCharities.length})`}
               </button>
 
               <button
