@@ -675,13 +675,14 @@ const PlanningPage = ({ user }) => {
       <div className="planning-content">
         {/* Globe as background layer - centered */}
         <div className="globe-wrapper">
-          <GlobeComponent 
-            roomCode={roomCode} 
-            isMaster={isMaster} 
-            user={user} 
+          <GlobeComponent
+            roomCode={roomCode}
+            isMaster={isMaster}
+            user={user}
             opportunityMarker={opportunityMarker}
             opportunities={paginatedOpportunities.length > 0 ? paginatedOpportunities : opportunities}
             customGlobeImage={globeImageUrl}
+            selectedCountry={selectedCountry}
             onCountrySelect={(country) => {
               console.log('PlanningPage: Country selected:', country);
               setSelectedCountry(country);
@@ -701,7 +702,28 @@ const PlanningPage = ({ user }) => {
           />
         </div>
         {/* Chat and Opportunities as overlays */}
-        <Chat roomCode={roomCode} userId={user?.id} masterId={masterId} allOpportunities={opportunities} onRankUpdate={(ids) => setRankedOpportunityIds(ids)} onRankingLoadingChange={(v) => setRankingLoading(v)} />
+        <Chat
+          roomCode={roomCode}
+          userId={user?.id}
+          masterId={masterId}
+          allOpportunities={opportunities}
+          onRankUpdate={(ids) => setRankedOpportunityIds(ids)}
+          onRankingLoadingChange={(v) => setRankingLoading(v)}
+          onVoiceCountrySelect={(country) => {
+            setSelectedCountry(country);
+            setOpportunityMarker(null);
+            if (roomCode) {
+              supabase
+                .from('rooms')
+                .update({
+                  selected_country: country,
+                  selected_opportunity_lat: null,
+                  selected_opportunity_lng: null,
+                })
+                .eq('room_code', roomCode);
+            }
+          }}
+        />
         <OpportunitiesPanel
           roomCode={roomCode}
           selectedCountry={selectedCountry}

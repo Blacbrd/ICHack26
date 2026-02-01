@@ -448,7 +448,7 @@ const createGoogleFlightsUrl = (startLat, startLng, endLat, endLng) => {
   return `https://www.google.com/travel/flights?q=Flights%20from%20Manchester%20to%20Tokyo`;
 };
 
-const GlobeComponent = ({ roomCode, isMaster, user, opportunityMarker, opportunities = [], onCountrySelect, customGlobeImage }) => {
+const GlobeComponent = ({ roomCode, isMaster, user, opportunityMarker, opportunities = [], onCountrySelect, customGlobeImage, selectedCountry: selectedCountryProp }) => {
   const globeRef = useRef();
   const globeInstanceRef = useRef(null);
   const selectedCountryRef = useRef(null);

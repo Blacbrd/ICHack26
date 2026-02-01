@@ -14,14 +14,88 @@ import './Chat.css';
  *  - onRankUpdate (function) - callback with ranked opportunity IDs
  */
 
-const Chat = ({ roomCode, userId, masterId, allOpportunities = [], onRankUpdate, onRankingLoadingChange }) => {
+const COUNTRY_ALIASES = {
+  'usa': 'United States of America',
+  'us': 'United States of America',
+  'united states': 'United States of America',
+  'america': 'United States of America',
+  'uk': 'United Kingdom',
+  'britain': 'United Kingdom',
+  'great britain': 'United Kingdom',
+  'england': 'United Kingdom',
+  'uae': 'United Arab Emirates',
+  'emirates': 'United Arab Emirates',
+  'south korea': 'South Korea',
+  'north korea': 'North Korea',
+  'new zealand': 'New Zealand',
+  'saudi': 'Saudi Arabia',
+  'czech': 'Czech Republic',
+  'czechia': 'Czech Republic',
+  'ivory coast': 'Ivory Coast',
+  'cote d\'ivoire': 'Ivory Coast',
+  'dr congo': 'Democratic Republic of the Congo',
+  'drc': 'Democratic Republic of the Congo',
+  'car': 'Central African Republic',
+  'papua new guinea': 'Papua New Guinea',
+  'png': 'Papua New Guinea',
+  'bosnia': 'Bosnia and Herzegovina',
+  'sri lanka': 'Sri Lanka',
+  'el salvador': 'El Salvador',
+  'costa rica': 'Costa Rica',
+  'dominican republic': 'Dominican Republic',
+  'south africa': 'South Africa',
+  'burkina': 'Burkina Faso',
+};
+
+const MAJOR_COUNTRIES = [
+  'Afghanistan','Albania','Algeria','Argentina','Australia','Austria','Bangladesh',
+  'Belarus','Belgium','Brazil','Bulgaria','Canada','Chile','China','Colombia',
+  'Croatia','Czech Republic','Denmark','Egypt','Finland','France','Germany',
+  'Greece','Hungary','India','Indonesia','Iran','Iraq','Ireland','Israel','Italy',
+  'Japan','Kazakhstan','Kenya','Malaysia','Mexico','Morocco','Myanmar','Netherlands',
+  'New Zealand','Nigeria','North Korea','Norway','Pakistan','Peru','Philippines',
+  'Poland','Portugal','Romania','Russia','Saudi Arabia','South Africa','South Korea',
+  'Spain','Sweden','Switzerland','Taiwan','Thailand','Turkey','Ukraine',
+  'United Arab Emirates','United Kingdom','United States of America','Uzbekistan',
+  'Venezuela','Vietnam','Yemen','Zimbabwe','Angola','Azerbaijan','Belize','Benin',
+  'Bolivia','Bosnia and Herzegovina','Botswana','Brunei','Burkina Faso','Burundi',
+  'Cambodia','Cameroon','Central African Republic','Chad','Congo','Costa Rica',
+  'Cuba','Cyprus','Democratic Republic of the Congo','Dominican Republic','Ecuador',
+  'El Salvador','Eritrea','Estonia','Ethiopia','Georgia','Ghana','Guatemala',
+  'Guinea','Haiti','Honduras','Iceland','Ivory Coast','Jamaica','Jordan','Kuwait',
+  'Kyrgyzstan','Laos','Latvia','Lebanon','Liberia','Libya','Lithuania','Madagascar',
+  'Malawi','Mali','Mauritania','Moldova','Mongolia','Mozambique','Nepal','Nicaragua',
+  'Niger','Oman','Panama','Papua New Guinea','Paraguay','Qatar','Rwanda','Senegal',
+  'Serbia','Sierra Leone','Singapore','Slovakia','Slovenia','Somalia','Sri Lanka',
+  'Sudan','Syria','Tajikistan','Tanzania','Tunisia','Turkmenistan','Uganda','Uruguay',
+  'Zambia',
+];
+
+function extractCountry(text) {
+  const lower = text.toLowerCase().trim();
+  // Check aliases first
+  for (const [alias, country] of Object.entries(COUNTRY_ALIASES)) {
+    if (lower.includes(alias)) return country;
+  }
+  // Check full country names (longest first to match multi-word names first)
+  const sorted = [...MAJOR_COUNTRIES].sort((a, b) => b.length - a.length);
+  for (const country of sorted) {
+    if (lower.includes(country.toLowerCase())) return country;
+  }
+  return null;
+}
+
+const Chat = ({ roomCode, userId, masterId, allOpportunities = [], onRankUpdate, onRankingLoadingChange, onVoiceCountrySelect }) => {
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(true);
+  const [isRecording, setIsRecording] = useState(false);
   const [usernames, setUsernames] = useState({}); // Cache for usernames
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
   const rankTimeoutRef = useRef(null);
+  const mediaRecorderRef = useRef(null);
+  const audioChunksRef = useRef([]);
   const allOpportunitiesRef = useRef(allOpportunities);
   const onRankUpdateRef = useRef(onRankUpdate);
   const onRankingLoadingChangeRef = useRef(onRankingLoadingChange);
@@ -346,6 +420,78 @@ const Chat = ({ roomCode, userId, masterId, allOpportunities = [], onRankUpdate,
     }
   };
 
+  const handleMicClick = async () => {
+    if (isRecording) {
+      // Stop recording
+      if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+        mediaRecorderRef.current.stop();
+      }
+      setIsRecording(false);
+      return;
+    }
+
+    // Start recording
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = mediaRecorder;
+      audioChunksRef.current = [];
+
+      mediaRecorder.ondataavailable = (e) => {
+        if (e.data.size > 0) {
+          audioChunksRef.current.push(e.data);
+        }
+      };
+
+      mediaRecorder.onstop = async () => {
+        // Stop all tracks so the browser mic indicator goes away
+        stream.getTracks().forEach((t) => t.stop());
+
+        const blob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        audioChunksRef.current = [];
+
+        // Send to ElevenLabs STT
+        try {
+          const formData = new FormData();
+          formData.append('file', blob, 'recording.webm');
+          formData.append('model_id', 'scribe_v1');
+
+          const res = await fetch('https://api.elevenlabs.io/v1/speech-to-text', {
+            method: 'POST',
+            headers: {
+              'xi-api-key': process.env.REACT_APP_ELEVENLABS_API_KEY,
+            },
+            body: formData,
+          });
+
+          if (!res.ok) {
+            console.error('ElevenLabs STT error:', res.status);
+            return;
+          }
+
+          const data = await res.json();
+          const transcript = data.text || '';
+          console.log('Voice transcript:', transcript);
+
+          const country = extractCountry(transcript);
+          if (country && onVoiceCountrySelect) {
+            console.log('Voice selected country:', country);
+            onVoiceCountrySelect(country);
+          } else {
+            console.log('No country found in transcript:', transcript);
+          }
+        } catch (err) {
+          console.error('Error calling ElevenLabs STT:', err);
+        }
+      };
+
+      mediaRecorder.start();
+      setIsRecording(true);
+    } catch (err) {
+      console.error('Microphone permission denied or unavailable:', err);
+    }
+  };
+
   const getUsername = (uid) => {
     return usernames[uid] || `User ${uid?.substring ? uid.substring(0, 8) : uid}`;
   };
@@ -359,6 +505,18 @@ const Chat = ({ roomCode, userId, masterId, allOpportunities = [], onRankUpdate,
       <div className="chat-container">
         <div className="chat-header">
           <h3>Chat</h3>
+          <button
+            className={`mic-button${isRecording ? ' recording' : ''}`}
+            onClick={handleMicClick}
+            title={isRecording ? 'Stop recording' : 'Say a country name'}
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 1a4 4 0 0 0-4 4v7a4 4 0 0 0 8 0V5a4 4 0 0 0-4-4z"/>
+              <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+              <line x1="12" y1="19" x2="12" y2="23"/>
+              <line x1="8" y1="23" x2="16" y2="23"/>
+            </svg>
+          </button>
         </div>
         <div className="chat-loading">
           <p>Loading messages...</p>
@@ -371,6 +529,18 @@ const Chat = ({ roomCode, userId, masterId, allOpportunities = [], onRankUpdate,
     <div className="chat-container">
       <div className="chat-header">
         <h3>Chat</h3>
+        <button
+          className={`mic-button${isRecording ? ' recording' : ''}`}
+          onClick={handleMicClick}
+          title={isRecording ? 'Stop recording' : 'Say a country name'}
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12 1a4 4 0 0 0-4 4v7a4 4 0 0 0 8 0V5a4 4 0 0 0-4-4z"/>
+            <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+            <line x1="12" y1="19" x2="12" y2="23"/>
+            <line x1="8" y1="23" x2="16" y2="23"/>
+          </svg>
+        </button>
       </div>
 
       <div className="chat-messages">
