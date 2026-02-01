@@ -1,200 +1,177 @@
-# 🌍 WellWorld
+# IMCharitable
 
-WellWorld is an interactive platform that connects volunteers with global opportunities while providing AI-powered recommendations and real-time collaboration features. The platform features an interactive 3D globe visualization, chat functionality, and smart opportunity matching powered by Google's Gemini AI.
+IMCharitable is a volunteer collaboration platform that combines a 3D globe, real-time rooms, and AI-assisted matching to help people discover and coordinate global volunteering opportunities.
 
-Achieved 🥇 for Google Dev. Group and 🥉 for Booking.com tracks.
+## What this project does
 
-## About the Project
+- Interactive 3D globe with country selection and mapped opportunities.
+- Public and private rooms with live participant lists and planning flow.
+- Real-time chat backed by Supabase.
+- AI-assisted recommendations and ranking powered by Google Gemini.
+- Opportunity sourcing via Idealist.org scraping and Supabase-backed charity data.
+- Flight route visualization and nearest-airport lookup via Google Maps APIs.
+- News feed tailored to disaster and humanitarian topics.
+- Volunteer profiles with CV upload and availability calendar.
 
-**Inspiration.** I grew up watching neighbors coordinate disaster-response drives with little more than group chats and shared spreadsheets. WellWorld is my attempt to give grassroots organizers a global cockpit where compassion scales as gracefully as code.
+## Architecture overview
 
-**How we built it.** The system stitches together a React + Globe.gl front end, a FastAPI backend, Supabase auth/real-time plumbing, and Gemini-powered recommender flows. The recommendation system uses natural language processing to analyze opportunities based on key factors like time commitment, skill requirements, and potential impact, helping match volunteers with the most suitable opportunities.
+Frontend (React):
+- Routing and pages for login, rooms, planning, chat, profiles, and charity tools.
+- Globe visualization with Globe.gl and Three.js.
+- Supabase client for auth, storage, and real-time data.
+- FullCalendar for availability scheduling.
 
-**What I learned.** Bridging 3D geospatial rendering with conversational AI taught me a lot about streaming data contracts, optimistic UI patterns, and crafting prompt-safe middle layers so that model outputs stay human-trustworthy.
+Backend (FastAPI):
+- Gemini endpoints for recommendations, rankings, and conversions.
+- Idealist scraping via Selenium and Chrome WebDriver.
+- Google Maps endpoints for airports and flight routes.
+- NewsAPI integration with optional Supabase-based user preferences.
 
-**Challenges.** Time zones, rate limits, and globe performance kept biting us; the biggest hurdle was smoothing latency so that cross-continent collaborators stayed in sync while Gemini suggestions arrived fast enough to feel like a teammate.
+## Key features by area
 
-## ✨ Key Features
+Rooms and planning
+- Create/join rooms with a room code.
+- Public room discovery, description, and host controls.
+- Planning flow with country selection and opportunity voting.
 
-🌐 **Interactive 3D Globe:** Visualize volunteering opportunities worldwide with an immersive Three.js-based globe
+Opportunities and AI
+- Opportunities come from Supabase `charities` or fallback `client/public/opportunities.json`.
+- Idealist.org link scraping and geo-conversion into `backend/opportunities.json`.
+- Gemini-powered recommendation and ranking based on room chat context.
 
-💬 **Real-time Chat:** Collaborate with other volunteers in planning rooms with live messaging
+Profiles and availability
+- Volunteer profile with CV upload to Supabase storage (`resumes` bucket).
+- Availability slots stored in `availability_slots` with FullCalendar UI.
 
-🤖 **AI Assistant (WorldAI):** Get personalized volunteering recommendations powered by Google Gemini
+News and mapping
+- NewsAPI search endpoint for humanitarian and disaster topics.
+- Google Maps endpoints for nearest airport and great-circle flight routes.
 
-🔍 **Opportunity Browser:** Browse and filter volunteering opportunities by location, type, and requirements
+## Tech stack
 
-📍 **Location-based Mapping:** See opportunities mapped to their geographic locations on the 3D globe
+Frontend
+- React 18, React Router
+- Globe.gl, Three.js
+- Supabase JS client
+- FullCalendar
 
-👥 **Collaborative Planning:** Create and join planning rooms for group coordination (up to 4 people per room)
+Backend
+- FastAPI, Uvicorn
+- Google Gemini (google-genai)
+- Selenium + webdriver-manager
+- NewsAPI
+- Google Maps Places API
+- Supabase Python client
 
-✈️ **Flight Route Visualization:** View flight routes from your nearest airport to volunteering destinations
+## Requirements
 
-## 🛠️ Tech Stack
+- Node.js 18+
+- Python 3.8+
+- Chrome or Chromium installed for Selenium
+- Supabase project with required tables and storage bucket
+- API keys: Gemini, Google Maps, NewsAPI, Supabase
 
-**Frontend:**
-- React.js with React Router
-- Globe.gl (Three.js-based 3D visualization)
-- Supabase Client (Authentication & Real-time features)
-- Modern CSS (Flexbox & Grid layouts)
+## Setup
 
-**Backend:**
-- Python FastAPI
-- Google Gemini AI (for recommendations and analysis)
-- Google Maps API (for airport finding and flight routes)
-- Supabase (Database & Auth)
-- Uvicorn (ASGI Server)
+1) Install frontend dependencies
 
-## 🧠 How It Works
-
-1. **User Authentication:** Users sign up/login via Supabase authentication
-2. **Room Creation:** Users create or join planning rooms with unique 6-digit codes
-3. **Country Selection:** Master user selects a country on the interactive 3D globe
-4. **Opportunity Discovery:** System fetches volunteering opportunities from Idealist.org for the selected country
-5. **AI Recommendations:** Gemini AI analyzes opportunities and provides personalized recommendations
-6. **Collaborative Voting:** Room participants vote on opportunities they're interested in
-7. **Final Selection:** System determines the final destination based on group consensus
-8. **Route Planning:** Flight routes are calculated from user's location to the selected opportunity
-
-## 🚀 Getting Started
-
-### Prerequisites
-
-- Node.js 18.x or later
-- Python 3.8 or higher
-- npm or yarn
-- pip (Python package manager)
-- API keys for:
-  - Google Gemini
-  - Google Maps
-  - Supabase
-
-### Installation
-
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/your-username/wellworld.git
-   cd wellworld
-   ```
-
-2. **Install frontend dependencies**
-   ```bash
-   cd client
-   npm install
-   cd ..
-   ```
-
-3. **Set up Python backend**
-   ```bash
-   cd backend
-   python -m venv venv
-   
-   # On macOS/Linux:
-   source venv/bin/activate
-   
-   # On Windows:
-   venv\Scripts\activate
-   
-   pip install -r ../requirements.txt
-   cd ..
-   ```
-
-4. **Create environment files**
-   
-   Create `backend/.env`:
-   ```bash
-   GEMINI_API_KEY=your-gemini-api-key
-   GMAPS_API_KEY=your-google-maps-api-key
-   ```
-   
-   Create `client/.env`:
-   ```bash
-   REACT_APP_SUPABASE_URL=your-supabase-url
-   REACT_APP_SUPABASE_ANON_KEY=your-supabase-anon-key
-   ```
-   
-   Get your API keys from:
-   - Gemini API key: https://makersuite.google.com/app/apikey
-   - Google Maps API key: https://console.cloud.google.com/google/maps-apis/credentials
-   - Supabase: https://supabase.com
-
-5. **Start the development servers**
-   
-   Backend (from root directory):
-   ```bash
-   uvicorn backend.main:app --reload --host 0.0.0.0 --port 8000
-   ```
-   
-   Frontend (in a new terminal):
-   ```bash
-   cd client
-   npm start
-   ```
-
-6. **Open your browser**
-   
-   - Frontend: http://localhost:3000
-   - Backend API Docs: http://localhost:8000/docs
-
-## 📁 Project Structure
-
-```
-├── backend/                 # Python FastAPI backend
-│   ├── routers/            # API route handlers
-│   │   ├── gemini/         # Gemini AI integration
-│   │   ├── gmap/           # Google Maps integration
-│   │   └── volunteering/   # Volunteering opportunity routes
-│   ├── utils/              # Utility functions
-│   └── main.py            # Main application entry
-├── client/                 # React frontend
-│   ├── public/            # Static files
-│   └── src/
-│       ├── components/    # React components (Globe, Chat, etc.)
-│       ├── pages/         # Page components
-│       └── lib/           # Utility functions
-└── requirements.txt       # Python dependencies
+```bash
+cd client
+npm install
 ```
 
-## 🔧 Environment Variables
+2) Install backend dependencies
 
-### Backend (`backend/.env`)
-- `GEMINI_API_KEY` (required): Your Google Gemini API key
-- `GMAPS_API_KEY` (required): Your Google Maps API key
-- `GEMINI_FAST_MODEL` (optional): Override default model (default: `gemini-2.5-flash`)
-- `FRONTEND_ORIGINS` (optional): Comma-separated list of allowed origins (default: `http://localhost:3000`)
+```bash
+pip install -r requirements.txt
+```
 
-### Frontend (`client/.env`)
-- `REACT_APP_SUPABASE_URL` (required): Your Supabase project URL
-- `REACT_APP_SUPABASE_ANON_KEY` (required): Your Supabase anonymous key
+3) Create environment files
 
-## 📚 API Documentation
+Backend `backend/.env` (example):
 
-- **Swagger UI:** http://localhost:8000/docs
-- **ReDoc:** http://localhost:8000/redoc
+```bash
+GEMINI_API_KEY=your-gemini-api-key
+GMAPS_API_KEY=your-google-maps-api-key
+NEWS_API_KEY=your-newsapi-key
+SUPABASE_URL=your-supabase-url
+SUPABASE_ANON_KEY=your-supabase-anon-key
+# Optional
+GEMINI_FAST_MODEL=gemini-2.5-flash
+FRONTEND_ORIGINS=http://localhost:3000
+HEADLESS=1
+IDEALIST_MAX_PAGES=50
+```
 
-## 🐛 Troubleshooting
+Frontend `client/.env` (example):
 
-- **Import errors:** Make sure all dependencies are installed: `pip install -r requirements.txt`
-- **API key errors:** Ensure your `.env` files exist and contain valid API keys
-- **Port already in use:** Change the port with `--port 8001` or kill the process using port 8000
-- **Frontend build issues:** Clear npm cache: `rm -rf node_modules && npm install`
-- **Supabase connection issues:** Verify environment variables and network connectivity
+```bash
+REACT_APP_SUPABASE_URL=your-supabase-url
+REACT_APP_SUPABASE_ANON_KEY=your-supabase-anon-key
+```
 
-## 🤝 Contributing
+4) Supabase schema notes
 
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
+At minimum, the UI expects the following tables:
+- `profiles` (volunteer profiles, includes `username`, `cv_url`)
+- `charities` (opportunities with `charity_id`, `name`, `lat`, `lon`, `country`, optional `causes`, `link`)
+- `rooms` (room metadata, includes `room_code`, `master_id`, `selected_country`, `is_public`)
+- `room_participants` (room membership)
+- `messages` (chat history)
+- `posts` (charity posts for the volunteer feed)
+- `availability_slots` (see `SUPABASE_AVAILABILITY_SETUP.md`)
 
-## 📄 License
+Storage:
+- Bucket `resumes` for CV uploads.
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+5) Run the servers
 
-## 🙏 Acknowledgments
+Backend:
+```bash
+uvicorn backend.main:app --reload --host 0.0.0.0 --port 8000
+```
 
-- Globe visualization powered by [Globe.gl](https://globe.gl)
-- AI features powered by [Google Gemini](https://deepmind.google/technologies/gemini/)
-- Real-time features powered by [Supabase](https://supabase.com)
-- Volunteering opportunities from [Idealist.org](https://www.idealist.org)
+Frontend:
+```bash
+cd client
+npm start
+```
+
+Frontend runs on `http://localhost:3000` and the API docs are at `http://localhost:8000/docs`.
+
+## API endpoints (backend)
+
+- `GET /api/health`
+- `POST /api/gemini/set_prompt`
+- `GET /api/gemini/get_prompt`
+- `GET /api/gemini/get_response`
+- `GET /api/gemini/convert_idealist`
+- `POST /api/gemini/recommend-opportunity`
+- `POST /api/gemini/rank-opportunities`
+- `POST /api/gemini/hotel-recommendations`
+- `POST /api/gmap/find-nearest-airport`
+- `POST /api/gmap/flight-route`
+- `GET /api/news/recommended`
+- `GET /api/idealist/search`
+
+## Project structure
+
+```
+backend/                 FastAPI backend
+  gemini/                Gemini wrapper and parsing helpers
+  routers/               API route handlers
+  utils/                 Utility helpers
+  opportunities.json     Generated opportunity locations
+client/                  React frontend
+  public/                Static assets and sample data
+  src/                   Components, pages, and helpers
+requirements.txt         Python dependencies
+SUPABASE_AVAILABILITY_SETUP.md
+```
+
+## Notes and troubleshooting
+
+- Selenium requires Chrome or Chromium. The backend uses webdriver-manager to install a compatible driver.
+- `client/public/opportunities.json` is used as a fallback when Supabase data is unavailable.
+- If `/api/idealist/search` is slow, reduce `IDEALIST_MAX_PAGES` and keep `HEADLESS=1`.
+- Availability calendar output format is documented in `client/AVAILABILITY_OUTPUT_EXAMPLE.md`.
