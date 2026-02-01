@@ -47,6 +47,7 @@ const PlanningPage = ({ user }) => {
   const [showDinosaurGame, setShowDinosaurGame] = useState(false);
   const [theme, setTheme] = useTheme('dark');
   const [voiceSelectedIndex, setVoiceSelectedIndex] = useState(null);
+  const [voiceGoBack, setVoiceGoBack] = useState(false);
 
   const toggleTheme = () => {
     setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'));
@@ -725,10 +726,26 @@ const PlanningPage = ({ user }) => {
                 .eq('room_code', roomCode);
             }
           }}
+          paginatedOpportunities={paginatedOpportunities}
           onVoiceOpportunitySelect={(index) => {
             // Pass the index to OpportunitiesPanel via state
             console.log('Voice requesting opportunity at index:', index);
             setVoiceSelectedIndex(index);
+          }}
+          onVoiceGoBack={() => {
+            console.log('Voice command: going back to country view');
+            // Clear opportunity marker but keep country selected
+            setOpportunityMarker(null);
+            setVoiceGoBack(true);
+            if (roomCode) {
+              supabase
+                .from('rooms')
+                .update({
+                  selected_opportunity_lat: null,
+                  selected_opportunity_lng: null,
+                })
+                .eq('room_code', roomCode);
+            }
           }}
         />
         <OpportunitiesPanel
@@ -740,13 +757,19 @@ const PlanningPage = ({ user }) => {
             console.log('PlanningPage: onOpportunitySelect called with:', { lat, lng, name });
             if (lat !== null && lat !== undefined && lng !== null && lng !== undefined) {
               setOpportunityMarker({ lat, lng, name });
-              // Clear country selection when a specific opportunity is selected
+              // Clear country selection when a specific opportunity is selected via click
               setSelectedCountry(null);
               console.log('PlanningPage: Set opportunityMarker to:', { lat, lng, name });
             } else {
               setOpportunityMarker(null);
               console.log('PlanningPage: Cleared opportunityMarker');
             }
+          }}
+          onVoiceOpportunitySelect={(lat, lng, name) => {
+            console.log('PlanningPage: onVoiceOpportunitySelect called with:', { lat, lng, name });
+            // Set opportunity marker but keep country selected for "go back"
+            setOpportunityMarker({ lat, lng, name });
+            console.log('PlanningPage: Set opportunityMarker (voice) to:', { lat, lng, name });
           }}
           onCountrySelect={(country) => {
             console.log('PlanningPage: Country selected from opportunity:', country);
@@ -775,6 +798,8 @@ const PlanningPage = ({ user }) => {
           }}
           voiceSelectedIndex={voiceSelectedIndex}
           onVoiceSelectionHandled={() => setVoiceSelectedIndex(null)}
+          voiceGoBack={voiceGoBack}
+          onVoiceGoBackHandled={() => setVoiceGoBack(false)}
         />
       </div>
       {/* Dinosaur Game Toggle Button - only for non-master users */}

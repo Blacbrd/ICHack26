@@ -5,6 +5,7 @@ import './OpportunitiesPanel.css';
 const OpportunitiesPanel = ({
   roomCode,
   onOpportunitySelect,
+  onVoiceOpportunitySelect,
   selectedCountry,
   onOpportunitiesChange,
   onCountrySelect,
@@ -14,6 +15,8 @@ const OpportunitiesPanel = ({
   rankingLoading,
   voiceSelectedIndex,
   onVoiceSelectionHandled,
+  voiceGoBack,
+  onVoiceGoBackHandled,
 }) => {
   const [opportunities, setOpportunities] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -265,6 +268,19 @@ const OpportunitiesPanel = ({
     }
   }, [paginatedOpportunities, onPaginatedOpportunitiesChange]);
 
+  // Handle voice "go back" command
+  useEffect(() => {
+    if (!voiceGoBack) return;
+
+    console.log('Voice go back: returning to country view');
+    setSelectedOpportunityId(null);
+    setShowAllOpportunities(true);
+
+    if (onVoiceGoBackHandled) {
+      onVoiceGoBackHandled();
+    }
+  }, [voiceGoBack]);
+
   // Handle voice selection by index
   useEffect(() => {
     if (voiceSelectedIndex === null || voiceSelectedIndex === undefined) return;
@@ -281,24 +297,21 @@ const OpportunitiesPanel = ({
       setSelectedOpportunityId(opp.id);
       setShowAllOpportunities(false);
 
-      // Clear country selection
-      if (onCountrySelect) {
-        onCountrySelect(null);
+      // Do NOT clear country selection for voice - we want to keep it for "go back"
+
+      // Use dedicated voice callback that doesn't clear country
+      if (onVoiceOpportunitySelect) {
+        onVoiceOpportunitySelect(opp.lat, opp.lng, opp.name);
       }
 
-      // Notify parent of opportunity selection
-      if (onOpportunitySelect) {
-        onOpportunitySelect(opp.lat, opp.lng, opp.name);
-      }
-
-      // Update database
+      // Update database - keep the country selected
       if (roomCode) {
         supabase
           .from('rooms')
           .update({
             selected_opportunity_lat: opp.lat,
             selected_opportunity_lng: opp.lng,
-            selected_country: null,
+            // Keep selected_country as is
           })
           .eq('room_code', roomCode);
       }

@@ -123,7 +123,101 @@ function extractOrdinal(text) {
   return null;
 }
 
-const Chat = ({ roomCode, userId, masterId, allOpportunities = [], onRankUpdate, onRankingLoadingChange, onVoiceCountrySelect, onVoiceOpportunitySelect, selectedCountry }) => {
+function checkGoBack(text) {
+  const lower = text.toLowerCase().trim();
+  const goBackPhrases = ['go back', 'goback', 'back', 'return', 'go to country', 'country view', 'unselect'];
+  return goBackPhrases.some(phrase => lower.includes(phrase));
+}
+
+// Normalize text: remove punctuation, lowercase, split into words
+function normalizeText(s) {
+  return s.toLowerCase().replace(/[^a-z0-9\s]/g, ' ').split(/\s+/).filter(w => w.length > 0);
+}
+
+// Check if "select" command is present and extract the query after it
+function extractSelectQuery(text) {
+  const lower = text.toLowerCase();
+  const selectIndex = lower.indexOf('select');
+  if (selectIndex === -1) return null;
+
+  // Get everything after "select"
+  const afterSelect = text.slice(selectIndex + 6).trim();
+  // Remove leading punctuation and whitespace
+  const cleaned = afterSelect.replace(/^[^a-zA-Z0-9]+/, '').trim();
+  return cleaned.length > 0 ? cleaned : null;
+}
+
+// Calculate similarity between query and opportunity name
+function calculateSimilarity(query, oppName) {
+  const queryWords = normalizeText(query);
+  const nameWords = normalizeText(oppName);
+
+  if (queryWords.length === 0 || nameWords.length === 0) return 0;
+
+  let matchScore = 0;
+
+  // Check each query word against name words
+  for (const qWord of queryWords) {
+    if (qWord.length < 2) continue; // Skip very short words
+
+    let bestWordMatch = 0;
+    for (const nWord of nameWords) {
+      // Exact match
+      if (qWord === nWord) {
+        bestWordMatch = Math.max(bestWordMatch, 1.0);
+      }
+      // Query word is contained in name word (e.g., "english" in "english")
+      else if (nWord.includes(qWord)) {
+        bestWordMatch = Math.max(bestWordMatch, 0.9);
+      }
+      // Name word is contained in query word
+      else if (qWord.includes(nWord)) {
+        bestWordMatch = Math.max(bestWordMatch, 0.8);
+      }
+      // Check if words start the same (prefix match)
+      else if (qWord.length >= 3 && nWord.startsWith(qWord.slice(0, 3))) {
+        bestWordMatch = Math.max(bestWordMatch, 0.5);
+      }
+    }
+    matchScore += bestWordMatch;
+  }
+
+  // Also check if query appears as substring in full normalized name
+  const normalizedName = oppName.toLowerCase().replace(/[^a-z0-9\s]/g, ' ');
+  const normalizedQuery = query.toLowerCase().replace(/[^a-z0-9\s]/g, ' ').trim();
+  if (normalizedName.includes(normalizedQuery)) {
+    matchScore += queryWords.length * 0.5; // Bonus for substring match
+  }
+
+  // Normalize by query word count
+  return matchScore / queryWords.length;
+}
+
+function findBestMatchingOpportunity(query, opportunities) {
+  if (!opportunities || opportunities.length === 0 || !query) return null;
+
+  let bestMatch = null;
+  let bestScore = 0;
+  const threshold = 0.4; // Minimum similarity threshold
+
+  console.log('Finding match for query:', query);
+
+  for (let i = 0; i < opportunities.length; i++) {
+    const opp = opportunities[i];
+    const score = calculateSimilarity(query, opp.name);
+    console.log(`  "${opp.name}" score: ${score.toFixed(2)}`);
+
+    if (score > bestScore && score >= threshold) {
+      bestScore = score;
+      bestMatch = { index: i, opportunity: opp, score };
+    }
+  }
+
+  console.log('Best match:', bestMatch);
+  return bestMatch;
+}
+
+const Chat = ({ roomCode, userId, masterId, allOpportunities = [], onRankUpdate, onRankingLoadingChange, onVoiceCountrySelect, onVoiceOpportunitySelect, selectedCountry, paginatedOpportunities = [], onVoiceGoBack }) => {
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(true);
@@ -512,13 +606,34 @@ const Chat = ({ roomCode, userId, masterId, allOpportunities = [], onRankUpdate,
           const transcript = data.text || '';
           console.log('Voice transcript:', transcript);
 
-          // If a country is already selected, check for ordinal selection
-          if (selectedCountry) {
+          // Check for "go back" command first
+          if (checkGoBack(transcript)) {
+            console.log('Voice command: go back');
+            if (onVoiceGoBack) {
+              onVoiceGoBack();
+            }
+            return;
+          }
+
+          // If a country is already selected, check for ordinal or "select <name>" command
+          if (selectedCountry && paginatedOpportunities.length > 0) {
+            // Try ordinal first
             const ordinalIndex = extractOrdinal(transcript);
             if (ordinalIndex !== null && onVoiceOpportunitySelect) {
               console.log('Voice selected opportunity index:', ordinalIndex);
               onVoiceOpportunitySelect(ordinalIndex);
               return;
+            }
+
+            // Try "select <name>" command with fuzzy matching
+            const selectQuery = extractSelectQuery(transcript);
+            if (selectQuery) {
+              const match = findBestMatchingOpportunity(selectQuery, paginatedOpportunities);
+              if (match && onVoiceOpportunitySelect) {
+                console.log('Voice matched opportunity by title:', match.opportunity.name, 'score:', match.score);
+                onVoiceOpportunitySelect(match.index);
+                return;
+              }
             }
           }
 
@@ -528,7 +643,7 @@ const Chat = ({ roomCode, userId, masterId, allOpportunities = [], onRankUpdate,
             console.log('Voice selected country:', country);
             onVoiceCountrySelect(country);
           } else {
-            console.log('No country or ordinal found in transcript:', transcript);
+            console.log('No command found in transcript:', transcript);
           }
         } catch (err) {
           console.error('Error calling ElevenLabs STT:', err);
