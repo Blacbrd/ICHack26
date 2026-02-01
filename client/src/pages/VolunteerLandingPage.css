@@ -66,8 +66,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  clip-path: polygon(8% 0%, 100% 0%, 92% 100%, 0% 100%);
-  animation: colorShift 4s ease infinite;
+  clip-path: polygon(5% 0%, 95% 0%, 100% 50%, 95% 100%, 5% 100%, 0% 50%);
+  animation: colorShift 6s ease-in-out infinite;
 }
 
 /* Flat color shift animation - no gradients */
@@ -75,10 +75,13 @@
   0%, 100% {
     background: #1c67e6;
   }
-  33% {
+  25% {
+    background: #1858c4;
+  }
+  50% {
     background: #0f3b88;
   }
-  66% {
+  75% {
     background: #2c7dff;
   }
 }
@@ -87,12 +90,12 @@
 .btn-explore-border {
   position: absolute;
   top: 0;
-  left: 0;
-  right: 0;
+  left: 5%;
+  right: 5%;
   bottom: 0;
-  border: 3px dashed rgba(255, 255, 255, 0.6);
+  border-top: 3px dashed rgba(255, 255, 255, 0.6);
+  border-bottom: 3px dashed rgba(255, 255, 255, 0.6);
   border-radius: 0;
-  clip-path: polygon(8% 0%, 100% 0%, 92% 100%, 0% 100%);
   animation: dashTravel 2s linear infinite;
   pointer-events: none;
   z-index: 5;
@@ -105,16 +108,29 @@
   }
 }
 
-/* Hover effect - morph the shape */
+/* Hover effect - keep hexagon shape */
 .btn-explore-main:hover:not(:disabled) {
-  clip-path: polygon(0% 0%, 92% 0%, 100% 100%, 8% 100%);
-  transform: scale(1.05);
+  transform: scale(1.03);
   letter-spacing: 0.18em;
+  filter: brightness(1.15) drop-shadow(0 0 20px rgba(28, 103, 230, 0.5));
 }
 
 .btn-explore-main:hover:not(:disabled) .btn-explore-border {
-  clip-path: polygon(0% 0%, 92% 0%, 100% 100%, 8% 100%);
   border-width: 4px;
+  animation: dashTravel 1s linear infinite;
+}
+
+/* Make shapes move on hover */
+.btn-explore-main:hover:not(:disabled) .btn-explore-shape-1 {
+  transform: translate(-30px, -20px) rotate(45deg) scale(1.2);
+}
+
+.btn-explore-main:hover:not(:disabled) .btn-explore-shape-2 {
+  transform: translate(30px, 20px) rotate(-45deg) scale(1.2);
+}
+
+.btn-explore-main:hover:not(:disabled) .btn-explore-shape-3 {
+  transform: translate(20px, -15px) rotate(90deg) scale(1.3);
 }
 
 .btn-explore-main:active:not(:disabled) {
@@ -656,58 +672,30 @@
 }
 
 .btn-full {
-  position: relative;
   width: 100%;
-  padding: 16px;
-  border-radius: 0;
+  padding: 14px;
+  border-radius: 14px;
   border: none;
-  font-weight: 700;
+  font-weight: 600;
   font-size: 0.95rem;
   cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  transition: transform 0.2s, box-shadow 0.2s;
   color: white;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  clip-path: polygon(10% 0%, 90% 0%, 100% 50%, 90% 100%, 10% 100%, 0% 50%);
-  box-shadow: none;
-  overflow: hidden;
-}
-
-.btn-full::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  border: 2px solid rgba(255, 255, 255, 0.25);
-  clip-path: polygon(10% 0%, 90% 0%, 100% 50%, 90% 100%, 10% 100%, 0% 50%);
-  pointer-events: none;
 }
 
 .btn-join-room {
-  background: #0b2a5b;
-  animation: colorPulse1 3s ease infinite;
+  background: var(--secondary-gradient);
+  box-shadow: 0 4px 12px rgba(11, 42, 91, 0.2);
 }
 
 .btn-begin-exploring {
-  background: #1c67e6;
-  animation: colorPulse2 3s ease infinite;
-}
-
-@keyframes colorPulse1 {
-  0%, 100% { background: #0b2a5b; }
-  50% { background: #0f3b88; }
-}
-
-@keyframes colorPulse2 {
-  0%, 100% { background: #1c67e6; }
-  50% { background: #2c7dff; }
+  background: var(--primary-gradient);
+  box-shadow: 0 4px 12px rgba(15, 59, 136, 0.3);
 }
 
 .btn-full:hover {
-  transform: scale(1.08);
-  letter-spacing: 0.1em;
+  transform: translateY(-2px);
+  filter: brightness(1.1);
 }
 
 .btn-settings {
