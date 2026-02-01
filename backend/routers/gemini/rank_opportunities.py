@@ -81,8 +81,10 @@ def fetch_all_messages(room_code: str) -> str:
     """Fetch all chat messages for the room, excluding bot messages."""
     sb = get_supabase()
     if not sb:
+        print("[rank] No supabase client available for messages", file=sys.stderr, flush=True)
         return ""
     try:
+        print(f"[rank] Querying messages table for room_code={room_code}", file=sys.stderr, flush=True)
         res = (
             sb.table("messages")
             .select("message, created_at")
@@ -90,8 +92,22 @@ def fetch_all_messages(room_code: str) -> str:
             .order("created_at", desc=False)
             .execute()
         )
-        data = res.data if hasattr(res, "data") else None
+
+        # Handle both dict and object response formats
+        if isinstance(res, dict) and "data" in res:
+            data = res["data"]
+            error = res.get("error")
+        else:
+            data = getattr(res, "data", None)
+            error = getattr(res, "error", None)
+
+        if error:
+            print(f"[rank] Supabase error fetching messages: {error}", file=sys.stderr, flush=True)
+            return ""
+
         print(f"[rank] Fetched {len(data) if data else 0} messages for room {room_code}", file=sys.stderr, flush=True)
+        if data:
+            print(f"[rank] First message sample: {data[0]}", file=sys.stderr, flush=True)
         if not data:
             return ""
 
@@ -104,9 +120,10 @@ def fetch_all_messages(room_code: str) -> str:
             if "worldai recommendation" in trimmed:
                 continue
             lines.append(text.strip())
+        print(f"[rank] Parsed {len(lines)} messages (after filtering)", file=sys.stderr, flush=True)
         return "\n".join(lines)
     except Exception as e:
-        print(f"[rank] Error fetching messages: {e}", file=sys.stderr, flush=True)
+        print(f"[rank] Error fetching messages: {type(e).__name__}: {e}", file=sys.stderr, flush=True)
         return ""
 
 
@@ -225,14 +242,14 @@ async def rank_opportunities(req: RankRequest):
             "=== CHAT TEXT ===",
             chat_text if chat_text else "(empty)",
             "",
-            "=== ID:TITLE MAP (first 10) ===",
-            json.dumps(dict(list(id_title_map.items())[:10]), ensure_ascii=False, indent=2),
+            "=== ID:TITLE MAP ===",
+            json.dumps(id_title_map, ensure_ascii=False, indent=2),
             "",
             "=== SYSTEM PROMPT ===",
             system_prompt,
             "",
-            "=== USER PROMPT (first 500 chars) ===",
-            user_prompt[:500],
+            "=== USER PROMPT ===",
+            user_prompt,
             "",
         ]
 
@@ -240,8 +257,8 @@ async def rank_opportunities(req: RankRequest):
         raw = generate_response(system_prompt=system_prompt, prompt=user_prompt)
 
         if ENABLE_RANK_LOGGING:
-            log_lines.append("=== GEMINI RAW RESPONSE (first 500 chars) ===")
-            log_lines.append((raw[:500] if raw else "(empty)"))
+            log_lines.append("=== GEMINI RAW RESPONSE ===")
+            log_lines.append(raw if raw else "(empty)")
             log_lines.append("")
 
         cleaned = raw.strip()
