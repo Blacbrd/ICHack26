@@ -144,6 +144,126 @@ function extractSendMessage(text) {
   return withoutTrailingPeriod.length > 0 ? withoutTrailingPeriod : null;
 }
 
+// Hardcoded country codes for Skyscanner
+const SKYSCANNER_COUNTRY_CODES = {
+  'edinburgh': 'edi',
+  'kenya': 'ke',
+  'united kingdom': 'uk',
+  'uk': 'uk',
+  'london': 'lon',
+  'manchester': 'man',
+  'new york': 'nyc',
+  'usa': 'us',
+  'united states': 'us',
+  'united states of america': 'us',
+  'japan': 'jp',
+  'tokyo': 'tyo',
+  'france': 'fr',
+  'paris': 'par',
+  'germany': 'de',
+  'spain': 'es',
+  'italy': 'it',
+  'australia': 'au',
+  'canada': 'ca',
+  'china': 'cn',
+  'india': 'in',
+  'brazil': 'br',
+  'mexico': 'mx',
+  'nairobi': 'nbo',
+};
+
+const MONTH_MAP = {
+  'january': '01', 'jan': '01',
+  'february': '02', 'feb': '02',
+  'march': '03', 'mar': '03',
+  'april': '04', 'apr': '04',
+  'may': '05',
+  'june': '06', 'jun': '06',
+  'july': '07', 'jul': '07',
+  'august': '08', 'aug': '08',
+  'september': '09', 'sep': '09', 'sept': '09',
+  'october': '10', 'oct': '10',
+  'november': '11', 'nov': '11',
+  'december': '12', 'dec': '12',
+};
+
+function getCountryCode(country) {
+  const lower = country.toLowerCase().trim();
+  if (SKYSCANNER_COUNTRY_CODES[lower]) {
+    return SKYSCANNER_COUNTRY_CODES[lower];
+  }
+  // Use first 3 letters as fallback
+  return lower.replace(/[^a-z]/g, '').slice(0, 3);
+}
+
+function parseDate(dateStr) {
+  // Extract day number (handles 1st, 2nd, 3rd, 21st, 22nd, 23rd, etc.)
+  const dayMatch = dateStr.match(/(\d{1,2})(?:st|nd|rd|th)?/i);
+  if (!dayMatch) return null;
+  const day = dayMatch[1].padStart(2, '0');
+
+  // Extract month
+  let month = null;
+  for (const [name, num] of Object.entries(MONTH_MAP)) {
+    if (dateStr.toLowerCase().includes(name)) {
+      month = num;
+      break;
+    }
+  }
+  if (!month) return null;
+
+  // Use 2026 as default year (current year from context)
+  return `26${month}${day}`;
+}
+
+function extractFlightBooking(text) {
+  const lower = text.toLowerCase();
+
+  // Check for "book a flight" or "book flight"
+  if (!lower.includes('book') || !lower.includes('flight')) return null;
+
+  // Pattern: "from X to Y from DATE to DATE"
+  // Try to extract: from [origin] to [destination] from [date1] to [date2]
+  const fromToPattern = /from\s+(.+?)\s+to\s+(.+?)\s+from\s+(.+?)\s+to\s+(.+?)(?:\.|$)/i;
+  const match = text.match(fromToPattern);
+
+  if (!match) {
+    // Try alternative pattern: "from X to Y DATE to DATE"
+    const altPattern = /from\s+(.+?)\s+to\s+(.+?)\s+(\d{1,2}(?:st|nd|rd|th)?\s+\w+)\s+to\s+(\d{1,2}(?:st|nd|rd|th)?\s+\w+)/i;
+    const altMatch = text.match(altPattern);
+    if (altMatch) {
+      return {
+        origin: altMatch[1].trim(),
+        destination: altMatch[2].trim(),
+        departDate: altMatch[3].trim(),
+        returnDate: altMatch[4].trim(),
+      };
+    }
+    return null;
+  }
+
+  return {
+    origin: match[1].trim(),
+    destination: match[2].trim(),
+    departDate: match[3].trim(),
+    returnDate: match[4].trim(),
+  };
+}
+
+function buildSkyscannerUrl(booking) {
+  const originCode = getCountryCode(booking.origin);
+  const destCode = getCountryCode(booking.destination);
+  const departDate = parseDate(booking.departDate);
+  const returnDate = parseDate(booking.returnDate);
+
+  if (!departDate || !returnDate) {
+    console.log('Could not parse dates:', booking.departDate, booking.returnDate);
+    return null;
+  }
+
+  return `https://www.skyscanner.net/transport/flights/${originCode}/${destCode}/${departDate}/${returnDate}/?adultsv2=1&cabinclass=economy&childrenv2=&ref=home&rtn=1&preferdirects=false&outboundaltsenabled=false&inboundaltsenabled=false`;
+}
+
 // Normalize text: remove punctuation, lowercase, split into words
 function normalizeText(s) {
   return s.toLowerCase().replace(/[^a-z0-9\s]/g, ' ').split(/\s+/).filter(w => w.length > 0);
@@ -663,7 +783,21 @@ const Chat = ({ roomCode, userId, masterId, allOpportunities = [], onRankUpdate,
           const transcript = data.text || '';
           console.log('Voice transcript:', transcript);
 
-          // Check for "send" command first (send chat message)
+          // Check for "book a flight" command first
+          const flightBooking = extractFlightBooking(transcript);
+          if (flightBooking) {
+            console.log('Voice command: book flight:', flightBooking);
+            const url = buildSkyscannerUrl(flightBooking);
+            if (url) {
+              console.log('Opening Skyscanner URL:', url);
+              window.open(url, '_blank');
+            } else {
+              console.log('Could not build Skyscanner URL from booking:', flightBooking);
+            }
+            return;
+          }
+
+          // Check for "send" command (send chat message)
           const sendMessage = extractSendMessage(transcript);
           if (sendMessage) {
             console.log('Voice command: send message:', sendMessage);
