@@ -525,293 +525,290 @@ const VolunteerLandingPage = ({ user }) => {
           </div>
         </section>
 
-        {/* MIDDLE COLUMN: CHARITY FEED (READ ONLY) */}
-        <section className="dashboard-card middle-column">
-          <h3 className="card-title">Latest Updates</h3>
-          <div className="feed-section">
-            {charityPosts.map(post => (
-              <div key={post.id} className="feed-post">
-                <div className="post-header">
-                  <div className="charity-avatar">{post.initials}</div>
-                  <div className="post-info">
-                    <span className="charity-name">{post.charity}</span>
-                    <span className="post-time">{post.time}</span>
-                  </div>
-                </div>
-
-                <div className="post-body">
-                  {post.content}
-                  {post.image && (
-                    <div style={{ marginTop: '12px', borderRadius: '12px', overflow: 'hidden' }}>
-                      <img src={post.image} alt="Update" style={{ width: '100%', height: 'auto', display: 'block' }} />
-                    </div>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        {/* RIGHT COLUMN: PROFILE & ROOMS */}
-        <section className="dashboard-card right-column">
-          {/* Profile Top - New Compact Design */}
-          <div className="volunteer-profile-section">
-            <div className="profile-avatar">
-              <img
-                src={user?.user_metadata?.avatar_url || "https://api.dicebear.com/7.x/avataaars/svg?seed=default"}
-                alt="Profile"
-              />
-            </div>
-            <div className="profile-details" style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '4px' }}>
-              <div className="profile-name" style={{ flex: 'none' }}>
-                {(() => {
-                  const name = user?.user_metadata?.username || user?.user_metadata?.full_name || 'Volunteer';
-                  return name.charAt(0).toUpperCase() + name.slice(1);
-                })()}
-              </div>
-              <div className="level-info" style={{ width: '100%' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', marginBottom: '3px', color: 'rgba(255, 255, 255, 0.9)' }}>
-                  <span style={{ fontWeight: 'bold' }}>Level 5</span>
-                  <span style={{ fontSize: '0.7rem', opacity: 0.8 }}>1,250 / 2,000 XP</span>
-                </div>
-                <div style={{ width: '100%', height: '6px', backgroundColor: 'rgba(0, 0, 0, 0.2)', borderRadius: '3px', overflow: 'hidden' }}>
-                  <div style={{ width: '62.5%', height: '100%', backgroundColor: '#4ade80', borderRadius: '3px' }}></div>
-                </div>
-              </div>
-            </div>
+        {/* MIDDLE COLUMN WRAPPER: BUTTON + CHARITY FEED */}
+        <div className="middle-column-wrapper">
+          {/* BEGIN EXPLORING BUTTON - Full Width */}
+          <div className="explore-button-container">
             <button
-              className="btn-settings"
-              onClick={() => navigate('/profile')} /* Navigate to settings page */
-              title="Settings"
+              className="btn-explore-main"
+              onClick={handleBeginExploring}
+              disabled={creating}
             >
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.09a2 2 0 0 1-1-1.74v-.47a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.39a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path>
-                <circle cx="12" cy="12" r="3"></circle>
-              </svg>
+              <span className="btn-explore-border"></span>
+              <span className="btn-explore-shape btn-explore-shape-1"></span>
+              <span className="btn-explore-shape btn-explore-shape-2"></span>
+              <span className="btn-explore-shape btn-explore-shape-3"></span>
+              <span className="btn-explore-text">
+                {creating ? 'Creating Room...' : 'Begin Exploring'}
+              </span>
             </button>
           </div>
 
-          {/* Rooms Section with Tabs */}
-          <div className="my-rooms-section">
-            {/* Tab Headers */}
-            <div className="room-tabs">
+          {/* MIDDLE COLUMN: CHARITY FEED (READ ONLY) */}
+          <section className="dashboard-card middle-column">
+            <h3 className="card-title">Latest Updates</h3>
+            <div className="feed-section">
+              {charityPosts.map(post => (
+                <div key={post.id} className="feed-post">
+                  <div className="post-header">
+                    <div className="charity-avatar">{post.initials}</div>
+                    <div className="post-info">
+                      <span className="charity-name">{post.charity}</span>
+                      <span className="post-time">{post.time}</span>
+                    </div>
+                  </div>
+                  <div className="post-body">{post.content}</div>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          {/* RIGHT COLUMN: PROFILE & ROOMS */}
+          <section className="dashboard-card right-column">
+            {/* Profile Top - New Compact Design */}
+            <div className="volunteer-profile-section">
+              <div className="profile-avatar">
+                <img
+                  src={user?.user_metadata?.avatar_url || "https://api.dicebear.com/7.x/avataaars/svg?seed=default"}
+                  alt="Profile"
+                />
+              </div>
+              <div className="profile-details" style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '4px' }}>
+                <div className="profile-name" style={{ flex: 'none' }}>
+                  {(() => {
+                    const name = user?.user_metadata?.username || user?.user_metadata?.full_name || 'Volunteer';
+                    return name.charAt(0).toUpperCase() + name.slice(1);
+                  })()}
+                </div>
+                <div className="level-info" style={{ width: '100%' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', marginBottom: '3px', color: 'rgba(255, 255, 255, 0.9)' }}>
+                    <span style={{ fontWeight: 'bold' }}>Level 5</span>
+                    <span style={{ fontSize: '0.7rem', opacity: 0.8 }}>1,250 / 2,000 XP</span>
+                  </div>
+                  <div style={{ width: '100%', height: '6px', backgroundColor: 'rgba(0, 0, 0, 0.2)', borderRadius: '3px', overflow: 'hidden' }}>
+                    <div style={{ width: '62.5%', height: '100%', backgroundColor: '#4ade80', borderRadius: '3px' }}></div>
+                  </div>
+                </div>
+              </div>
               <button
-                className={`room-tab ${activeRoomTab === 'my-rooms' ? 'active' : ''}`}
-                onClick={() => handleTabChange('my-rooms')}
+                className="btn-settings"
+                onClick={() => navigate('/profile')} /* Navigate to settings page */
+                title="Settings"
               >
-                My Rooms
-              </button>
-              <button
-                className={`room-tab ${activeRoomTab === 'public-rooms' ? 'active' : ''}`}
-                onClick={() => handleTabChange('public-rooms')}
-              >
-                Public Rooms
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.09a2 2 0 0 1-1-1.74v-.47a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.39a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path>
+                  <circle cx="12" cy="12" r="3"></circle>
+                </svg>
               </button>
             </div>
 
-            {/* My Rooms Tab Content */}
-            {activeRoomTab === 'my-rooms' && (
-              <>
-                {loadingRooms ? (
-                  <div className="empty-rooms-state">Loading...</div>
-                ) : myRooms.length === 0 ? (
-                  <div className="empty-rooms-state">
-                    <p>No rooms created yet.<br />Get exploring!</p>
-                  </div>
-                ) : (
-                  <div className="mini-rooms-list">
-                    {myRooms.map(room => (
-                      <div key={room.room_code} className="mini-room-item">
-                        <div
-                          className="mini-room-content"
-                          onClick={() => navigate(`/room/${room.room_code}`)}
-                        >
-                          <div className="mini-room-info">
-                            {renamingRoom === room.room_code ? (
-                              <input
-                                type="text"
-                                className="room-rename-input"
-                                value={newRoomName}
-                                onChange={(e) => setNewRoomName(e.target.value)}
-                                onClick={(e) => e.stopPropagation()}
-                                onKeyPress={(e) => {
-                                  if (e.key === 'Enter') {
-                                    handleRenameRoom(room.room_code);
-                                  } else if (e.key === 'Escape') {
-                                    setRenamingRoom(null);
-                                    setNewRoomName('');
+            {/* Rooms Section with Tabs */}
+            <div className="my-rooms-section">
+              {/* Tab Headers */}
+              <div className="room-tabs">
+                <button
+                  className={`room-tab ${activeRoomTab === 'my-rooms' ? 'active' : ''}`}
+                  onClick={() => handleTabChange('my-rooms')}
+                >
+                  My Rooms
+                </button>
+                <button
+                  className={`room-tab ${activeRoomTab === 'public-rooms' ? 'active' : ''}`}
+                  onClick={() => handleTabChange('public-rooms')}
+                >
+                  Public Rooms
+                </button>
+              </div>
+
+              {/* My Rooms Tab Content */}
+              {activeRoomTab === 'my-rooms' && (
+                <>
+                  {loadingRooms ? (
+                    <div className="empty-rooms-state">Loading...</div>
+                  ) : myRooms.length === 0 ? (
+                    <div className="empty-rooms-state">
+                      <p>No rooms created yet.<br />Get exploring!</p>
+                    </div>
+                  ) : (
+                    <div className="mini-rooms-list">
+                      {myRooms.map(room => (
+                        <div key={room.room_code} className="mini-room-item">
+                          <div
+                            className="mini-room-content"
+                            onClick={() => navigate(`/room/${room.room_code}`)}
+                          >
+                            <div className="mini-room-info">
+                              {renamingRoom === room.room_code ? (
+                                <input
+                                  type="text"
+                                  className="room-rename-input"
+                                  value={newRoomName}
+                                  onChange={(e) => setNewRoomName(e.target.value)}
+                                  onClick={(e) => e.stopPropagation()}
+                                  onKeyPress={(e) => {
+                                    if (e.key === 'Enter') {
+                                      handleRenameRoom(room.room_code);
+                                    } else if (e.key === 'Escape') {
+                                      setRenamingRoom(null);
+                                      setNewRoomName('');
+                                    }
+                                  }}
+                                  autoFocus
+                                  placeholder="Enter room name"
+                                />
+                              ) : (
+                                <span className="mini-room-name">{room.name}</span>
+                              )}
+                              <span className={`mini-room-role ${room.is_master ? 'admin' : 'member'}`}>
+                                {room.is_master ? 'Admin' : 'Member'}
+                              </span>
+                            </div>
+                          </div>
+                          {renamingRoom !== room.room_code && (
+                            <div className="mini-room-actions" onClick={(e) => e.stopPropagation()}>
+                              <button
+                                className="btn-rename"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  if (room.is_master) {
+                                    setRenamingRoom(room.room_code);
+                                    setNewRoomName(room.name);
                                   }
                                 }}
-                                autoFocus
-                                placeholder="Enter room name"
-                              />
-                            ) : (
-                              <span className="mini-room-name">{room.name}</span>
-                            )}
-                            <span className={`mini-room-role ${room.is_master ? 'admin' : 'member'}`}>
-                              {room.is_master ? 'Admin' : 'Member'}
+                                disabled={!room.is_master}
+                                title={room.is_master ? "Rename room" : "Must be admin to rename"}
+                              >
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                  <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"></path>
+                                  <path d="m15 5 4 4"></path>
+                                </svg>
+                              </button>
+                              <button
+                                className="btn-room-delete"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  if (room.is_master) {
+                                    handleDeleteRoom(room.room_code);
+                                  } else {
+                                    handleLeaveRoom(room.room_code);
+                                  }
+                                }}
+                                title={room.is_master ? "Delete room" : "Leave room"}
+                              >
+                                {room.is_master ? (
+                                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M3 6h18"></path>
+                                    <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
+                                    <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
+                                  </svg>
+                                ) : (
+                                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                                    <polyline points="16 17 21 12 16 7"></polyline>
+                                    <line x1="21" y1="12" x2="9" y2="12"></line>
+                                  </svg>
+                                )}
+                              </button>
+                            </div>
+                          )}
+                          {renamingRoom === room.room_code && (
+                            <div className="mini-room-actions" onClick={(e) => e.stopPropagation()}>
+                              <button
+                                className="btn-rename-confirm"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleRenameRoom(room.room_code);
+                                }}
+                                title="Confirm rename"
+                              >
+                                ✓
+                              </button>
+                              <button
+                                className="btn-rename-cancel"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setRenamingRoom(null);
+                                  setNewRoomName('');
+                                }}
+                                title="Cancel"
+                              >
+                                ✕
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  <div className="room-actions">
+                    <button
+                      className="btn-full btn-join-room"
+                      onClick={() => navigate('/join')}
+                    >
+                      Join Room
+                    </button>
+                  </div>
+                </>
+              )}
+
+              {/* Public Rooms Tab Content */}
+              {activeRoomTab === 'public-rooms' && (
+                <>
+                  {publicRooms.length === 0 ? (
+                    <div className="empty-rooms-state">
+                      <p>No public rooms available.</p>
+                    </div>
+                  ) : (
+                    <div className="mini-rooms-list">
+                      {publicRooms.map(room => (
+                        <div key={room.id} className="public-room-item">
+                          <div className="public-room-info" onClick={() => navigate(`/room/${room.room_code}`)}>
+                            <span className="mini-room-name">{room.name || `Room ${room.room_code}`}</span>
+                            <span className="mini-room-code">#{room.room_code}</span>
+                            <span className="public-room-meta">
+                              {room.participant_count} {room.participant_count === 1 ? 'member' : 'members'}
+                              {room.creator_username && ` • ${room.creator_username}`}
                             </span>
                           </div>
-                        </div>
-                        {renamingRoom !== room.room_code && (
-                          <div className="mini-room-actions" onClick={(e) => e.stopPropagation()}>
+                          {room.description && (
                             <button
-                              className="btn-rename"
+                              className="btn-expand-description"
                               onClick={(e) => {
                                 e.stopPropagation();
-                                if (room.is_master) {
-                                  setRenamingRoom(room.room_code);
-                                  setNewRoomName(room.name);
-                                }
+                                setExpandedDescription(expandedDescription === room.id ? null : room.id);
                               }}
-                              disabled={!room.is_master}
-                              title={room.is_master ? "Rename room" : "Must be admin to rename"}
+                              aria-label="Toggle description"
                             >
-                              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"></path>
-                                <path d="m15 5 4 4"></path>
+                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <circle cx="12" cy="12" r="1" />
+                                <circle cx="12" cy="5" r="1" />
+                                <circle cx="12" cy="19" r="1" />
                               </svg>
                             </button>
-                            <button
-                              className="btn-room-delete"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                if (room.is_master) {
-                                  handleDeleteRoom(room.room_code);
-                                } else {
-                                  handleLeaveRoom(room.room_code);
-                                }
-                              }}
-                              title={room.is_master ? "Delete room" : "Leave room"}
-                            >
-                              {room.is_master ? (
-                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                  <path d="M3 6h18"></path>
-                                  <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
-                                  <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
-                                </svg>
-                              ) : (
-                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
-                                  <polyline points="16 17 21 12 16 7"></polyline>
-                                  <line x1="21" y1="12" x2="9" y2="12"></line>
-                                </svg>
-                              )}
-                            </button>
-                          </div>
-                        )}
-                        {renamingRoom === room.room_code && (
-                          <div className="mini-room-actions" onClick={(e) => e.stopPropagation()}>
-                            <button
-                              className="btn-rename-confirm"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleRenameRoom(room.room_code);
-                              }}
-                              title="Confirm rename"
-                            >
-                              ✓
-                            </button>
-                            <button
-                              className="btn-rename-cancel"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setRenamingRoom(null);
-                                setNewRoomName('');
-                              }}
-                              title="Cancel"
-                            >
-                              ✕
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                <div className="room-actions">
-                  <button
-                    className="btn-full btn-join-room"
-                    onClick={() => navigate('/join')}
-                  >
-                    Join Room
-                  </button>
-                  <button
-                    className="btn-full btn-begin-exploring"
-                    onClick={handleBeginExploring}
-                    disabled={creating}
-                  >
-                    {creating ? 'Creating...' : 'Begin Exploring'}
-                  </button>
-                </div>
-              </>
-            )}
-
-            {/* Public Rooms Tab Content */}
-            {activeRoomTab === 'public-rooms' && (
-              <>
-                {publicRooms.length === 0 ? (
-                  <div className="empty-rooms-state">
-                    <p>No public rooms available.</p>
-                  </div>
-                ) : (
-                  <div className="mini-rooms-list">
-                    {publicRooms.map(room => (
-                      <div key={room.id} className="public-room-item">
-                        <div className="public-room-info" onClick={() => navigate(`/room/${room.room_code}`)}>
-                          <span className="mini-room-name">{room.name || `Room ${room.room_code}`}</span>
-                          <span className="mini-room-code">#{room.room_code}</span>
-                          <span className="public-room-meta">
-                            {room.participant_count} {room.participant_count === 1 ? 'member' : 'members'}
-                            {room.creator_username && ` • ${room.creator_username}`}
-                          </span>
+                          )}
+                          {expandedDescription === room.id && room.description && (
+                            <div className="public-room-description">
+                              <p>{room.description}</p>
+                            </div>
+                          )}
                         </div>
-                        {room.description && (
-                          <button
-                            className="btn-expand-description"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setExpandedDescription(expandedDescription === room.id ? null : room.id);
-                            }}
-                            aria-label="Toggle description"
-                          >
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                              <circle cx="12" cy="12" r="1" />
-                              <circle cx="12" cy="5" r="1" />
-                              <circle cx="12" cy="19" r="1" />
-                            </svg>
-                          </button>
-                        )}
-                        {expandedDescription === room.id && room.description && (
-                          <div className="public-room-description">
-                            <p>{room.description}</p>
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                )}
+                      ))}
+                    </div>
+                  )}
 
-                <div className="room-actions">
-                  <button
-                    className="btn-full btn-join-room"
-                    onClick={() => navigate('/join')}
-                  >
-                    Join Room
-                  </button>
-                  <button
-                    className="btn-full btn-begin-exploring"
-                    onClick={handleBeginExploring}
-                    disabled={creating}
-                  >
-                    {creating ? 'Creating...' : 'Begin Exploring'}
-                  </button>
-                </div>
-              </>
-            )}
-          </div>
-        </section>
+                  <div className="room-actions">
+                    <button
+                      className="btn-full btn-join-room"
+                      onClick={() => navigate('/join')}
+                    >
+                      Join Room
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          </section>
 
       </main>
     </div >

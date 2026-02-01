@@ -658,6 +658,7 @@ const PlanningPage = ({ user }) => {
     <div className={`planning-page ${theme}`}>
       <div className="planning-header">
         <h1>Planning Room: {roomCode}</h1>
+<<<<<<< HEAD
 
         {/* Selected charities button (multi-select panel) */}
         <button
@@ -673,6 +674,13 @@ const PlanningPage = ({ user }) => {
             {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
           </button>
           <button onClick={handleLeaveRoom} className="btn btn-leave-room">Leave Room</button>
+=======
+        <div className="planning-header-actions">
+          <button className="theme-toggle" onClick={toggleTheme}>
+            {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
+          </button>
+          <button className="btn-leave-room" onClick={handleLeaveRoom}>Leave Room</button>
+>>>>>>> newUI
         </div>
       </div>
 
