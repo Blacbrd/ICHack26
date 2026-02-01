@@ -508,11 +508,8 @@ const PlanningPage = ({ user }) => {
     };
   }, []);
 
-  // ----------------- Leave room -----------------
-  const handleLeaveRoom = () => {
-    if (!window.confirm('Are you sure you want to leave this room?')) {
-      return;
-    }
+  // ----------------- Go back -----------------
+  const handleGoBack = () => {
     navigate('/');
   };
 
@@ -648,7 +645,7 @@ const PlanningPage = ({ user }) => {
           <button className="theme-toggle" onClick={toggleTheme}>
             {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
           </button>
-          <button className="btn-leave-room" onClick={handleLeaveRoom}>Leave Room</button>
+          <button className="btn-leave-room" onClick={handleGoBack}>← Go Back</button>
         </div>
       </div>
 
