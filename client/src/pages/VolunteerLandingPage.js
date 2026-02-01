@@ -474,7 +474,13 @@ const VolunteerLandingPage = ({ user }) => {
               onClick={handleBeginExploring}
               disabled={creating}
             >
-              {creating ? 'Creating Room...' : 'Begin Exploring'}
+              <span className="btn-explore-border"></span>
+              <span className="btn-explore-shape btn-explore-shape-1"></span>
+              <span className="btn-explore-shape btn-explore-shape-2"></span>
+              <span className="btn-explore-shape btn-explore-shape-3"></span>
+              <span className="btn-explore-text">
+                {creating ? 'Creating Room...' : 'Begin Exploring'}
+              </span>
             </button>
           </div>
 
