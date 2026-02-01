@@ -485,6 +485,14 @@ const GlobeComponent = ({ roomCode, isMaster, user, opportunityMarker, opportuni
     setOpportunityMarkerState(opportunityMarker);
   }, [opportunityMarker]);
 
+  // Sync selectedCountry prop to internal state (for voice selection)
+  useEffect(() => {
+    if (selectedCountryProp !== undefined && selectedCountryProp !== selectedCountry) {
+      console.log('GlobeComponent: syncing selectedCountry from prop:', selectedCountryProp);
+      setSelectedCountry(selectedCountryProp);
+    }
+  }, [selectedCountryProp]);
+
   // Load initial selected country from database
   useEffect(() => {
     if (!roomCode) return;
