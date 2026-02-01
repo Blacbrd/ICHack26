@@ -10,6 +10,7 @@ import PublicRoomsPage from './pages/PublicRoomsPage';
 import RoomPage from './pages/RoomPage';
 import PlanningPage from './pages/PlanningPage';
 import CharityReferrals from './pages/CharityReferrals';
+import CharityPostPage from './pages/CharityPostPage';
 import ChatPage from './pages/ChatPage';
 import MyProfile from './pages/MyProfile';
 import './App.css';
@@ -21,21 +22,7 @@ function App() {
 
   const loadProfile = async (userId) => {
     try {
-      // Try profiles
-      const { data: profileData, error: profileError } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .maybeSingle();
-
-      if (profileError) throw profileError;
-
-      if (profileData) {
-        setProfile({ ...profileData, is_charity: false });
-        return;
-      }
-
-      // Try charities
+      // Try charities first (priority)
       const { data: charityData, error: charityError } = await supabase
         .from('charities')
         .select('*')
@@ -46,6 +33,20 @@ function App() {
 
       if (charityData) {
         setProfile({ ...charityData, is_charity: true });
+        return;
+      }
+
+      // Then try profiles (volunteers)
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .maybeSingle();
+
+      if (profileError) throw profileError;
+
+      if (profileData) {
+        setProfile({ ...profileData, is_charity: false });
         return;
       }
 
@@ -102,6 +103,7 @@ function App() {
         <Route path="/room/:code" element={user ? <RoomPage user={user} profile={profile} /> : <Navigate to="/login" replace />} />
         <Route path="/planning/:code" element={user ? <PlanningPage user={user} profile={profile} /> : <Navigate to="/login" replace />} />
         <Route path="/charity-referrals" element={user ? <CharityReferrals user={user} profile={profile} /> : <Navigate to="/login" replace />} />
+        <Route path="/charity-post" element={user ? <CharityPostPage user={user} profile={profile} /> : <Navigate to="/login" replace />} />
         <Route path="/chat/:code" element={user ? <ChatPage user={user} profile={profile} /> : <Navigate to="/login" replace />} />
         <Route path="/profile" element={user ? <MyProfile user={user} profile={profile} /> : <Navigate to="/login" replace />} />
         <Route path="*" element={<Navigate to="/" replace />} />
