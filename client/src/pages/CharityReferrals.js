@@ -5,7 +5,7 @@ import { supabase } from '../lib/supabaseClient';
 import './CharityReferrals.css'; // optional - keep for other styles
 
 // Small, simple modal component
-const Modal = ({ open, onClose, children }) => {
+const Modal = ({ open, onClose, children, ariaLabel }) => {
   if (!open) return null;
   return (
     <div
@@ -15,7 +15,7 @@ const Modal = ({ open, onClose, children }) => {
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="cr-modal-content" role="dialog" aria-modal="true">
+      <div className="cr-modal-content" role="dialog" aria-modal="true" aria-label={ariaLabel || 'Modal'}>
         <button className="cr-modal-close" onClick={onClose} aria-label="Close">✕</button>
         {children}
       </div>
@@ -30,6 +30,8 @@ const CharityReferrals = ({ user }) => {
   const [activeRoomParticipants, setActiveRoomParticipants] = useState([]);
   const [modalOpen, setModalOpen] = useState(false);
   const [modalTitle, setModalTitle] = useState('');
+  const [selectedReferral, setSelectedReferral] = useState(null);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     if (!user) {
@@ -76,46 +78,126 @@ const CharityReferrals = ({ user }) => {
 
   // When clicking a referral box, fetch participants for that room_code
   const handleOpenRoom = async (room) => {
-    if (!room || !room.room_code) {
-      // If we only have room_id, try to fetch room_code first
+    if (!room) return;
+
+    // track which referral is selected for actions (deny/delete)
+    setSelectedReferral(room);
+
+    // ensure we have a room_code; if not, attempt to fetch by room_id
+    let roomCode = room.room_code;
+    if (!roomCode && room.room_id) {
       try {
-        const { data: roomData } = await supabase
+        const { data: roomData, error: roomError } = await supabase
           .from('rooms')
           .select('room_code, id')
           .eq('id', room.room_id)
           .maybeSingle();
-        room.room_code = roomData?.room_code || null;
+
+        if (roomError) {
+          console.error('Failed to fetch room data for room_id', room.room_id, roomError);
+          roomCode = null;
+        } else {
+          roomCode = roomData?.room_code || null;
+        }
       } catch (err) {
         console.error('Failed to fetch room data for room_id', room.room_id, err);
+        roomCode = null;
       }
     }
 
-    if (!room.room_code) {
+    if (!roomCode) {
       alert('Room code not available.');
       return;
     }
 
     try {
-      // Fetch participants and join profiles to get username
-      const { data: parts, error } = await supabase
+      // 1) Fetch participants (no nested join)
+      const { data: parts, error: partsError } = await supabase
         .from('room_participants')
-        .select('user_id, created_at, profiles(username)')
-        .eq('room_code', room.room_code)
+        .select('user_id, created_at')
+        .eq('room_code', roomCode)
         .order('created_at', { ascending: true });
 
-      if (error) {
-        console.error('Error fetching room participants:', error);
+      if (partsError) {
+        console.error('Error fetching room participants:', partsError);
         setActiveRoomParticipants([]);
-      } else {
-        const names = (parts || []).map((p) => p.profiles?.username || `User ${p.user_id?.slice(0, 8)}`);
-        setActiveRoomParticipants(names);
-        setModalTitle(`Room ${room.room_id} — ${room.room_code || ''}`);
+        setModalTitle(`Room ${room.room_id} — ${roomCode}`);
         setModalOpen(true);
+        return;
       }
+
+      const userIds = Array.from(new Set((parts || []).map((p) => p.user_id).filter(Boolean)));
+
+      // 2) If we have user IDs, fetch usernames from profiles in a separate query
+      let profilesById = {};
+      if (userIds.length > 0) {
+        const { data: profiles, error: profilesError } = await supabase
+          .from('profiles')
+          .select('id, username')
+          .in('id', userIds);
+
+        if (profilesError) {
+          // log, but we can still show fallback names
+          console.error('Error fetching profiles for participants:', profilesError);
+        } else if (profiles && profiles.length > 0) {
+          profilesById = profiles.reduce((acc, p) => {
+            acc[p.id] = p;
+            return acc;
+          }, {});
+        }
+      }
+
+      // Build display names in the original participant order
+      const names = (parts || []).map((p) => {
+        const profile = profilesById[p.user_id];
+        if (profile && profile.username) return profile.username;
+        // fallback if profile missing
+        return p.user_id ? `User ${String(p.user_id).slice(0, 8)}` : 'Unknown user';
+      });
+
+      setActiveRoomParticipants(names);
+      setModalTitle(`Room ${room.room_id} — ${roomCode}`);
+      setModalOpen(true);
     } catch (err) {
       console.error('Exception fetching participants:', err);
       setActiveRoomParticipants([]);
+      setModalTitle(`Room ${room.room_id} — ${room.room_code || ''}`);
+      setModalOpen(true);
     }
+  };
+
+  // Deny handler: delete referral from database and remove from UI
+  const handleDeny = async () => {
+    if (!selectedReferral || !selectedReferral.referral_id) return;
+    setDeleting(true);
+    try {
+      const { error } = await supabase
+        .from('referrals')
+        .delete()
+        .eq('referral_id', selectedReferral.referral_id);
+
+      if (error) {
+        console.error('Error deleting referral:', error);
+        alert('Failed to delete referral. See console for details.');
+      } else {
+        // remove from local state so UI updates immediately
+        setReferrals((prev) => prev.filter((r) => r.referral_id !== selectedReferral.referral_id));
+        setModalOpen(false);
+        setSelectedReferral(null);
+        setActiveRoomParticipants([]);
+      }
+    } catch (err) {
+      console.error('Exception deleting referral:', err);
+      alert('Failed to delete referral. See console for details.');
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  // Confirm handler (no-op for now)
+  const handleConfirm = () => {
+    console.log('Confirm clicked for referral', selectedReferral);
+    // intentionally left blank per request
   };
 
   return (
@@ -173,8 +255,14 @@ const CharityReferrals = ({ user }) => {
               className="cr-referral-card"
               role="button"
               tabIndex={0}
-              onClick={() => handleOpenRoom(r)}
-              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') handleOpenRoom(r); }}
+              onClick={() => {
+                setActiveRoomParticipants([]); // clear previous
+                handleOpenRoom(r);
+              }}
+              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') {
+                setActiveRoomParticipants([]);
+                handleOpenRoom(r);
+              }}}
               style={{
                 display: 'inline-block',
                 margin: 8,
@@ -194,14 +282,60 @@ const CharityReferrals = ({ user }) => {
         </div>
       )}
 
-      <Modal open={modalOpen} onClose={() => setModalOpen(false)}>
+      <Modal
+        open={modalOpen}
+        onClose={() => {
+          setModalOpen(false);
+          setSelectedReferral(null);
+          setActiveRoomParticipants([]);
+        }}
+        ariaLabel="Room participants"
+      >
         <h3>{modalTitle}</h3>
-        <div className="cr-participants-list">
+        <div className="cr-participants-list" style={{ marginBottom: 12 }}>
           {activeRoomParticipants.length === 0 ? (
             <p>No participants found.</p>
           ) : (
             activeRoomParticipants.map((u, idx) => <div key={idx} className="cr-participant">{u}</div>)
           )}
+        </div>
+
+        <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+          <button
+            type="button"
+            onClick={handleConfirm}
+            className="cr-confirm-button"
+            aria-label="Confirm referral"
+            style={{
+              padding: '8px 12px',
+              borderRadius: 8,
+              border: '1px solid rgba(0,0,0,0.12)',
+              background: '#ffffff',
+              cursor: 'pointer',
+              fontSize: 14,
+            }}
+            disabled={deleting}
+          >
+            Confirm
+          </button>
+
+          <button
+            type="button"
+            onClick={handleDeny}
+            className="cr-deny-button"
+            aria-label="Deny (delete) referral"
+            style={{
+              padding: '8px 12px',
+              borderRadius: 8,
+              border: '1px solid rgba(0,0,0,0.12)',
+              background: '#ffefef',
+              cursor: 'pointer',
+              fontSize: 14,
+            }}
+            disabled={deleting}
+          >
+            {deleting ? 'Deleting…' : 'Deny'}
+          </button>
         </div>
       </Modal>
     </div>
