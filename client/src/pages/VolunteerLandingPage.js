@@ -13,6 +13,8 @@ const VolunteerLandingPage = ({ user }) => {
   const [activeRoomTab, setActiveRoomTab] = useState('my-rooms'); // 'my-rooms' or 'public-rooms'
   const [publicRooms, setPublicRooms] = useState([]);
   const [expandedDescription, setExpandedDescription] = useState(null);
+  const [renamingRoom, setRenamingRoom] = useState(null); // room_code of room being renamed
+  const [newRoomName, setNewRoomName] = useState('');
 
   // Toggle Theme Helper
   const toggleTheme = () => {
@@ -111,6 +113,7 @@ const VolunteerLandingPage = ({ user }) => {
         .from('room_participants')
         .select(`
           room_code,
+          is_master,
           rooms (
             id,
             name,
@@ -124,7 +127,8 @@ const VolunteerLandingPage = ({ user }) => {
       const formattedRooms = data.map(item => ({
         room_code: item.room_code,
         name: item.rooms?.name || `Room ${item.room_code}`,
-        description: item.rooms?.description
+        description: item.rooms?.description,
+        is_master: item.is_master
       }));
 
       setMyRooms(formattedRooms);
@@ -192,6 +196,55 @@ const VolunteerLandingPage = ({ user }) => {
       alert('Failed to create room. Please try again.');
     } finally {
       setCreating(false);
+    }
+  };
+
+  const handleRenameRoom = async (roomCode) => {
+    if (!newRoomName.trim()) {
+      alert('Room name cannot be empty');
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('rooms')
+        .update({ name: newRoomName.trim() })
+        .eq('room_code', roomCode);
+
+      if (error) throw error;
+
+      // Reset rename state
+      setRenamingRoom(null);
+      setNewRoomName('');
+
+      // Refresh room list
+      fetchMyRooms();
+    } catch (error) {
+      console.error('Error renaming room:', error);
+      alert('Failed to rename room. Please try again.');
+    }
+  };
+
+  const handleDeleteRoom = async (roomCode) => {
+    const confirmed = window.confirm(
+      'Are you sure you want to delete this room? This action cannot be undone and will remove all participants.'
+    );
+
+    if (!confirmed) return;
+
+    try {
+      const { error } = await supabase
+        .from('rooms')
+        .delete()
+        .eq('room_code', roomCode);
+
+      if (error) throw error;
+
+      // Refresh room list
+      fetchMyRooms();
+    } catch (error) {
+      console.error('Error deleting room:', error);
+      alert('Failed to delete room. Please try again.');
     }
   };
 
@@ -446,9 +499,101 @@ const VolunteerLandingPage = ({ user }) => {
                 ) : (
                   <div className="mini-rooms-list">
                     {myRooms.map(room => (
-                      <div key={room.room_code} className="mini-room-item" onClick={() => navigate(`/room/${room.room_code}`)}>
-                        <span className="mini-room-name">{room.name}</span>
-                        <span className="mini-room-code">#{room.room_code}</span>
+                      <div key={room.room_code} className="mini-room-item">
+                        <div
+                          className="mini-room-content"
+                          onClick={() => navigate(`/room/${room.room_code}`)}
+                        >
+                          <div className="mini-room-info">
+                            {renamingRoom === room.room_code ? (
+                              <input
+                                type="text"
+                                className="room-rename-input"
+                                value={newRoomName}
+                                onChange={(e) => setNewRoomName(e.target.value)}
+                                onClick={(e) => e.stopPropagation()}
+                                onKeyPress={(e) => {
+                                  if (e.key === 'Enter') {
+                                    handleRenameRoom(room.room_code);
+                                  } else if (e.key === 'Escape') {
+                                    setRenamingRoom(null);
+                                    setNewRoomName('');
+                                  }
+                                }}
+                                autoFocus
+                                placeholder="Enter room name"
+                              />
+                            ) : (
+                              <span className="mini-room-name">{room.name}</span>
+                            )}
+                            <span className={`mini-room-role ${room.is_master ? 'admin' : 'member'}`}>
+                              {room.is_master ? 'Admin' : 'Member'}
+                            </span>
+                          </div>
+                        </div>
+                        {renamingRoom !== room.room_code && (
+                          <div className="mini-room-actions" onClick={(e) => e.stopPropagation()}>
+                            <button
+                              className="btn-rename"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (room.is_master) {
+                                  setRenamingRoom(room.room_code);
+                                  setNewRoomName(room.name);
+                                }
+                              }}
+                              disabled={!room.is_master}
+                              title={room.is_master ? "Rename room" : "Must be admin to rename"}
+                            >
+                              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"></path>
+                                <path d="m15 5 4 4"></path>
+                              </svg>
+                            </button>
+                            <button
+                              className="btn-room-delete"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (room.is_master) {
+                                  handleDeleteRoom(room.room_code);
+                                }
+                              }}
+                              disabled={!room.is_master}
+                              title={room.is_master ? "Delete room" : "Must be admin to delete"}
+                            >
+                              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M3 6h18"></path>
+                                <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
+                                <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
+                              </svg>
+                            </button>
+                          </div>
+                        )}
+                        {renamingRoom === room.room_code && (
+                          <div className="mini-room-actions" onClick={(e) => e.stopPropagation()}>
+                            <button
+                              className="btn-rename-confirm"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleRenameRoom(room.room_code);
+                              }}
+                              title="Confirm rename"
+                            >
+                              ✓
+                            </button>
+                            <button
+                              className="btn-rename-cancel"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setRenamingRoom(null);
+                                setNewRoomName('');
+                              }}
+                              title="Cancel"
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>
