@@ -494,11 +494,22 @@ const VolunteerLandingPage = ({ user }) => {
                 alt="Profile"
               />
             </div>
-            <div className="profile-name">
-              {(() => {
-                const name = user?.user_metadata?.username || user?.user_metadata?.full_name || 'Volunteer';
-                return name.charAt(0).toUpperCase() + name.slice(1);
-              })()}
+            <div className="profile-details" style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '4px' }}>
+              <div className="profile-name" style={{ flex: 'none' }}>
+                {(() => {
+                  const name = user?.user_metadata?.username || user?.user_metadata?.full_name || 'Volunteer';
+                  return name.charAt(0).toUpperCase() + name.slice(1);
+                })()}
+              </div>
+              <div className="level-info" style={{ width: '100%' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', marginBottom: '3px', color: 'rgba(255, 255, 255, 0.9)' }}>
+                  <span style={{ fontWeight: 'bold' }}>Level 5</span>
+                  <span style={{ fontSize: '0.7rem', opacity: 0.8 }}>1,250 / 2,000 XP</span>
+                </div>
+                <div style={{ width: '100%', height: '6px', backgroundColor: 'rgba(0, 0, 0, 0.2)', borderRadius: '3px', overflow: 'hidden' }}>
+                  <div style={{ width: '62.5%', height: '100%', backgroundColor: '#4ade80', borderRadius: '3px' }}></div>
+                </div>
+              </div>
             </div>
             <button
               className="btn-settings"
