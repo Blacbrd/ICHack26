@@ -118,6 +118,78 @@
   flex-shrink: 0;
 }
 
+/* CV Display */
+.cv-display {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+  background: #fafafa;
+  border: 1px solid #e5e5e5;
+  border-radius: 6px;
+}
+
+.cv-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+}
+
+.cv-info svg {
+  width: 20px;
+  height: 20px;
+  color: #171717;
+  flex-shrink: 0;
+}
+
+.cv-info span {
+  font-size: 14px;
+  color: #171717;
+  font-weight: 500;
+}
+
+.cv-view-link {
+  color: #171717;
+  text-decoration: underline;
+  font-size: 13px;
+  margin-left: 8px;
+  transition: opacity 0.15s ease;
+}
+
+.cv-view-link:hover {
+  opacity: 0.7;
+}
+
+.cv-remove-btn {
+  background: transparent;
+  border: 1px solid #e5e5e5;
+  color: #737373;
+  padding: 6px 14px;
+  border-radius: 4px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.cv-remove-btn:hover:not(:disabled) {
+  background: #f5f5f5;
+  color: #171717;
+  border-color: #d4d4d4;
+}
+
+.cv-remove-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.input-field:disabled {
+  background: #f5f5f5;
+  color: #737373;
+  cursor: not-allowed;
+}
+
 /* Calendar Styles */
 .calendar-instructions {
   margin: 0 0 16px;
