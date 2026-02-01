@@ -43,25 +43,32 @@ const LoginPage = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [username, setUsername] = useState('');
+  const [avatarUrl, setAvatarUrl] = useState('');
+  const [causes, setCauses] = useState([]);
   const [isCharity, setIsCharity] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [theme, setTheme] = useTheme('dark');
 
   // Charity fields
   const [lat, setLat] = useState('');
   const [lon, setLon] = useState('');
   const [country, setCountry] = useState('');
-  const [causes, setCauses] = useState([]);
   const [link, setLink] = useState('');
+
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [theme, setTheme] = useTheme('dark');
 
   const toggleTheme = () => setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'));
 
-  const toggleCause = (cause) => {
+  // Toggle a cause on/off (used in both charity and volunteer signups)
+  const handleCauseToggle = (cause) => {
     setCauses((prev) => {
-      if (prev.includes(cause)) return prev.filter((c) => c !== cause);
-      if (prev.length >= 5) return prev; // don't exceed 5
-      return [...prev, cause];
+      if (prev.includes(cause)) {
+        return prev.filter((c) => c !== cause);
+      } else {
+        // enforce max of 5
+        if (prev.length >= 5) return prev;
+        return [...prev, cause];
+      }
     });
   };
 
@@ -93,8 +100,8 @@ const LoginPage = () => {
     setError('');
 
     try {
+      // Pre-check: if signing up as charity, ensure email not already in profiles/charities
       if (isSignUp && isCharity) {
-        // UI-level uniqueness check (DB triggers/index will also enforce)
         const [{ data: inProfiles }, { data: inCharities }] = await Promise.all([
           supabase.from('profiles').select('id').ilike('email', email).maybeSingle(),
           supabase.from('charities').select('charity_id').ilike('email', email).maybeSingle(),
@@ -118,23 +125,24 @@ const LoginPage = () => {
           return;
         }
 
-        const signupResult = await supabase.auth.signUp({
+        // Create user in Supabase Auth
+        const { data, error: signUpError } = await supabase.auth.signUp({
           email,
           password,
           options: {
             data: {
               username: username || email.split('@')[0],
-            },
-          },
+              avatar_url: avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(username || email.split('@')[0])}`
+            }
+          }
         });
 
-        if (signupResult.error) throw signupResult.error;
+        if (signUpError) throw signUpError;
 
-        // In some Supabase setups the user row may not be created until email confirmation.
-        // If signUp returned a user, proceed to insert the profile/charity row. Otherwise inform user to confirm.
-        const user = signupResult.data?.user;
+        // Supabase may require email confirmation; user row may not be immediately available.
+        const user = data?.user;
         if (!user) {
-          // Email confirmation required — we cannot create DB rows until the user exists in auth.
+          // Inform the user to confirm email before DB row creation (safe)
           setError('Sign up submitted. Please check your email to confirm your account before continuing.');
           setLoading(false);
           return;
@@ -143,7 +151,7 @@ const LoginPage = () => {
         const userId = user.id;
 
         if (isCharity) {
-          // Insert into charities table. RLS with WITH CHECK (auth.uid() = charity_id) requires charity_id = user id.
+          // Insert charity record into charities table
           const charityPayload = {
             charity_id: userId,
             name: username || (email ? email.split('@')[0] : 'Charity'),
@@ -157,7 +165,6 @@ const LoginPage = () => {
 
           const { error: insertError } = await supabase.from('charities').insert(charityPayload);
           if (insertError) {
-            // Might be a trigger/constraint error; show friendly message
             console.error('Failed inserting charity:', insertError);
             setError(insertError.message || 'Failed to create charity record.');
             setLoading(false);
@@ -167,17 +174,19 @@ const LoginPage = () => {
           // success -> go to charity area
           navigate('/charity-referrals');
         } else {
-          // Create a profile for the volunteer (upsert)
+          // Volunteer: create/upsert profile row (store causes & avatar)
           const profilePayload = {
             id: userId,
             username: username || (email ? email.split('@')[0] : ''),
             email,
+            causes: causes.length ? causes : null,
+            avatar_url: avatarUrl || null,
           };
 
           const { error: upsertError } = await supabase.from('profiles').upsert(profilePayload);
           if (upsertError) {
             console.error('Failed upserting profile:', upsertError);
-            // not fatal, continue
+            // Not fatal — we'll still navigate
           }
 
           navigate('/');
@@ -219,7 +228,7 @@ const LoginPage = () => {
             return;
           }
 
-          // else, treat as volunteer (profiles)
+          // Else: volunteer
           navigate('/');
         }
       }
@@ -258,7 +267,7 @@ const LoginPage = () => {
                 placeholder={isCharity ? 'Charity name' : 'Username'}
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                required={isSignUp}
+                required
               />
 
               <div className="role-selection" style={{ marginBottom: 12 }}>
@@ -270,6 +279,7 @@ const LoginPage = () => {
                 </label>
               </div>
 
+              {/* Charity-specific fields */}
               {isCharity && (
                 <div className="charity-fields" style={{ marginBottom: 12 }}>
                   <div style={{ display: 'flex', gap: 8 }}>
@@ -289,7 +299,7 @@ const LoginPage = () => {
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                       {CAUSES_LIST.map((c) => (
                         <label key={c} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                          <input type="checkbox" checked={causes.includes(c)} onChange={() => toggleCause(c)} />
+                          <input type="checkbox" checked={causes.includes(c)} onChange={() => handleCauseToggle(c)} />
                           <span style={{ fontSize: 14 }}>{c}</span>
                         </label>
                       ))}
@@ -299,6 +309,39 @@ const LoginPage = () => {
                   <div style={{ marginTop: 8 }}>
                     <input type="url" className="form-input" placeholder="Website (optional)" value={link} onChange={(e) => setLink(e.target.value)} />
                   </div>
+                </div>
+              )}
+
+              {/* Avatar / profile picture for both roles */}
+              <input
+                type="url"
+                className="form-input"
+                placeholder="Profile Picture URL (Optional)"
+                value={avatarUrl}
+                onChange={(e) => setAvatarUrl(e.target.value)}
+              />
+
+              {/* Causes selection area for volunteers too (optional) */}
+              {!isCharity && (
+                <div className="causes-container" style={{ marginTop: 8 }}>
+                  <label className="causes-label">Select your causes of interest (optional):</label>
+                  <div className="causes-grid">
+                    {CAUSES_LIST.map((cause) => (
+                      <label key={cause} className="cause-checkbox">
+                        <input
+                          type="checkbox"
+                          checked={causes.includes(cause)}
+                          onChange={() => handleCauseToggle(cause)}
+                        />
+                        <span className="cause-text">{cause}</span>
+                      </label>
+                    ))}
+                  </div>
+                  {causes.length > 0 && (
+                    <p className="causes-selected">
+                      Selected: {causes.length} cause{causes.length !== 1 ? 's' : ''}
+                    </p>
+                  )}
                 </div>
               )}
             </>
