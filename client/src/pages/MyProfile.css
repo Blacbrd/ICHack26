@@ -10,7 +10,7 @@
   --text-color: #0b1224;
   --muted-color: #5b6b86;
   --input-bg: rgba(255, 255, 255, 0.8);
-  
+
   /* Brand Gradients */
   --primary-gradient: linear-gradient(135deg, #0f3b88, #1c67e6);
   --secondary-gradient: linear-gradient(135deg, #0b2a5b, #1c67e6);
@@ -42,11 +42,12 @@
   --panel-border: rgba(28, 103, 230, 0.25);
   --text-color: #f6f8ff;
   --muted-color: #b7c3da;
-  --input-bg: rgba(15, 18, 35, 0.6); /* Darker inputs */
-  
+  --input-bg: rgba(15, 18, 35, 0.6);
+  /* Darker inputs */
+
   /* Adjusted Gradients for Dark Mode */
   --primary-gradient: linear-gradient(135deg, #0f3b88, #2c7dff);
-  
+
   /* Calendar Specifics (Dark) */
   --cal-header-bg: rgba(255, 255, 255, 0.05);
   --cal-today-bg: rgba(28, 103, 230, 0.15);
@@ -70,6 +71,9 @@
   border-bottom: 1px solid var(--panel-border);
   /* Slight tint for header separation */
   background: linear-gradient(to right, rgba(28, 103, 230, 0.05), transparent);
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
 }
 
 .myprofile-header h1 {
@@ -88,9 +92,11 @@
 .info-section {
   margin-bottom: 32px;
 }
+
 .info-section:last-of-type {
   margin-bottom: 24px;
 }
+
 .info-section h2 {
   font-size: 14px;
   font-weight: 700;
@@ -117,7 +123,8 @@
   font-size: 15px;
   font-family: inherit;
   transition: all 0.2s ease;
-  background: var(--input-bg); /* Adapts to theme */
+  background: var(--input-bg);
+  /* Adapts to theme */
   color: var(--text-color);
   box-sizing: border-box;
 }
@@ -137,12 +144,14 @@
 .file-upload-wrapper {
   position: relative;
 }
+
 .file-input {
   position: absolute;
   opacity: 0;
   width: 0;
   height: 0;
 }
+
 .file-upload-label {
   display: flex;
   align-items: center;
@@ -158,9 +167,12 @@
   font-size: 14px;
   font-weight: 600;
 }
+
 .myprofile-page.dark .file-upload-label {
-  color: #6aa5ff; /* Lighter blue for dark mode text */
+  color: #6aa5ff;
+  /* Lighter blue for dark mode text */
 }
+
 .file-upload-label:hover {
   background: rgba(28, 103, 230, 0.1);
   border-color: #1c67e6;
@@ -177,18 +189,22 @@
   border: 1px solid var(--panel-border);
   border-radius: 12px;
 }
+
 .cv-info {
   display: flex;
   align-items: center;
   gap: 12px;
   flex: 1;
 }
+
 .cv-info svg {
   color: #1c67e6;
 }
+
 .myprofile-page.dark .cv-info svg {
   color: #6aa5ff;
 }
+
 .cv-view-link {
   color: #1c67e6;
   text-decoration: none;
@@ -196,9 +212,11 @@
   font-weight: 600;
   margin-left: 12px;
 }
+
 .myprofile-page.dark .cv-view-link {
   color: #6aa5ff;
 }
+
 .cv-remove-btn {
   background: transparent;
   border: 1px solid var(--panel-border);
@@ -209,6 +227,7 @@
   font-weight: 600;
   cursor: pointer;
 }
+
 .cv-remove-btn:hover {
   background: rgba(239, 68, 68, 0.1);
   color: var(--danger-red);
@@ -221,6 +240,7 @@
   font-size: 14px;
   color: var(--muted-color);
 }
+
 .calendar-wrapper {
   border: 1px solid var(--panel-border);
   border-radius: 16px;
@@ -237,6 +257,7 @@
   border-radius: 12px;
   border: 1px solid var(--panel-border);
 }
+
 .summary-text {
   margin: 0;
   font-size: 14px;
@@ -244,15 +265,13 @@
   font-weight: 600;
   text-align: center;
 }
+
 .myprofile-page.dark .summary-text {
   color: #6aa5ff;
 }
 
 /* Theme Toggle Button */
 .theme-toggle {
-  position: fixed;
-  top: 24px;
-  right: 24px;
   border: 1px solid var(--panel-border);
   background: var(--panel-bg);
   color: var(--text-color);
@@ -262,9 +281,9 @@
   font-weight: 600;
   cursor: pointer;
   box-shadow: 0 15px 40px rgba(0, 0, 0, 0.12);
-  z-index: 100;
   transition: all 0.2s ease;
 }
+
 .theme-toggle:hover {
   transform: translateY(-2px);
   box-shadow: 0 20px 45px rgba(0, 0, 0, 0.18);
@@ -317,6 +336,7 @@
   box-shadow: 0 10px 25px rgba(16, 59, 136, 0.3);
   margin-top: 10px;
 }
+
 .save-button:hover {
   transform: translateY(-2px);
   filter: brightness(1.1);
@@ -327,9 +347,12 @@
   .myprofile-page {
     padding: 20px 10px;
   }
-  .myprofile-header, .profile-content {
+
+  .myprofile-header,
+  .profile-content {
     padding: 24px 20px;
   }
+
   .fc .fc-toolbar {
     flex-direction: column;
     gap: 12px;

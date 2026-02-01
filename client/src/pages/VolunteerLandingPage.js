@@ -10,6 +10,9 @@ const VolunteerLandingPage = ({ user }) => {
   const [myRooms, setMyRooms] = useState([]);
   const [loadingRooms, setLoadingRooms] = useState(true);
   const [creating, setCreating] = useState(false);
+  const [activeRoomTab, setActiveRoomTab] = useState('my-rooms'); // 'my-rooms' or 'public-rooms'
+  const [publicRooms, setPublicRooms] = useState([]);
+  const [expandedDescription, setExpandedDescription] = useState(null);
 
   // Toggle Theme Helper
   const toggleTheme = () => {
@@ -17,32 +20,32 @@ const VolunteerLandingPage = ({ user }) => {
   };
 
   // --- MOCK DATA ---
-  
+
   // Left Column: Hardcoded News (Future: API/Gemini)
   const newsItems = [
-    { 
-      id: 1, 
+    {
+      id: 1,
       tag: "Urgent",
-      title: "Turkey-Syria Earthquake Response", 
-      snippet: "International aid teams requesting additional translators and medical logistics volunteers in Hatay province immediately." 
+      title: "Turkey-Syria Earthquake Response",
+      snippet: "International aid teams requesting additional translators and medical logistics volunteers in Hatay province immediately."
     },
-    { 
-      id: 2, 
+    {
+      id: 2,
       tag: "Alert",
-      title: "Flash Floods in Pakistan", 
-      snippet: "Rising water levels in Sindh have displaced thousands. Emergency shelter construction volunteers needed for Phase 2 relief." 
+      title: "Flash Floods in Pakistan",
+      snippet: "Rising water levels in Sindh have displaced thousands. Emergency shelter construction volunteers needed for Phase 2 relief."
     },
-    { 
-      id: 3, 
+    {
+      id: 3,
       tag: "Update",
-      title: "Wildfire Recovery: Rhodes", 
-      snippet: "Reforestation projects are opening for registration starting next week. Local transport provided from Athens." 
+      title: "Wildfire Recovery: Rhodes",
+      snippet: "Reforestation projects are opening for registration starting next week. Local transport provided from Athens."
     },
-    { 
-      id: 4, 
+    {
+      id: 4,
       tag: "Local",
-      title: "Food Bank Shortages", 
-      snippet: "City-wide call for evening shift volunteers to assist with meal prep and distribution in downtown centers." 
+      title: "Food Bank Shortages",
+      snippet: "City-wide call for evening shift volunteers to assist with meal prep and distribution in downtown centers."
     },
   ];
 
@@ -76,7 +79,29 @@ const VolunteerLandingPage = ({ user }) => {
   useEffect(() => {
     if (user) {
       fetchMyRooms();
+      loadPublicRooms();
     }
+
+    // Subscribe to real-time updates for public rooms
+    const channel = supabase
+      .channel('volunteer-public-rooms')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'rooms',
+          filter: 'is_public=eq.true',
+        },
+        () => {
+          loadPublicRooms();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [user]);
 
   const fetchMyRooms = async () => {
@@ -95,7 +120,7 @@ const VolunteerLandingPage = ({ user }) => {
         .eq('user_id', user.id);
 
       if (error) throw error;
-      
+
       const formattedRooms = data.map(item => ({
         room_code: item.room_code,
         name: item.rooms?.name || `Room ${item.room_code}`,
@@ -170,21 +195,160 @@ const VolunteerLandingPage = ({ user }) => {
     }
   };
 
+  const loadPublicRooms = async () => {
+    try {
+      const { data, error: fetchError } = await supabase
+        .from('rooms')
+        .select('*')
+        .eq('is_public', true)
+        .order('created_at', { ascending: false })
+        .limit(50);
+
+      if (fetchError) throw fetchError;
+
+      // Get participant counts and creator usernames for each room
+      const roomsWithCounts = await Promise.all(
+        (data || []).map(async (room) => {
+          const { count } = await supabase
+            .from('room_participants')
+            .select('*', { count: 'exact', head: true })
+            .eq('room_code', room.room_code);
+
+          // Get creator's username (or email as fallback)
+          let creatorUsername = null;
+          try {
+            const { data: creatorProfile, error: profileError } = await supabase
+              .from('profiles')
+              .select('username, email')
+              .eq('id', room.master_id)
+              .maybeSingle();
+
+            if (!profileError && creatorProfile) {
+              creatorUsername = creatorProfile.username ||
+                creatorProfile.email?.split('@')[0] ||
+                creatorProfile.email ||
+                null;
+            }
+          } catch (err) {
+            console.error('Error fetching creator profile:', err);
+          }
+
+          return {
+            ...room,
+            participant_count: count || 0,
+            creator_username: creatorUsername,
+          };
+        })
+      );
+
+      setPublicRooms(roomsWithCounts);
+    } catch (err) {
+      console.error('Error loading public rooms:', err);
+    }
+  };
+
+  const handleJoinPublicRoom = async (roomCode) => {
+    try {
+      if (!user) {
+        alert('Please sign in to join a room.');
+        return;
+      }
+
+      const currentUser = user;
+
+      // Check if room exists and get planning status
+      const { data: room, error: roomError } = await supabase
+        .from('rooms')
+        .select('planning_started')
+        .eq('room_code', roomCode)
+        .single();
+
+      if (roomError || !room) {
+        alert('Room not found or has been deleted.');
+        loadPublicRooms();
+        return;
+      }
+
+      // If planning has already started, redirect to planning page immediately
+      if (room.planning_started) {
+        const { data: existing } = await supabase
+          .from('room_participants')
+          .select('*')
+          .eq('room_code', roomCode)
+          .eq('user_id', currentUser.id)
+          .maybeSingle();
+
+        if (!existing) {
+          await supabase
+            .from('room_participants')
+            .insert({
+              room_code: roomCode,
+              user_id: currentUser.id,
+              is_master: false,
+            });
+        }
+
+        navigate(`/planning/${roomCode}`);
+        return;
+      }
+
+      // Check current participant count
+      const { count: participantCount } = await supabase
+        .from('room_participants')
+        .select('*', { count: 'exact', head: true })
+        .eq('room_code', roomCode);
+
+      // Check if room is full (max 4 people)
+      if (participantCount >= 4) {
+        alert('Room is full. Maximum 4 people allowed per room.');
+        return;
+      }
+
+      // Check if user is already in the room
+      const { data: existing } = await supabase
+        .from('room_participants')
+        .select('*')
+        .eq('room_code', roomCode)
+        .eq('user_id', currentUser.id)
+        .maybeSingle();
+
+      // Only insert if user is not already in the room
+      if (!existing) {
+        const { error: joinError } = await supabase
+          .from('room_participants')
+          .insert({
+            room_code: roomCode,
+            user_id: currentUser.id,
+            is_master: false,
+          });
+
+        if (joinError && joinError.code !== '23505') {
+          throw joinError;
+        }
+      }
+
+      navigate(`/room/${roomCode}`);
+    } catch (err) {
+      console.error('Error joining room:', err);
+      alert('Failed to join room. Please try again.');
+    }
+  };
+
   return (
     <div className={`volunteer-page ${theme}`}>
       <header className="landing-nav">
-        <div className="logo-section" style={{ display: 'flex', alignItems: 'center', gap: '10px'}}>
-             <img src="/imc-logo.svg" alt="IMC Logo" style={{ height: '40px' }} />
-             <div style={{display:'flex', flexDirection:'column'}}>
-                 <span style={{fontWeight:'700', fontSize:'18px'}}>VisaWorld</span>
-             </div>
+        <div className="logo-section" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <img src="/imc-logo.svg" alt="IMC Logo" style={{ height: '40px' }} />
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
+            <span style={{ fontWeight: '700', fontSize: '18px' }}>VisaWorld</span>
+          </div>
         </div>
         <div className="nav-actions" style={{ display: 'flex', gap: '10px' }}>
-          <button type="button" className="btn-profile-signout" onClick={toggleTheme}>
+          <button type="button" className="volunteer-btn-signout" onClick={toggleTheme}>
             {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
           </button>
-          <button 
-            className="btn-profile-signout"
+          <button
+            className="volunteer-btn-signout"
             onClick={() => supabase.auth.signOut()}
           >
             Sign Out
@@ -193,7 +357,7 @@ const VolunteerLandingPage = ({ user }) => {
       </header>
 
       <main className="volunteer-layout">
-        
+
         {/* LEFT COLUMN: NEWS */}
         <section className="dashboard-card left-column">
           <h3 className="card-title">Disaster Alerts</h3>
@@ -227,14 +391,14 @@ const VolunteerLandingPage = ({ user }) => {
           </div>
         </section>
 
-       {/* RIGHT COLUMN: PROFILE & ROOMS */}
+        {/* RIGHT COLUMN: PROFILE & ROOMS */}
         <section className="dashboard-card right-column">
           {/* Profile Top - New Compact Design */}
-          <div className="profile-section">
+          <div className="volunteer-profile-section">
             <div className="profile-avatar">
-              <img 
-                src={user?.user_metadata?.avatar_url || "https://api.dicebear.com/7.x/avataaars/svg?seed=default"} 
-                alt="Profile" 
+              <img
+                src={user?.user_metadata?.avatar_url || "https://api.dicebear.com/7.x/avataaars/svg?seed=default"}
+                alt="Profile"
               />
             </div>
             <div className="profile-info-compact">
@@ -243,7 +407,7 @@ const VolunteerLandingPage = ({ user }) => {
               </div>
               <div className="profile-email">{user?.email}</div>
             </div>
-            <button 
+            <button
               className="btn-settings"
               onClick={() => navigate('/profile')} /* Navigate to settings page */
               title="Settings"
@@ -255,42 +419,124 @@ const VolunteerLandingPage = ({ user }) => {
             </button>
           </div>
 
-          {/* My Rooms Section */}
+          {/* Rooms Section with Tabs */}
           <div className="my-rooms-section">
-            <div className="my-rooms-title">My Rooms</div>
-            
-            {loadingRooms ? (
-              <div className="empty-rooms-state">Loading...</div>
-            ) : myRooms.length === 0 ? (
-              <div className="empty-rooms-state">
-                <p>No rooms created yet.<br/>Get exploring!</p>
-              </div>
-            ) : (
-              <div className="mini-rooms-list">
-                {myRooms.map(room => (
-                  <div key={room.room_code} className="mini-room-item" onClick={() => navigate(`/room/${room.room_code}`)}>
-                    <span className="mini-room-name">{room.name}</span>
-                    <span className="mini-room-code">#{room.room_code}</span>
-                  </div>
-                ))}
-              </div>
-            )}
-            
-            <div className="room-actions">
-              <button 
-                className="btn-full btn-join-room"
-                onClick={() => navigate('/join')}
+            {/* Tab Headers */}
+            <div className="room-tabs">
+              <button
+                className={`room-tab ${activeRoomTab === 'my-rooms' ? 'active' : ''}`}
+                onClick={() => setActiveRoomTab('my-rooms')}
               >
-                Join Room
+                My Rooms
               </button>
-              <button 
-                className="btn-full btn-begin-exploring"
-                onClick={handleBeginExploring}
-                disabled={creating}
+              <button
+                className={`room-tab ${activeRoomTab === 'public-rooms' ? 'active' : ''}`}
+                onClick={() => setActiveRoomTab('public-rooms')}
               >
-                {creating ? 'Creating...' : 'Begin Exploring'}
+                Public Rooms
               </button>
             </div>
+
+            {/* My Rooms Tab Content */}
+            {activeRoomTab === 'my-rooms' && (
+              <>
+                {loadingRooms ? (
+                  <div className="empty-rooms-state">Loading...</div>
+                ) : myRooms.length === 0 ? (
+                  <div className="empty-rooms-state">
+                    <p>No rooms created yet.<br />Get exploring!</p>
+                  </div>
+                ) : (
+                  <div className="mini-rooms-list">
+                    {myRooms.map(room => (
+                      <div key={room.room_code} className="mini-room-item" onClick={() => navigate(`/room/${room.room_code}`)}>
+                        <span className="mini-room-name">{room.name}</span>
+                        <span className="mini-room-code">#{room.room_code}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <div className="room-actions">
+                  <button
+                    className="btn-full btn-join-room"
+                    onClick={() => navigate('/join')}
+                  >
+                    Join Room
+                  </button>
+                  <button
+                    className="btn-full btn-begin-exploring"
+                    onClick={handleBeginExploring}
+                    disabled={creating}
+                  >
+                    {creating ? 'Creating...' : 'Begin Exploring'}
+                  </button>
+                </div>
+              </>
+            )}
+
+            {/* Public Rooms Tab Content */}
+            {activeRoomTab === 'public-rooms' && (
+              <>
+                {publicRooms.length === 0 ? (
+                  <div className="empty-rooms-state">
+                    <p>No public rooms available.</p>
+                  </div>
+                ) : (
+                  <div className="mini-rooms-list">
+                    {publicRooms.map(room => (
+                      <div key={room.id} className="public-room-item">
+                        <div className="public-room-info" onClick={() => handleJoinPublicRoom(room.room_code)}>
+                          <span className="mini-room-name">{room.name || `Room ${room.room_code}`}</span>
+                          <span className="mini-room-code">#{room.room_code}</span>
+                          <span className="public-room-meta">
+                            {room.participant_count} {room.participant_count === 1 ? 'member' : 'members'}
+                            {room.creator_username && ` • ${room.creator_username}`}
+                          </span>
+                        </div>
+                        {room.description && (
+                          <button
+                            className="btn-expand-description"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setExpandedDescription(expandedDescription === room.id ? null : room.id);
+                            }}
+                            aria-label="Toggle description"
+                          >
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                              <circle cx="12" cy="12" r="1" />
+                              <circle cx="12" cy="5" r="1" />
+                              <circle cx="12" cy="19" r="1" />
+                            </svg>
+                          </button>
+                        )}
+                        {expandedDescription === room.id && room.description && (
+                          <div className="public-room-description">
+                            <p>{room.description}</p>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <div className="room-actions">
+                  <button
+                    className="btn-full btn-join-room"
+                    onClick={() => navigate('/join')}
+                  >
+                    Join Room
+                  </button>
+                  <button
+                    className="btn-full btn-begin-exploring"
+                    onClick={handleBeginExploring}
+                    disabled={creating}
+                  >
+                    {creating ? 'Creating...' : 'Begin Exploring'}
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </section>
 
