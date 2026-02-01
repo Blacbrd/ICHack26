@@ -1,7 +1,7 @@
 # rank_opportunities.py
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 from datetime import datetime
 import os
 import json
@@ -11,7 +11,7 @@ import sys
 from dotenv import load_dotenv, find_dotenv
 load_dotenv(find_dotenv())
 
-ENABLE_RANK_LOGGING = False
+ENABLE_RANK_LOGGING = True
 
 LOG_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "logs")
 if ENABLE_RANK_LOGGING:
@@ -37,7 +37,9 @@ class OpportunityItem(BaseModel):
 
 class RankRequest(BaseModel):
     room_code: str
-    opportunities: List[OpportunityItem]
+    # Optional list of opportunity items (ids). If omitted or empty, the service will
+    # fetch ALL charities from the database.
+    opportunities: Optional[List[OpportunityItem]] = None
     returnTop5: bool = True
 
 
@@ -108,16 +110,78 @@ def fetch_all_messages(room_code: str) -> str:
         return ""
 
 
+def fetch_charities_from_db(filter_ids: Optional[List[str]] = None) -> List[Dict[str, Any]]:
+    """Fetch charities from the Supabase 'charities' table.
+
+    If filter_ids is provided, only returns rows whose charity_id is in filter_ids.
+    Returns list of dicts with at least charity_id and name (and link/country if available).
+    """
+    sb = get_supabase()
+    if not sb:
+        return []
+    try:
+        # Select the columns we need. Adjust or add columns if required.
+        res = sb.table("charities").select("charity_id, name, link, country").execute()
+        data = res.data if hasattr(res, "data") else None
+        if not data:
+            return []
+        if filter_ids:
+            idset = set(map(str, filter_ids))
+            data = [r for r in data if str(r.get("charity_id")) in idset]
+        return data
+    except Exception as e:
+        print(f"[rank] Error fetching charities from DB: {e}", file=sys.stderr, flush=True)
+        return []
+
+
 @router.post("/rank-opportunities", response_model=RankResponse)
 async def rank_opportunities(req: RankRequest):
-    if not req.opportunities or len(req.opportunities) == 0:
-        raise HTTPException(status_code=400, detail="No opportunities provided.")
+    # We'll support two modes:
+    # 1) If client provided a non-empty req.opportunities list, prefer that list but enrich
+    #    with DB data when available (keeps compatibility with existing callers).
+    # 2) If client did NOT provide opportunities (or provided empty list / None), fetch ALL charities from DB.
 
     chat_text = fetch_all_messages(req.room_code)
 
-    # Build compact {id: title} map
-    id_title_map = {opp.id: opp.name for opp in req.opportunities}
-    all_ids = list(id_title_map.keys())
+    # Build id -> title map from either provided opportunities or DB
+    id_title_map: Dict[str, str] = {}
+    id_link_map: Dict[str, Optional[str]] = {}
+    id_country_map: Dict[str, Optional[str]] = {}
+
+    provided_ids = []
+    if req.opportunities:
+        # Use provided list of opportunities, but attempt to fetch DB rows to get authoritative names/links
+        provided_ids = [opp.id for opp in req.opportunities]
+        db_rows = fetch_charities_from_db(filter_ids=provided_ids)
+        db_map = {str(r.get("charity_id")): r for r in db_rows}
+        for opp in req.opportunities:
+            cid = str(opp.id)
+            if cid in db_map:
+                row = db_map[cid]
+                id_title_map[cid] = row.get("name") or opp.name
+                id_link_map[cid] = row.get("link") or opp.link
+                id_country_map[cid] = row.get("country") or opp.country
+            else:
+                # Fallback to provided data
+                id_title_map[cid] = opp.name
+                id_link_map[cid] = opp.link
+                id_country_map[cid] = opp.country
+
+        all_ids = list(id_title_map.keys())
+    else:
+        # No opportunities provided by client: fetch all charities from DB and rank them.
+        db_rows = fetch_charities_from_db(filter_ids=None)
+        if not db_rows:
+            raise HTTPException(status_code=500, detail="No opportunities provided and failed to fetch charities from database.")
+        for r in db_rows:
+            cid = str(r.get("charity_id"))
+            id_title_map[cid] = r.get("name") or "(no name)"
+            id_link_map[cid] = r.get("link")
+            id_country_map[cid] = r.get("country")
+        all_ids = list(id_title_map.keys())
+
+    if not all_ids:
+        raise HTTPException(status_code=400, detail="No opportunities available to rank.")
 
     if req.returnTop5:
         count_instruction = "Return ONLY the top 5 most relevant IDs."
@@ -140,6 +204,7 @@ async def rank_opportunities(req: RankRequest):
         f"{example}"
     )
 
+    # Build compact {id: title} map JSON for the assistant
     user_prompt = (
         f"OPPORTUNITIES:\n{json.dumps(id_title_map, ensure_ascii=False)}\n\n"
         f"CHAT CONVERSATION:\n{chat_text if chat_text else '(no messages yet)'}\n\n"
@@ -193,7 +258,7 @@ async def rank_opportunities(req: RankRequest):
                     f.write("\n".join(log_lines))
             return RankResponse(ranked_ids=all_ids)
 
-        # Validate: keep only IDs that exist in input
+        # Validate: keep only IDs that exist in input (or DB)
         valid_ids = [str(rid) for rid in ranked_ids if str(rid) in all_ids]
         if req.returnTop5:
             valid_ids = valid_ids[:5]
