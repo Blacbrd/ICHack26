@@ -243,16 +243,16 @@ const OpportunitiesPanel = ({
 
     // Normalize the selected country for comparison
     const normalizedSelected = selectedCountry.toLowerCase().trim();
-    
+
     // Filter opportunities based on country match
     const filtered = opportunities.filter((opp) => {
       const oppCountry = opp.country ? opp.country.toLowerCase().trim() : '';
-      
+
       // Direct match
       if (oppCountry === normalizedSelected) {
         return true;
       }
-      
+
       // Check for common variations
       const countryGroups = {
         'united states': ['usa', 'united states of america', 'us', 'u.s.', 'u.s.a.'],
@@ -309,8 +309,8 @@ const OpportunitiesPanel = ({
   // Compute displayed opportunities (either all filtered or only the selected one),
   // then apply AI ranking if available
   const displayedOpportunities = useMemo(() => {
-    const base = showAllOpportunities 
-      ? filteredOpportunities 
+    const base = showAllOpportunities
+      ? filteredOpportunities
       : filteredOpportunities.filter((opp) => opp.id === selectedOpportunityId);
 
     // Apply AI ranking if we have ranked IDs
@@ -616,17 +616,14 @@ const OpportunitiesPanel = ({
           .eq('room_code', roomCode);
       }
 
-<<<<<<< HEAD
       // Clear the globe marker after a short delay so the "hadOpportunity" condition triggers the globe reset logic
       setTimeout(() => {
         if (onOpportunitySelect) {
           try { onOpportunitySelect(null, null, null); } catch (e) { console.error(e); }
         }
       }, 100);
-=======
       setSelectedOpportunityId(null);
       setShowAllOpportunities(true);
->>>>>>> newUI
     }
   };
 
@@ -705,13 +702,8 @@ const OpportunitiesPanel = ({
                 onClick={() => handleTileClick(opp)}
               >
                 <div className="opportunity-title">{opp.name}</div>
-<<<<<<< HEAD
-                <div className="opportunity-country">{opp.country}</div>
-                <div className="opportunity-actions" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-=======
                 <div className="opportunity-country">{toTitleCase(opp.country)}</div>
                 <div className="opportunity-actions">
->>>>>>> newUI
                   {opp.link && (
                     <a
                       href={opp.link}
@@ -724,7 +716,7 @@ const OpportunitiesPanel = ({
                       Learn more →
                     </a>
                   )}
-                  
+
                   <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
                     <button
                       className="opportunity-select-button"
@@ -732,13 +724,13 @@ const OpportunitiesPanel = ({
                     >
                       Select this
                     </button>
-                    
+
                     {/* --- NEW CHECKBOX FOR MULTI-SELECTION --- */}
-                    <input 
-                      type="checkbox" 
-                      style={{ 
-                        width: '20px', 
-                        height: '20px', 
+                    <input
+                      type="checkbox"
+                      style={{
+                        width: '20px',
+                        height: '20px',
                         cursor: 'pointer',
                         transform: 'scale(1.2)',
                         accentColor: '#3b82f6'
@@ -747,8 +739,8 @@ const OpportunitiesPanel = ({
                       disabled={selectedCharities && !selectedCharities.some(c => c.id === opp.id) && selectedCharities.length >= 5}
                       onChange={() => onToggleCharity && onToggleCharity(opp)}
                       onClick={(e) => e.stopPropagation()} // Prevent clicking the checkbox from triggering tile selection
-                      title={selectedCharities && !selectedCharities.some(c => c.id === opp.id) && selectedCharities.length >= 5 
-                        ? "You can only select up to 5 charities" 
+                      title={selectedCharities && !selectedCharities.some(c => c.id === opp.id) && selectedCharities.length >= 5
+                        ? "You can only select up to 5 charities"
                         : "Select this charity"}
                     />
                   </div>
@@ -757,23 +749,25 @@ const OpportunitiesPanel = ({
             ))}
 
             {/* Pagination Controls */}
-            {displayedOpportunities.length > itemsPerPage && (
-              <div className="pagination-controls">
-                <button className="pagination-button" onClick={handlePreviousPage} disabled={currentPage === 1} title="Previous page">
-                  ← Previous
-                </button>
-                <span className="pagination-info">
-                  Page {currentPage} of {totalPages}
-                </span>
-                <button className="pagination-button" onClick={handleNextPage} disabled={currentPage === totalPages} title="Next page">
-                  Next →
-                </button>
-              </div>
-            )}
+            {
+              displayedOpportunities.length > itemsPerPage && (
+                <div className="pagination-controls">
+                  <button className="pagination-button" onClick={handlePreviousPage} disabled={currentPage === 1} title="Previous page">
+                    ← Previous
+                  </button>
+                  <span className="pagination-info">
+                    Page {currentPage} of {totalPages}
+                  </span>
+                  <button className="pagination-button" onClick={handleNextPage} disabled={currentPage === totalPages} title="Next page">
+                    Next →
+                  </button>
+                </div>
+              )
+            }
           </>
         )}
-      </div>
-    </div>
+      </div >
+    </div >
   );
 };
 
