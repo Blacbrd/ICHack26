@@ -206,11 +206,11 @@ const PlanningPage = ({ user }) => {
     <div className={`planning-page ${theme}`}>
       <div className="planning-header">
         <h1>Planning Room: {roomCode}</h1>
-        <div>
-          <button onClick={toggleTheme}>
+        <div className="planning-header-actions">
+          <button className="theme-toggle" onClick={toggleTheme}>
             {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
           </button>
-          <button onClick={handleLeaveRoom}>Leave Room</button>
+          <button className="btn-leave-room" onClick={handleLeaveRoom}>Leave Room</button>
         </div>
       </div>
 
