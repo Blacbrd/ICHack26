@@ -7,7 +7,7 @@
   --muted-color: #5b6b86;
   --primary-gradient: linear-gradient(135deg, #0f3b88, #1c67e6);
   --secondary-gradient: linear-gradient(135deg, #0b2a5b, #1c67e6);
-  
+
   font-family: var(--font-sans, system-ui, sans-serif);
   min-height: 100vh;
   background: var(--bg-gradient);
@@ -27,7 +27,8 @@
 /* --- GRID LAYOUT --- */
 .volunteer-layout {
   display: grid;
-  grid-template-columns: 300px 1fr 320px; /* Adjusted right column width */
+  grid-template-columns: 300px 1fr 320px;
+  /* Adjusted right column width */
   gap: 24px;
   max-width: 1400px;
   margin: 0 auto;
@@ -40,7 +41,7 @@
   border: 1px solid var(--panel-border);
   border-radius: 24px;
   padding: 24px;
-  box-shadow: 0 20px 45px rgba(0,0,0,0.12);
+  box-shadow: 0 20px 45px rgba(0, 0, 0, 0.12);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -86,7 +87,8 @@
   font-size: 0.7rem;
   font-weight: 700;
   text-transform: uppercase;
-  color: #ef4444; /* Red for urgency */
+  color: #ef4444;
+  /* Red for urgency */
   background: rgba(239, 68, 68, 0.1);
   padding: 4px 8px;
   border-radius: 6px;
@@ -114,7 +116,8 @@
   display: flex;
   flex-direction: column;
   gap: 20px;
-  padding-right: 8px; /* Space for scrollbar */
+  padding-right: 8px;
+  /* Space for scrollbar */
 }
 
 .feed-post {
@@ -122,7 +125,7 @@
   border: 1px solid var(--panel-border);
   border-radius: 20px;
   padding: 20px;
-  box-shadow: 0 4px 6px rgba(0,0,0,0.02);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.02);
 }
 
 .post-header {
@@ -169,15 +172,17 @@
 }
 
 /* --- RIGHT COL: PROFILE & ROOMS --- */
-.profile-section {
+.volunteer-profile-section {
   display: flex;
   align-items: center;
-  justify-content: space-between; /* Keeps spacing balanced */
+  justify-content: space-between;
+  /* Keeps spacing balanced */
   gap: 12px;
   margin-bottom: 24px;
   padding: 16px;
   border-radius: 20px;
-  background: var(--primary-gradient); /* Matches Begin Exploring button */
+  background: var(--primary-gradient);
+  /* Matches Begin Exploring button */
   box-shadow: 0 10px 25px rgba(15, 59, 136, 0.25);
   color: #ffffff;
   border: 1px solid rgba(255, 255, 255, 0.1);
@@ -205,13 +210,15 @@
   flex-direction: column;
   justify-content: center;
   overflow: hidden;
-  gap: 2px; /* Slight gap between name and email */
+  gap: 2px;
+  /* Slight gap between name and email */
 }
 
 .profile-name {
   font-weight: 700;
   font-size: 1.05rem;
-  color: #ffffff; /* Force white text */
+  color: #ffffff;
+  /* Force white text */
   margin: 0;
   line-height: 1.2;
   white-space: nowrap;
@@ -221,7 +228,8 @@
 
 .profile-email {
   font-size: 0.8rem;
-  color: rgba(255, 255, 255, 0.85); /* Slightly muted white */
+  color: rgba(255, 255, 255, 0.85);
+  /* Slightly muted white */
   margin: 0;
   line-height: 1.2;
   white-space: nowrap;
@@ -233,7 +241,44 @@
   flex: 1;
   display: flex;
   flex-direction: column;
-  overflow: hidden; /* Contains scrollable list */
+  overflow: hidden;
+  /* Contains scrollable list */
+}
+
+/* Room Tabs */
+.room-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+  border-bottom: 2px solid var(--panel-border);
+  padding-bottom: 0;
+}
+
+.room-tab {
+  flex: 1;
+  padding: 10px 16px;
+  background: transparent;
+  border: none;
+  border-bottom: 3px solid transparent;
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted-color);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-bottom: -2px;
+}
+
+.room-tab:hover {
+  color: var(--text-color);
+  background: rgba(28, 103, 230, 0.05);
+}
+
+.room-tab.active {
+  color: #1c67e6;
+  border-bottom-color: #1c67e6;
+  background: rgba(28, 103, 230, 0.08);
 }
 
 .my-rooms-title {
@@ -255,7 +300,7 @@
 }
 
 .mini-room-item {
-  background: rgba(255,255,255,0.05);
+  background: rgba(255, 255, 255, 0.05);
   border: 1px solid var(--panel-border);
   border-radius: 12px;
   padding: 12px;
@@ -334,7 +379,8 @@
   border: none;
   color: #ffffff;
   cursor: pointer;
-  width: 36px; /* Fixed width/height for perfect circle */
+  width: 36px;
+  /* Fixed width/height for perfect circle */
   height: 36px;
   border-radius: 50%;
   display: flex;
@@ -363,21 +409,87 @@
   background: var(--panel-bg);
   border-radius: 20px;
   border: 1px solid var(--panel-border);
-  box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
 }
 
-.btn-profile-signout {
-  padding: 8px 16px;
-  background: transparent;
+.volunteer-btn-signout {
   border: 1px solid var(--panel-border);
-  border-radius: 20px;
+  background: var(--panel-bg);
   color: var(--text-color);
+  border-radius: 999px;
+  padding: 8px 18px;
+  font-size: 14px;
+  font-weight: 600;
   cursor: pointer;
+  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.12);
+  transition: all 0.2s ease;
 }
 
-.btn-profile-signout:hover {
-  border-color: #ef4444;
-  color: #ef4444;
+.volunteer-btn-signout:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 20px 45px rgba(0, 0, 0, 0.18);
+}
+
+/* Public Room Items */
+.public-room-item {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--panel-border);
+  border-radius: 12px;
+  padding: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+  position: relative;
+}
+
+.public-room-item:hover {
+  background: rgba(28, 103, 230, 0.1);
+  transform: translateX(4px);
+}
+
+.public-room-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.public-room-meta {
+  font-size: 0.7rem;
+  color: var(--muted-color);
+  display: block;
+  margin-top: 2px;
+}
+
+.btn-expand-description {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: transparent;
+  border: none;
+  color: var(--muted-color);
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.btn-expand-description:hover {
+  color: #1c67e6;
+  transform: scale(1.1);
+}
+
+.public-room-description {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--panel-border);
+  font-size: 0.8rem;
+  color: var(--muted-color);
+  line-height: 1.4;
+}
+
+.public-room-description p {
+  margin: 0;
 }
 
 @media (max-width: 1024px) {
@@ -385,7 +497,7 @@
     grid-template-columns: 1fr;
     height: auto;
   }
-  
+
   .dashboard-card {
     min-height: 400px;
   }

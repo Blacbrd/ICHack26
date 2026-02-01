@@ -11,7 +11,7 @@ import './MyProfile.css';
 const MyProfile = ({ user }) => {
   const navigate = useNavigate();
   const [theme, setTheme] = useTheme('dark');
-  
+
   const [selectedFile, setSelectedFile] = useState(null);
   const [cvUrl, setCvUrl] = useState(null);
   const [uploading, setUploading] = useState(false);
@@ -30,21 +30,21 @@ const MyProfile = ({ user }) => {
     const fetchUserData = async () => {
       try {
         const { data: { user }, error: userError } = await supabase.auth.getUser();
-        
+
         if (userError) throw userError;
-        
+
         if (user) {
           setUserId(user.id);
           // Get email from auth user
           setEmail(user.email || '');
-          
+
           // Fetch profile data for username/full name and cv_url
           const { data: profile, error: profileError } = await supabase
             .from('profiles')
             .select('username, cv_url')
             .eq('id', user.id)
             .single();
-          
+
           if (profileError) {
             console.error('Error fetching profile:', profileError);
           } else if (profile) {
@@ -198,11 +198,11 @@ const MyProfile = ({ user }) => {
       timeRange: `${slot.start.toLocaleTimeString()} - ${slot.end.toLocaleTimeString()}`
     }));
 
-    console.log('Saving profile:', { 
-      name, 
-      email, 
-      cv: selectedFile, 
-      availability: formattedAvailability 
+    console.log('Saving profile:', {
+      name,
+      email,
+      cv: selectedFile,
+      availability: formattedAvailability
     });
     alert('Profile saved successfully!');
   };
@@ -210,30 +210,32 @@ const MyProfile = ({ user }) => {
   return (
     // 1. Apply theme class here
     <div className={`myprofile-page ${theme}`}>
-      
-      {/* 2. Theme Toggle Button */}
-      <button type="button" className="theme-toggle" onClick={toggleTheme}>
-        {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
-      </button>
 
       <div className="myprofile-container">
         <div className="myprofile-header">
-          <h1>Profile</h1>
-          
-          {/* 3. Back Button */}
-          <button 
-            onClick={() => navigate('/')} 
-            style={{
-              marginTop: '10px', 
-              background:'none', 
-              border:'none', 
-              color:'var(--muted-color)', 
-              cursor:'pointer', 
-              textDecoration:'underline',
-              fontSize: '0.9rem'
-            }}
-          >
-             ← Back to Dashboard
+          <div>
+            <h1>Profile</h1>
+
+            {/* 3. Back Button */}
+            <button
+              onClick={() => navigate('/')}
+              style={{
+                marginTop: '10px',
+                background: 'none',
+                border: 'none',
+                color: 'var(--muted-color)',
+                cursor: 'pointer',
+                textDecoration: 'underline',
+                fontSize: '0.9rem'
+              }}
+            >
+              ← Back to Dashboard
+            </button>
+          </div>
+
+          {/* 2. Theme Toggle Button - now in header */}
+          <button type="button" className="theme-toggle" onClick={toggleTheme}>
+            {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
           </button>
         </div>
 
@@ -270,15 +272,15 @@ const MyProfile = ({ user }) => {
               <div className="cv-display">
                 <div className="cv-info">
                   <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/>
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" /><polyline points="10 9 9 9 8 9" />
                   </svg>
                   <span>Resume uploaded</span>
                   <a href={cvUrl} target="_blank" rel="noopener noreferrer" className="cv-view-link">
                     View
                   </a>
                 </div>
-                <button 
-                  onClick={removeCV} 
+                <button
+                  onClick={removeCV}
                   className="cv-remove-btn"
                   disabled={uploading}
                 >
@@ -297,7 +299,7 @@ const MyProfile = ({ user }) => {
                 />
                 <label htmlFor="cv" className="file-upload-label">
                   <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" />
                   </svg>
                   {uploading ? 'Uploading...' : 'Upload PDF'}
                 </label>

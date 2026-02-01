@@ -329,7 +329,7 @@
   box-shadow: 0 16px 35px rgba(15, 59, 136, 0.1);
 }
 
-.card + .card {
+.card+.card {
   margin-top: 20px;
 }
 
