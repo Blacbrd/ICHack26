@@ -129,6 +129,11 @@ function checkGoBack(text) {
   return goBackPhrases.some(phrase => lower.includes(phrase));
 }
 
+function checkRandom(text) {
+  const lower = text.toLowerCase().trim();
+  return lower.includes('random');
+}
+
 // Extract message after "send" command
 function extractSendMessage(text) {
   const lower = text.toLowerCase();
@@ -455,7 +460,7 @@ function findBestMatchingOpportunity(query, opportunities) {
   return bestMatch;
 }
 
-const Chat = ({ roomCode, userId, masterId, allOpportunities = [], onRankUpdate, onRankingLoadingChange, onVoiceCountrySelect, onVoiceOpportunitySelect, selectedCountry, paginatedOpportunities = [], onVoiceGoBack }) => {
+const Chat = ({ roomCode, userId, masterId, allOpportunities = [], onRankUpdate, onRankingLoadingChange, onVoiceCountrySelect, onVoiceOpportunitySelect, selectedCountry, paginatedOpportunities = [], onVoiceGoBack, countriesWithOpportunities = [] }) => {
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(true);
@@ -896,6 +901,25 @@ const Chat = ({ roomCode, userId, masterId, allOpportunities = [], onRankUpdate,
               window.open(url, '_blank');
             } else {
               console.log('Could not build Skyscanner URL from booking:', flightBooking);
+            }
+            return;
+          }
+
+          // Check for "random" command (select random country with opportunities)
+          if (checkRandom(transcript)) {
+            console.log('Voice command: random country');
+            if (countriesWithOpportunities.length > 0 && onVoiceCountrySelect) {
+              const randomIndex = Math.floor(Math.random() * countriesWithOpportunities.length);
+              let randomCountry = countriesWithOpportunities[randomIndex];
+              // Convert to title case to match globe's MAJOR_COUNTRIES format
+              randomCountry = randomCountry
+                .split(' ')
+                .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+                .join(' ');
+              console.log('Selected random country:', randomCountry);
+              onVoiceCountrySelect(randomCountry);
+            } else {
+              console.log('No countries with opportunities available');
             }
             return;
           }

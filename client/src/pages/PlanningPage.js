@@ -727,6 +727,7 @@ const PlanningPage = ({ user }) => {
             }
           }}
           paginatedOpportunities={paginatedOpportunities}
+          countriesWithOpportunities={opportunitiesData ? Object.keys(opportunitiesData).filter(k => k !== 'hardcode' && Array.isArray(opportunitiesData[k]) && opportunitiesData[k].length > 0) : []}
           onVoiceOpportunitySelect={(index) => {
             // Pass the index to OpportunitiesPanel via state
             console.log('Voice requesting opportunity at index:', index);
