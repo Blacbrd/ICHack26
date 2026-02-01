@@ -22,7 +22,7 @@ const OpportunitiesPanel = ({
   const itemsPerPage = 5;
   const debounceTimerRef = useRef(null);
 
-  // Store the full JSON data
+  // Store the full grouped data (object keyed by country)
   const [opportunitiesData, setOpportunitiesData] = useState(null);
 
   // Keep a ref to the latest opportunities so realtime subscription handlers
@@ -33,6 +33,7 @@ const OpportunitiesPanel = ({
   }, [opportunities]);
 
   // Helper function to validate and normalize opportunities
+  // Accepts either the old JSON shape or the new DB row shape.
   const validateAndNormalize = (opportunitiesList) => {
     if (!Array.isArray(opportunitiesList)) {
       console.warn('validateAndNormalize: opportunitiesList is not an array:', opportunitiesList);
@@ -41,31 +42,41 @@ const OpportunitiesPanel = ({
 
     const validated = opportunitiesList
       .map((opp, index) => {
-        // Handle different field name variations
-        const latlon = opp.latlon || opp.latLon || opp.coordinates || opp.coords;
-        const name = opp.name || opp.Name || opp.title || opp.Title || `Opportunity ${index + 1}`;
-        const link = opp.Link || opp.link || opp.url || opp.URL || '';
-        const country = opp.Country || opp.country || opp.location || 'Unknown';
+        // New DB row format: { charity_id, name, lat, lon, country, link, causes, ... }
+        // Old JSON format: { latlon: [lat, lng], name, country, link, id }
+        let lat, lng;
+        if (Array.isArray(opp.latlon) && opp.latlon.length === 2) {
+          [lat, lng] = opp.latlon;
+        } else if (typeof opp.lat === 'number' && typeof opp.lon === 'number') {
+          lat = opp.lat;
+          lng = opp.lon;
+        } else if (typeof opp.lat === 'number' && typeof opp.lng === 'number') {
+          // defensive: some rows might use lng instead of lon
+          lat = opp.lat;
+          lng = opp.lng;
+        } else if (opp.coordinates && Array.isArray(opp.coordinates) && opp.coordinates.length === 2) {
+          [lat, lng] = opp.coordinates;
+        }
 
-        // Validate latlon
-        if (!Array.isArray(latlon) || latlon.length !== 2) {
+        const name = opp.name || opp.title || opp.Name || `Opportunity ${index + 1}`;
+        const link = opp.link || opp.url || opp.Link || '';
+        const country = (opp.country || opp.Country || opp.location || 'Unknown').toString();
+        const id = opp.charity_id || opp.id || `opp-${index}`;
+
+        if (typeof lat !== 'number' || typeof lng !== 'number') {
           console.warn(`Invalid coordinates for opportunity ${index}:`, opp);
           return null;
         }
 
-        const [lat, lng] = latlon;
-        if (typeof lat !== 'number' || typeof lng !== 'number') {
-          console.warn(`Invalid lat/lng types for opportunity ${index}:`, opp);
-          return null;
-        }
-
         return {
-          id: opp.id || `opp-${index}`,
+          id,
           lat,
           lng,
           name,
           link,
           country,
+          // keep raw DB fields for later use if needed:
+          raw: opp,
         };
       })
       .filter((opp) => opp !== null); // Remove invalid entries
@@ -74,50 +85,130 @@ const OpportunitiesPanel = ({
     return validated;
   };
 
-  // Load opportunities JSON file
+  // Load opportunities (from Supabase 'charities' table). Falls back to legacy JSON if DB fails.
   useEffect(() => {
-    const loadOpportunitiesData = async () => {
+    let mounted = true;
+
+    const fetchFromDb = async () => {
+      setLoading(true);
+      try {
+        const { data, error } = await supabase
+          .from('charities')
+          .select('charity_id, name, email, lat, lon, country, causes, link, created_at');
+
+        if (error) {
+          console.warn('OpportunitiesPanel: Supabase select error, falling back to JSON:', error);
+          // fallback to JSON file (legacy)
+          await fetchFromJson();
+          return;
+        }
+
+        if (!data || !Array.isArray(data)) {
+          // fallback to JSON
+          await fetchFromJson();
+          return;
+        }
+
+        if (!mounted) return;
+
+        const flattened = data.map((row) => ({
+          charity_id: row.charity_id,
+          name: row.name,
+          email: row.email,
+          lat: Number(row.lat),
+          lon: Number(row.lon),
+          country: row.country || '',
+          causes: row.causes || [],
+          link: row.link || '',
+          created_at: row.created_at || null,
+        }));
+
+        const validated = validateAndNormalize(flattened);
+
+        // Build grouped object keyed by lowercased country
+        const grouped = validated.reduce((acc, opp) => {
+          const c = (opp.country || 'unknown').toLowerCase();
+          if (!acc[c]) acc[c] = [];
+          acc[c].push(opp);
+          return acc;
+        }, {});
+
+        setOpportunities(validated);
+        setOpportunitiesData(grouped);
+        setError(null);
+        setLoading(false);
+
+        // notify parent
+        onOpportunitiesChange && onOpportunitiesChange(validated);
+        onOpportunitiesDataChange && onOpportunitiesDataChange(grouped);
+        onPaginatedOpportunitiesChange && onPaginatedOpportunitiesChange(validated.slice(0, itemsPerPage));
+      } catch (err) {
+        console.error('Unexpected error fetching charities:', err);
+        // fallback to JSON
+        await fetchFromJson();
+      }
+    };
+
+    const fetchFromJson = async () => {
       try {
         const response = await fetch('/opportunities.json');
+        if (!response.ok) throw new Error('Failed to load opportunities.json');
+        const data = await response.json();
 
-        if (response.ok) {
-          const data = await response.json();
+        // The old JSON used keys per-country and had a 'hardcode' array.
+        // Build a flattened array from all country keys.
+        const countryKeys = Object.keys(data || {});
+        const all = [];
 
-          // Store the full JSON object
-          setOpportunitiesData(data);
-          
-          // Notify parent of the full JSON data
-          if (onOpportunitiesDataChange) {
-            onOpportunitiesDataChange(data);
+        // If file had the shape { "united kingdom": [...], hardcode: [...] } etc.
+        for (const key of countryKeys) {
+          const arr = data[key];
+          if (!Array.isArray(arr)) continue;
+          for (const item of arr) {
+            // preserve the original per-country key if individual items don't include country
+            const enriched = { ...item, country: item.country || key };
+            all.push(enriched);
           }
-
-          if (data.hardcode && Array.isArray(data.hardcode)) {
-            // Only set hardcode if no country is currently selected
-            if (!selectedCountry) {
-              const validatedOpportunities = validateAndNormalize(data.hardcode);
-              setOpportunities(validatedOpportunities);
-              setError(null);
-            }
-            setLoading(false);
-          } else {
-            throw new Error('No "hardcode" entries found in JSON');
-          }
-        } else {
-          throw new Error('Failed to load opportunities.json');
         }
+
+        const validated = validateAndNormalize(all);
+
+        // group
+        const grouped = validated.reduce((acc, opp) => {
+          const c = (opp.country || 'unknown').toLowerCase();
+          if (!acc[c]) acc[c] = [];
+          acc[c].push(opp);
+          return acc;
+        }, {});
+
+        if (!mounted) return;
+
+        setOpportunities(validated);
+        setOpportunitiesData(grouped);
+        setError(null);
+        setLoading(false);
+
+        onOpportunitiesChange && onOpportunitiesChange(validated);
+        onOpportunitiesDataChange && onOpportunitiesDataChange(grouped);
+        onPaginatedOpportunitiesChange && onPaginatedOpportunitiesChange(validated.slice(0, itemsPerPage));
       } catch (err) {
-        console.error('Error loading opportunities:', err.message);
-        setError('Failed to load opportunities. Please check that opportunities.json exists.');
+        console.error('Error loading opportunities.json fallback:', err);
+        if (!mounted) return;
+        setError('Failed to load opportunities (DB and JSON fallback failed).');
         setLoading(false);
       }
     };
 
-    loadOpportunitiesData();
-    // Note: selectedCountry intentionally not included here to avoid reloading file for every country change
+    fetchFromDb();
+
+    return () => {
+      mounted = false;
+    };
+    // Only run once on mount
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Update opportunities when country selection changes or on initial opportunitiesData load.
-  // This effect only runs when selectedCountry or opportunitiesData (the source JSON) changes.
+  // Update opportunities when selectedCountry or initial data changes.
   useEffect(() => {
     if (!opportunitiesData) return;
 
@@ -125,7 +216,7 @@ const OpportunitiesPanel = ({
     if (selectedOpportunityId) return;
 
     if (selectedCountry) {
-      // Find country key (case-insensitive search)
+      // Find country key (case-insensitive)
       const countryKey = Object.keys(opportunitiesData).find(
         (key) => key.toLowerCase() === selectedCountry.toLowerCase()
       );
@@ -135,28 +226,20 @@ const OpportunitiesPanel = ({
         setOpportunities(validatedOpportunities);
         setError(null);
       } else {
-        // Country not found in JSON, fall back to hardcode entries
-        if (opportunitiesData.hardcode && Array.isArray(opportunitiesData.hardcode)) {
-          const validatedOpportunities = validateAndNormalize(opportunitiesData.hardcode);
-          setOpportunities(validatedOpportunities);
-          setError(null);
-        } else {
-          setOpportunities([]);
-          setError(null);
-        }
+        // Country not found: show all or empty list depending on your preference
+        // We'll show an empty list (consistent with previous behavior fallback)
+        setOpportunities([]);
+        setError(null);
       }
     } else {
-      // No country selected, show "hardcode" entries (only if no opportunity is selected)
-      if (opportunitiesData.hardcode && Array.isArray(opportunitiesData.hardcode)) {
-        const validatedOpportunities = validateAndNormalize(opportunitiesData.hardcode);
-        setOpportunities(validatedOpportunities);
-        setError(null);
-      } else {
-        console.warn('No hardcode entries found in opportunitiesData');
-      }
+      // No country selected -> aggregate all groups into one list (or keep previous "hardcode" logic)
+      const aggregated = Object.values(opportunitiesData).flat();
+      setOpportunities(aggregated);
+      setError(null);
     }
-    // Reset to first page whenever the source opportunities set changes
+
     setCurrentPage(1);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedCountry, opportunitiesData, selectedOpportunityId]);
 
   // Notify parent when opportunities change (this is still useful)
@@ -172,7 +255,7 @@ const OpportunitiesPanel = ({
     setCurrentPage(1);
   }, [opportunities.length, selectedCountry]);
 
-  // Helper function to match country names
+  // Helper function to match country names (kept your existing logic)
   const matchCountry = (oppCountry, selectedCountryStr) => {
     const opp = oppCountry?.toLowerCase().trim() || '';
     const selected = selectedCountryStr?.toLowerCase().trim() || '';
@@ -214,7 +297,6 @@ const OpportunitiesPanel = ({
     const filtered = opportunities.filter((opp) => matchCountry(opp.country, selectedCountry));
     console.debug(`Filtered opportunities for country "${selectedCountry}": ${filtered.length}`);
     return filtered;
-    // only re-run when opportunities array or selectedCountry value changes
   }, [opportunities, selectedCountry]);
 
   // Compute displayed opportunities (either all filtered or only the selected one),
@@ -234,8 +316,6 @@ const OpportunitiesPanel = ({
         return aIdx - bIdx;
       });
       console.log('Ranking applied. Top 5 ranked IDs:', rankedOpportunityIds.slice(0, 5));
-      console.log('Before sort first 3:', base.slice(0, 3).map(o => o.id + ': ' + o.name));
-      console.log('After sort first 3:', sorted.slice(0, 3).map(o => o.id + ': ' + o.name));
       return sorted;
     }
 
@@ -258,8 +338,6 @@ const OpportunitiesPanel = ({
       lastPaginatedJSONRef.current = currentJSON;
       onPaginatedOpportunitiesChange(paginatedOpportunities);
       console.debug('onPaginatedOpportunitiesChange fired. paginated length=', paginatedOpportunities.length);
-    } else {
-      // No change — do nothing (stops infinite loops caused by repeated identical events)
     }
   }, [paginatedOpportunities, onPaginatedOpportunitiesChange]);
 
@@ -293,7 +371,6 @@ const OpportunitiesPanel = ({
   }, [roomCode, opportunities]);
 
   // Real-time subscription for opportunity and country selection.
-  // NOTE: we purposefully do NOT include `opportunities` in the deps to avoid re-subscribing.
   useEffect(() => {
     if (!roomCode) return;
 
@@ -416,29 +493,25 @@ const OpportunitiesPanel = ({
 
   const handleSelectThis = (opportunity, e) => {
     e.stopPropagation(); // Prevent tile click
-    
+
     // Check if this is the specific Shinjuku opportunity (for flight route)
     const shinjukuLat = 35.6897;
     const shinjukuLng = 139.6997;
     const isShinjukuOpportunity = opportunity.lat && opportunity.lng &&
       Math.abs(opportunity.lat - shinjukuLat) < 0.0001 &&
       Math.abs(opportunity.lng - shinjukuLng) < 0.0001;
-    
+
     if (isShinjukuOpportunity) {
-      // For Shinjuku opportunity: keep it selected to show the flight route
       alert(`Congratulations! You've selected "${opportunity.name}". The flight route from Manchester will be displayed.`);
-      
-      // Clear country selection
+
       if (onCountrySelect) {
         onCountrySelect(null);
       }
-      
-      // Set the opportunity marker (keep it selected)
+
       if (onOpportunitySelect) {
         onOpportunitySelect(opportunity.lat, opportunity.lng, opportunity.name);
       }
-      
-      // Update database to keep the opportunity selected
+
       if (roomCode) {
         supabase
           .from('rooms')
@@ -449,30 +522,23 @@ const OpportunitiesPanel = ({
           })
           .eq('room_code', roomCode);
       }
-      
-      // Clear opportunity selection locally
+
       setSelectedOpportunityId(null);
       setShowAllOpportunities(true);
     } else {
-      // For other opportunities: show congrats and reset (original behavior)
       alert(`Congratulations! You've selected "${opportunity.name}". The globe will reset to its default position.`);
-      
-      // Clear country selection first (this ensures the reset condition is met)
+
       if (onCountrySelect) {
         onCountrySelect(null);
       }
-      
-      // First, ensure the opportunity marker is set (if not already set)
-      // This ensures that hadOpportunity will be true when we clear it, triggering the reset
+
       if (onOpportunitySelect) {
         onOpportunitySelect(opportunity.lat, opportunity.lng, opportunity.name);
       }
-      
-      // Clear opportunity selection locally
+
       setSelectedOpportunityId(null);
       setShowAllOpportunities(true);
-      
-      // Clear opportunity marker from database (including country)
+
       if (roomCode) {
         supabase
           .from('rooms')
@@ -484,9 +550,7 @@ const OpportunitiesPanel = ({
           .eq('room_code', roomCode);
       }
 
-      // Now clear the globe marker after a short delay
-      // This ensures the opportunity marker was set first, so hadOpportunity will be true
-      // The globe reset requires both opportunity and country to be cleared
+      // Clear the globe marker after a short delay so the "hadOpportunity" condition triggers the globe reset logic
       setTimeout(() => {
         if (onOpportunitySelect) {
           onOpportunitySelect(null, null, null);
