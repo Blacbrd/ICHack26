@@ -6,13 +6,13 @@ import './RoomPage.css';
 
 const UserIcon = (props) => (
   <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+    <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" />
   </svg>
 );
 
 const Crown = (props) => (
   <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="m2 4 3 12h14l3-12-6 7-4-7-4 7-6-7z"/><path d="M12 17a1 1 0 0 0 1-1V4"/>
+    <path d="m2 4 3 12h14l3-12-6 7-4-7-4 7-6-7z" /><path d="M12 17a1 1 0 0 0 1-1V4" />
   </svg>
 );
 
@@ -65,6 +65,7 @@ const RoomPage = ({ user }) => {
       lightMode: 'Light Mode',
       signOut: 'Sign Out',
       languageAria: 'Select language',
+      leaveRoom: 'Leave Room',
     },
     es: {
       waitingTitle: 'Esperando Para Comenzar',
@@ -85,6 +86,7 @@ const RoomPage = ({ user }) => {
       lightMode: 'Modo claro',
       signOut: 'Cerrar sesión',
       languageAria: 'Selecciona idioma',
+      leaveRoom: 'Salir de la sala',
     },
     fr: {
       waitingTitle: 'En Attente du Départ',
@@ -105,6 +107,7 @@ const RoomPage = ({ user }) => {
       lightMode: 'Mode clair',
       signOut: 'Se déconnecter',
       languageAria: 'Sélectionnez la langue',
+      leaveRoom: 'Quitter la salle',
     },
     de: {
       waitingTitle: 'Warten auf den Start',
@@ -125,6 +128,7 @@ const RoomPage = ({ user }) => {
       lightMode: 'Heller Modus',
       signOut: 'Abmelden',
       languageAria: 'Sprache wählen',
+      leaveRoom: 'Raum verlassen',
     },
     pt: {
       waitingTitle: 'Aguardando o Início',
@@ -145,6 +149,7 @@ const RoomPage = ({ user }) => {
       lightMode: 'Modo claro',
       signOut: 'Sair',
       languageAria: 'Selecione o idioma',
+      leaveRoom: 'Sair da sala',
     },
   };
 
@@ -175,7 +180,7 @@ const RoomPage = ({ user }) => {
       const participantsWithProfiles = await Promise.all(
         data.map(async (p) => {
           let username = null;
-          
+
           // Try to get username from profiles table
           try {
             const { data: profile, error: profileError } = await supabase
@@ -183,26 +188,26 @@ const RoomPage = ({ user }) => {
               .select('username, email')
               .eq('id', p.user_id)
               .maybeSingle();
-            
+
             console.log('Profile fetch for user:', p.user_id, 'Profile:', profile, 'Error:', profileError);
-            
+
             if (!profileError && profile) {
               // Prioritize: username -> email prefix -> full email -> null
               // This ensures we use the actual username from the profiles table first
-              username = profile.username || 
-                        profile.email?.split('@')[0] || 
-                        profile.email || 
-                        null;
+              username = profile.username ||
+                profile.email?.split('@')[0] ||
+                profile.email ||
+                null;
             } else if (profileError) {
               console.error('Profile error for user', p.user_id, ':', profileError);
             }
           } catch (err) {
             console.error('Error fetching profile for participant:', err);
           }
-          
+
           // Always set a username - use fallback if profile doesn't exist
           const displayName = username || `User ${p.user_id.substring(0, 8)}`;
-          
+
           return {
             user_id: p.user_id,
             is_master: p.is_master,
@@ -210,7 +215,7 @@ const RoomPage = ({ user }) => {
           };
         })
       );
-      
+
       console.log('Participants with profiles:', participantsWithProfiles);
       setParticipants(participantsWithProfiles);
     } else if (error) {
@@ -289,7 +294,7 @@ const RoomPage = ({ user }) => {
             user_id: user.id,
             is_master: false,
           });
-        
+
         // 409 Conflict means user is already in room, which is fine
         if (insertError && insertError.code !== '23505') {
           console.error('Error adding participant:', insertError);
@@ -322,7 +327,7 @@ const RoomPage = ({ user }) => {
           const wasPlanningStarted = planningStartedRef.current;
           setPlanningStarted(updatedRoom.planning_started);
           planningStartedRef.current = updatedRoom.planning_started;
-          
+
           // Redirect all users when planning starts (but only if it just changed from false to true)
           if (!wasPlanningStarted && updatedRoom.planning_started) {
             navigate(`/planning/${roomCode}`);
@@ -363,7 +368,7 @@ const RoomPage = ({ user }) => {
 
   const togglePublic = async () => {
     const newIsPublic = !isPublic;
-    
+
     // If making public, require description before saving
     if (newIsPublic && !roomDescription.trim()) {
       // Allow checkbox to toggle visually, but show error and don't save
@@ -375,12 +380,12 @@ const RoomPage = ({ user }) => {
       }
       return; // Don't save to database yet
     }
-    
+
     // If making private, allow immediate toggle
     if (!newIsPublic) {
       const { error } = await supabase
         .from('rooms')
-        .update({ 
+        .update({
           is_public: false,
           description: null
         })
@@ -395,13 +400,13 @@ const RoomPage = ({ user }) => {
       }
       return;
     }
-    
+
     // Making public and description exists - save to database
     const nameToSave = newIsPublic && !roomName ? `Room ${roomCode}` : roomName;
-    
+
     const { error } = await supabase
       .from('rooms')
-      .update({ 
+      .update({
         is_public: newIsPublic,
         name: nameToSave,
         description: roomDescription.trim() || null
@@ -450,7 +455,7 @@ const RoomPage = ({ user }) => {
 
     // If making public and description is now filled, update both is_public and description
     const updateData = { description: roomDescription.trim() || null };
-    
+
     // If checkbox is checked but room isn't public yet (pending description), make it public now
     if (isPublic && roomDescription.trim()) {
       const nameToSave = !roomName ? `Room ${roomCode}` : roomName;
@@ -479,17 +484,55 @@ const RoomPage = ({ user }) => {
       return;
     }
 
-    const { error } = await supabase
-      .from('rooms')
-      .delete()
-      .eq('room_code', roomCode)
-      .eq('master_id', userId);
+    try {
+      // First delete all participants (handles foreign key constraint)
+      const { error: participantsError } = await supabase
+        .from('room_participants')
+        .delete()
+        .eq('room_code', roomCode);
 
-    if (error) {
+      if (participantsError) {
+        console.error('Error deleting participants:', participantsError);
+      }
+
+      // Then delete the room
+      const { error } = await supabase
+        .from('rooms')
+        .delete()
+        .eq('room_code', roomCode)
+        .eq('master_id', userId);
+
+      if (error) {
+        alert('Failed to delete room.');
+      } else {
+        // Room deleted successfully, redirect to home
+        navigate('/');
+      }
+    } catch (err) {
+      console.error('Error in handleDeleteRoom:', err);
       alert('Failed to delete room.');
-    } else {
-      // Room deleted successfully, redirect to home
+    }
+  };
+
+  const handleLeaveRoom = async () => {
+    if (!window.confirm('Are you sure you want to leave this room?')) {
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('room_participants')
+        .delete()
+        .eq('room_code', roomCode)
+        .eq('user_id', userId);
+
+      if (error) throw error;
+
+      // Left successfully, redirect to home
       navigate('/');
+    } catch (err) {
+      console.error('Error leaving room:', err);
+      alert('Failed to leave room.');
     }
   };
 
@@ -634,6 +677,11 @@ const RoomPage = ({ user }) => {
           {!isMaster && (
             <div className="waiting-message">
               <p>{copy.waitingGuest}</p>
+              <div className="guest-actions" style={{ marginTop: '20px', display: 'flex', justifyContent: 'center' }}>
+                <button onClick={handleLeaveRoom} className="btn btn-delete">
+                  {copy.leaveRoom}
+                </button>
+              </div>
             </div>
           )}
         </div>

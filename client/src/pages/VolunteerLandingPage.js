@@ -233,10 +233,22 @@ const VolunteerLandingPage = ({ user }) => {
     if (!confirmed) return;
 
     try {
+      // First delete all participants (handles foreign key constraint)
+      const { error: participantsError } = await supabase
+        .from('room_participants')
+        .delete()
+        .eq('room_code', roomCode);
+
+      if (participantsError) {
+        console.error('Error deleting participants:', participantsError);
+      }
+
+      // Then delete the room
       const { error } = await supabase
         .from('rooms')
         .delete()
-        .eq('room_code', roomCode);
+        .eq('room_code', roomCode)
+        .eq('master_id', user.id);
 
       if (error) throw error;
 
@@ -245,6 +257,30 @@ const VolunteerLandingPage = ({ user }) => {
     } catch (error) {
       console.error('Error deleting room:', error);
       alert('Failed to delete room. Please try again.');
+    }
+  };
+
+  const handleLeaveRoom = async (roomCode) => {
+    const confirmed = window.confirm(
+      'Are you sure you want to leave this room?'
+    );
+
+    if (!confirmed) return;
+
+    try {
+      const { error } = await supabase
+        .from('room_participants')
+        .delete()
+        .eq('room_code', roomCode)
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+
+      // Refresh room list
+      fetchMyRooms();
+    } catch (error) {
+      console.error('Error leaving room:', error);
+      alert('Failed to leave room. Please try again.');
     }
   };
 
@@ -556,16 +592,25 @@ const VolunteerLandingPage = ({ user }) => {
                                 e.stopPropagation();
                                 if (room.is_master) {
                                   handleDeleteRoom(room.room_code);
+                                } else {
+                                  handleLeaveRoom(room.room_code);
                                 }
                               }}
-                              disabled={!room.is_master}
-                              title={room.is_master ? "Delete room" : "Must be admin to delete"}
+                              title={room.is_master ? "Delete room" : "Leave room"}
                             >
-                              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                <path d="M3 6h18"></path>
-                                <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
-                                <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
-                              </svg>
+                              {room.is_master ? (
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                  <path d="M3 6h18"></path>
+                                  <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
+                                  <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
+                                </svg>
+                              ) : (
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                                  <polyline points="16 17 21 12 16 7"></polyline>
+                                  <line x1="21" y1="12" x2="9" y2="12"></line>
+                                </svg>
+                              )}
                             </button>
                           </div>
                         )}
