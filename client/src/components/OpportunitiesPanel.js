@@ -5,6 +5,7 @@ import './OpportunitiesPanel.css';
 const OpportunitiesPanel = ({
   roomCode,
   onOpportunitySelect,
+  onVoiceOpportunitySelect,
   selectedCountry,
   onOpportunitiesChange,
   onCountrySelect,
@@ -12,6 +13,10 @@ const OpportunitiesPanel = ({
   onOpportunitiesDataChange,
   rankedOpportunityIds,
   rankingLoading,
+  voiceSelectedIndex,
+  onVoiceSelectionHandled,
+  voiceGoBack,
+  onVoiceGoBackHandled,
 }) => {
   const [opportunities, setOpportunities] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -340,6 +345,61 @@ const OpportunitiesPanel = ({
       console.debug('onPaginatedOpportunitiesChange fired. paginated length=', paginatedOpportunities.length);
     }
   }, [paginatedOpportunities, onPaginatedOpportunitiesChange]);
+
+  // Handle voice "go back" command
+  useEffect(() => {
+    if (!voiceGoBack) return;
+
+    console.log('Voice go back: returning to country view');
+    setSelectedOpportunityId(null);
+    setShowAllOpportunities(true);
+
+    if (onVoiceGoBackHandled) {
+      onVoiceGoBackHandled();
+    }
+  }, [voiceGoBack]);
+
+  // Handle voice selection by index
+  useEffect(() => {
+    if (voiceSelectedIndex === null || voiceSelectedIndex === undefined) return;
+
+    // Get the opportunity at the specified index from paginated list
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const visibleOpps = displayedOpportunities.slice(startIndex, startIndex + itemsPerPage);
+    const opp = visibleOpps[voiceSelectedIndex];
+
+    if (opp) {
+      console.log('Voice selecting opportunity:', opp.name, 'at index', voiceSelectedIndex);
+
+      // Set local state to show only this opportunity
+      setSelectedOpportunityId(opp.id);
+      setShowAllOpportunities(false);
+
+      // Do NOT clear country selection for voice - we want to keep it for "go back"
+
+      // Use dedicated voice callback that doesn't clear country
+      if (onVoiceOpportunitySelect) {
+        onVoiceOpportunitySelect(opp.lat, opp.lng, opp.name);
+      }
+
+      // Update database - keep the country selected
+      if (roomCode) {
+        supabase
+          .from('rooms')
+          .update({
+            selected_opportunity_lat: opp.lat,
+            selected_opportunity_lng: opp.lng,
+            // Keep selected_country as is
+          })
+          .eq('room_code', roomCode);
+      }
+    }
+
+    // Notify parent that we've handled the voice selection
+    if (onVoiceSelectionHandled) {
+      onVoiceSelectionHandled();
+    }
+  }, [voiceSelectedIndex]);
 
   // Load initial selected opportunity from database
   useEffect(() => {

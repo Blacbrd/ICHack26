@@ -14,14 +14,465 @@ import './Chat.css';
  *  - onRankUpdate (function) - callback with ranked opportunity IDs
  */
 
-const Chat = ({ roomCode, userId, masterId, allOpportunities = [], onRankUpdate, onRankingLoadingChange }) => {
+const COUNTRY_ALIASES = {
+  'usa': 'United States of America',
+  'us': 'United States of America',
+  'united states': 'United States of America',
+  'america': 'United States of America',
+  'uk': 'United Kingdom',
+  'britain': 'United Kingdom',
+  'great britain': 'United Kingdom',
+  'england': 'United Kingdom',
+  'uae': 'United Arab Emirates',
+  'emirates': 'United Arab Emirates',
+  'south korea': 'South Korea',
+  'north korea': 'North Korea',
+  'new zealand': 'New Zealand',
+  'saudi': 'Saudi Arabia',
+  'czech': 'Czech Republic',
+  'czechia': 'Czech Republic',
+  'ivory coast': 'Ivory Coast',
+  'cote d\'ivoire': 'Ivory Coast',
+  'dr congo': 'Democratic Republic of the Congo',
+  'drc': 'Democratic Republic of the Congo',
+  'car': 'Central African Republic',
+  'papua new guinea': 'Papua New Guinea',
+  'png': 'Papua New Guinea',
+  'bosnia': 'Bosnia and Herzegovina',
+  'sri lanka': 'Sri Lanka',
+  'el salvador': 'El Salvador',
+  'costa rica': 'Costa Rica',
+  'dominican republic': 'Dominican Republic',
+  'south africa': 'South Africa',
+  'burkina': 'Burkina Faso',
+};
+
+const MAJOR_COUNTRIES = [
+  'Afghanistan','Albania','Algeria','Argentina','Australia','Austria','Bangladesh',
+  'Belarus','Belgium','Brazil','Bulgaria','Canada','Chile','China','Colombia',
+  'Croatia','Czech Republic','Denmark','Egypt','Finland','France','Germany',
+  'Greece','Hungary','India','Indonesia','Iran','Iraq','Ireland','Israel','Italy',
+  'Japan','Kazakhstan','Kenya','Malaysia','Mexico','Morocco','Myanmar','Netherlands',
+  'New Zealand','Nigeria','North Korea','Norway','Pakistan','Peru','Philippines',
+  'Poland','Portugal','Romania','Russia','Saudi Arabia','South Africa','South Korea',
+  'Spain','Sweden','Switzerland','Taiwan','Thailand','Turkey','Ukraine',
+  'United Arab Emirates','United Kingdom','United States of America','Uzbekistan',
+  'Venezuela','Vietnam','Yemen','Zimbabwe','Angola','Azerbaijan','Belize','Benin',
+  'Bolivia','Bosnia and Herzegovina','Botswana','Brunei','Burkina Faso','Burundi',
+  'Cambodia','Cameroon','Central African Republic','Chad','Congo','Costa Rica',
+  'Cuba','Cyprus','Democratic Republic of the Congo','Dominican Republic','Ecuador',
+  'El Salvador','Eritrea','Estonia','Ethiopia','Georgia','Ghana','Guatemala',
+  'Guinea','Haiti','Honduras','Iceland','Ivory Coast','Jamaica','Jordan','Kuwait',
+  'Kyrgyzstan','Laos','Latvia','Lebanon','Liberia','Libya','Lithuania','Madagascar',
+  'Malawi','Mali','Mauritania','Moldova','Mongolia','Mozambique','Nepal','Nicaragua',
+  'Niger','Oman','Panama','Papua New Guinea','Paraguay','Qatar','Rwanda','Senegal',
+  'Serbia','Sierra Leone','Singapore','Slovakia','Slovenia','Somalia','Sri Lanka',
+  'Sudan','Syria','Tajikistan','Tanzania','Tunisia','Turkmenistan','Uganda','Uruguay',
+  'Zambia',
+];
+
+function extractCountry(text) {
+  const lower = text.toLowerCase().trim();
+  // Check aliases first
+  for (const [alias, country] of Object.entries(COUNTRY_ALIASES)) {
+    if (lower.includes(alias)) return country;
+  }
+  // Check full country names (longest first to match multi-word names first)
+  const sorted = [...MAJOR_COUNTRIES].sort((a, b) => b.length - a.length);
+  for (const country of sorted) {
+    if (lower.includes(country.toLowerCase())) return country;
+  }
+  return null;
+}
+
+const ORDINAL_MAP = {
+  'first': 0,
+  'one': 0,
+  '1st': 0,
+  'first one': 0,
+  'number one': 0,
+  'second': 1,
+  'two': 1,
+  '2nd': 1,
+  'second one': 1,
+  'number two': 1,
+  'third': 2,
+  'three': 2,
+  '3rd': 2,
+  'third one': 2,
+  'number three': 2,
+  'fourth': 3,
+  'four': 3,
+  '4th': 3,
+  'fourth one': 3,
+  'number four': 3,
+  'fifth': 4,
+  'five': 4,
+  '5th': 4,
+  'fifth one': 4,
+  'number five': 4,
+};
+
+function extractOrdinal(text) {
+  const lower = text.toLowerCase().trim();
+  // Check longer phrases first to avoid partial matches
+  const sorted = Object.entries(ORDINAL_MAP).sort((a, b) => b[0].length - a[0].length);
+  for (const [phrase, index] of sorted) {
+    if (lower.includes(phrase)) return index;
+  }
+  return null;
+}
+
+function checkGoBack(text) {
+  const lower = text.toLowerCase().trim();
+  const goBackPhrases = ['go back', 'goback', 'back', 'return', 'go to country', 'country view', 'unselect'];
+  return goBackPhrases.some(phrase => lower.includes(phrase));
+}
+
+function checkRandom(text) {
+  const lower = text.toLowerCase().trim();
+  return lower.includes('random');
+}
+
+// Extract message after "send" command
+function extractSendMessage(text) {
+  const lower = text.toLowerCase();
+  const sendIndex = lower.indexOf('send');
+  if (sendIndex === -1) return null;
+
+  // Get everything after "send"
+  const afterSend = text.slice(sendIndex + 4).trim();
+  // Remove leading punctuation and whitespace
+  const cleaned = afterSend.replace(/^[^a-zA-Z0-9]+/, '').trim();
+  // Remove trailing period if it's the only punctuation at the end
+  const withoutTrailingPeriod = cleaned.replace(/\.\s*$/, '').trim();
+  return withoutTrailingPeriod.length > 0 ? withoutTrailingPeriod : null;
+}
+
+// Hardcoded country codes for Skyscanner
+const SKYSCANNER_COUNTRY_CODES = {
+  'edinburgh': 'edi',
+  'kenya': 'ke',
+  'united kingdom': 'uk',
+  'uk': 'uk',
+  'london': 'lon',
+  'manchester': 'man',
+  'new york': 'nyc',
+  'usa': 'us',
+  'united states': 'us',
+  'united states of america': 'us',
+  'japan': 'jp',
+  'tokyo': 'tyo',
+  'france': 'fr',
+  'paris': 'par',
+  'germany': 'de',
+  'spain': 'es',
+  'italy': 'it',
+  'australia': 'au',
+  'canada': 'ca',
+  'china': 'cn',
+  'india': 'in',
+  'brazil': 'br',
+  'mexico': 'mx',
+  'nairobi': 'nbo',
+};
+
+const MONTH_MAP = {
+  'january': '01', 'jan': '01',
+  'february': '02', 'feb': '02',
+  'march': '03', 'mar': '03',
+  'april': '04', 'apr': '04',
+  'may': '05',
+  'june': '06', 'jun': '06',
+  'july': '07', 'jul': '07',
+  'august': '08', 'aug': '08',
+  'september': '09', 'sep': '09', 'sept': '09',
+  'october': '10', 'oct': '10',
+  'november': '11', 'nov': '11',
+  'december': '12', 'dec': '12',
+};
+
+function getCountryCode(country) {
+  const lower = country.toLowerCase().trim();
+  if (SKYSCANNER_COUNTRY_CODES[lower]) {
+    return SKYSCANNER_COUNTRY_CODES[lower];
+  }
+  // Use first 3 letters as fallback
+  return lower.replace(/[^a-z]/g, '').slice(0, 3);
+}
+
+const ORDINAL_WORDS = {
+  'first': 1, 'second': 2, 'third': 3, 'fourth': 4, 'fifth': 5,
+  'sixth': 6, 'seventh': 7, 'eighth': 8, 'ninth': 9, 'tenth': 10,
+  'eleventh': 11, 'twelfth': 12, 'thirteenth': 13, 'fourteenth': 14, 'fifteenth': 15,
+  'sixteenth': 16, 'seventeenth': 17, 'eighteenth': 18, 'nineteenth': 19, 'twentieth': 20,
+  'twenty-first': 21, 'twenty first': 21, 'twentyfirst': 21,
+  'twenty-second': 22, 'twenty second': 22, 'twentysecond': 22,
+  'twenty-third': 23, 'twenty third': 23, 'twentythird': 23,
+  'twenty-fourth': 24, 'twenty fourth': 24, 'twentyfourth': 24,
+  'twenty-fifth': 25, 'twenty fifth': 25, 'twentyfifth': 25,
+  'twenty-sixth': 26, 'twenty sixth': 26, 'twentysixth': 26,
+  'twenty-seventh': 27, 'twenty seventh': 27, 'twentyseventh': 27,
+  'twenty-eighth': 28, 'twenty eighth': 28, 'twentyeighth': 28,
+  'twenty-ninth': 29, 'twenty ninth': 29, 'twentyninth': 29,
+  'thirtieth': 30, 'thirty-first': 31, 'thirty first': 31, 'thirtyfirst': 31,
+};
+
+function parseDate(dateStr) {
+  const lower = dateStr.toLowerCase();
+  let day = null;
+
+  // First try to extract day number (handles 1st, 2nd, 3rd, 21st, 22nd, 23rd, etc.)
+  const dayMatch = dateStr.match(/(\d{1,2})(?:st|nd|rd|th)?/i);
+  if (dayMatch) {
+    day = dayMatch[1];
+  } else {
+    // Try ordinal words (first, second, fifth, etc.)
+    for (const [word, num] of Object.entries(ORDINAL_WORDS)) {
+      if (lower.includes(word)) {
+        day = num.toString();
+        break;
+      }
+    }
+  }
+
+  if (!day) return null;
+  day = day.padStart(2, '0');
+
+  // Extract month
+  let month = null;
+  for (const [name, num] of Object.entries(MONTH_MAP)) {
+    if (lower.includes(name)) {
+      month = num;
+      break;
+    }
+  }
+  if (!month) return null;
+
+  // Use 2026 as default year (current year from context)
+  return `26${month}${day}`;
+}
+
+function extractFlightBooking(text, selectedCountry) {
+  const lower = text.toLowerCase();
+
+  // Check for "book a flight" or "book flight"
+  if (!lower.includes('book') || !lower.includes('flight')) return null;
+
+  let origin = null;
+  let destination = null;
+  let departDate = null;
+  let returnDate = null;
+
+  // Try to find dates first - pattern: "from DATE to DATE" at the end
+  // Includes full month names and short forms (jan, feb, mar, apr, may, jun, jul, aug, sep, sept, oct, nov, dec)
+  // Also handles ordinal words (first, fifth, twenty-first, etc.) and numeric ordinals (1st, 5th, 21st)
+  // Handles optional "the" before dates
+  const monthNames = 'january|february|march|april|may|june|july|august|september|october|november|december|jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec';
+  const ordinalWords = 'first|second|third|fourth|fifth|sixth|seventh|eighth|ninth|tenth|eleventh|twelfth|thirteenth|fourteenth|fifteenth|sixteenth|seventeenth|eighteenth|nineteenth|twentieth|twenty[- ]?first|twenty[- ]?second|twenty[- ]?third|twenty[- ]?fourth|twenty[- ]?fifth|twenty[- ]?sixth|twenty[- ]?seventh|twenty[- ]?eighth|twenty[- ]?ninth|thirtieth|thirty[- ]?first';
+  const dayPattern = `(?:\\d{1,2}(?:st|nd|rd|th)?|${ordinalWords})`;
+  const datePattern = new RegExp(`from\\s+(?:the\\s+)?(${dayPattern}\\s+(?:of\\s+)?(?:${monthNames}))\\s+to\\s+(?:the\\s+)?(${dayPattern}\\s+(?:of\\s+)?(?:${monthNames}))`, 'i');
+  const dateMatch = text.match(datePattern);
+
+  if (dateMatch) {
+    departDate = dateMatch[1].trim();
+    returnDate = dateMatch[2].trim();
+
+    // Remove the date part to parse countries
+    const beforeDates = text.slice(0, dateMatch.index).trim();
+
+    // Case 1: "book a flight from X to Y" (full origin and destination)
+    const fullPattern = /from\s+(.+?)\s+to\s+(.+?)$/i;
+    const fullMatch = beforeDates.match(fullPattern);
+
+    if (fullMatch) {
+      origin = fullMatch[1].trim();
+      destination = fullMatch[2].trim();
+    } else {
+      // Case 2: "book a flight to Y" (no origin, use Edinburgh)
+      const toOnlyPattern = /to\s+(.+?)$/i;
+      const toMatch = beforeDates.match(toOnlyPattern);
+
+      if (toMatch) {
+        origin = 'edinburgh'; // Default origin
+        destination = toMatch[1].trim();
+      } else {
+        // Case 3: "book a flight" with just dates (no origin or destination)
+        // Use Edinburgh as origin, selected country as destination
+        origin = 'edinburgh';
+        destination = selectedCountry || null;
+      }
+    }
+  } else {
+    // Try older patterns as fallback
+    // Pattern: "from X to Y from DATE to DATE"
+    const fromToPattern = /from\s+(.+?)\s+to\s+(.+?)\s+from\s+(.+?)\s+to\s+(.+?)(?:\.|$)/i;
+    const match = text.match(fromToPattern);
+
+    if (match) {
+      // Check if first "from X" looks like a country or a date
+      const firstFrom = match[1].trim().toLowerCase();
+      const looksLikeDate = /\d/.test(firstFrom) || Object.keys(MONTH_MAP).some(m => firstFrom.includes(m));
+
+      if (looksLikeDate) {
+        // "from DATE to DEST from DATE to DATE" - no origin specified
+        origin = 'edinburgh';
+        destination = match[2].trim();
+        departDate = match[1].trim();
+        returnDate = match[3].trim();
+      } else {
+        origin = match[1].trim();
+        destination = match[2].trim();
+        departDate = match[3].trim();
+        returnDate = match[4].trim();
+      }
+    } else {
+      // Try: "to Y from DATE to DATE"
+      const toFromPattern = /to\s+(.+?)\s+from\s+(.+?)\s+to\s+(.+?)(?:\.|$)/i;
+      const toFromMatch = text.match(toFromPattern);
+
+      if (toFromMatch) {
+        origin = 'edinburgh';
+        destination = toFromMatch[1].trim();
+        departDate = toFromMatch[2].trim();
+        returnDate = toFromMatch[3].trim();
+      }
+    }
+  }
+
+  // If no destination but we have a selected country, use that
+  if (!destination && selectedCountry) {
+    destination = selectedCountry;
+  }
+
+  // If no origin, default to Edinburgh
+  if (!origin) {
+    origin = 'edinburgh';
+  }
+
+  if (!destination || !departDate || !returnDate) {
+    console.log('Could not fully parse flight booking:', { origin, destination, departDate, returnDate });
+    return null;
+  }
+
+  return { origin, destination, departDate, returnDate };
+}
+
+function buildSkyscannerUrl(booking) {
+  const originCode = getCountryCode(booking.origin);
+  const destCode = getCountryCode(booking.destination);
+  const departDate = parseDate(booking.departDate);
+  const returnDate = parseDate(booking.returnDate);
+
+  if (!departDate || !returnDate) {
+    console.log('Could not parse dates:', booking.departDate, booking.returnDate);
+    return null;
+  }
+
+  return `https://www.skyscanner.net/transport/flights/${originCode}/${destCode}/${departDate}/${returnDate}/?adultsv2=1&cabinclass=economy&childrenv2=&ref=home&rtn=1&preferdirects=false&outboundaltsenabled=false&inboundaltsenabled=false`;
+}
+
+// Normalize text: remove punctuation, lowercase, split into words
+function normalizeText(s) {
+  return s.toLowerCase().replace(/[^a-z0-9\s]/g, ' ').split(/\s+/).filter(w => w.length > 0);
+}
+
+// Check if "select" command is present and extract the query after it
+function extractSelectQuery(text) {
+  const lower = text.toLowerCase();
+  const selectIndex = lower.indexOf('select');
+  if (selectIndex === -1) return null;
+
+  // Get everything after "select"
+  const afterSelect = text.slice(selectIndex + 6).trim();
+  // Remove leading punctuation and whitespace
+  const cleaned = afterSelect.replace(/^[^a-zA-Z0-9]+/, '').trim();
+  return cleaned.length > 0 ? cleaned : null;
+}
+
+// Calculate similarity between query and opportunity name
+function calculateSimilarity(query, oppName) {
+  const queryWords = normalizeText(query);
+  const nameWords = normalizeText(oppName);
+
+  if (queryWords.length === 0 || nameWords.length === 0) return 0;
+
+  let matchScore = 0;
+
+  // Check each query word against name words
+  for (const qWord of queryWords) {
+    if (qWord.length < 2) continue; // Skip very short words
+
+    let bestWordMatch = 0;
+    for (const nWord of nameWords) {
+      // Exact match
+      if (qWord === nWord) {
+        bestWordMatch = Math.max(bestWordMatch, 1.0);
+      }
+      // Query word is contained in name word (e.g., "english" in "english")
+      else if (nWord.includes(qWord)) {
+        bestWordMatch = Math.max(bestWordMatch, 0.9);
+      }
+      // Name word is contained in query word
+      else if (qWord.includes(nWord)) {
+        bestWordMatch = Math.max(bestWordMatch, 0.8);
+      }
+      // Check if words start the same (prefix match)
+      else if (qWord.length >= 3 && nWord.startsWith(qWord.slice(0, 3))) {
+        bestWordMatch = Math.max(bestWordMatch, 0.5);
+      }
+    }
+    matchScore += bestWordMatch;
+  }
+
+  // Also check if query appears as substring in full normalized name
+  const normalizedName = oppName.toLowerCase().replace(/[^a-z0-9\s]/g, ' ');
+  const normalizedQuery = query.toLowerCase().replace(/[^a-z0-9\s]/g, ' ').trim();
+  if (normalizedName.includes(normalizedQuery)) {
+    matchScore += queryWords.length * 0.5; // Bonus for substring match
+  }
+
+  // Normalize by query word count
+  return matchScore / queryWords.length;
+}
+
+function findBestMatchingOpportunity(query, opportunities) {
+  if (!opportunities || opportunities.length === 0 || !query) return null;
+
+  let bestMatch = null;
+  let bestScore = 0;
+  const threshold = 0.4; // Minimum similarity threshold
+
+  console.log('Finding match for query:', query);
+
+  for (let i = 0; i < opportunities.length; i++) {
+    const opp = opportunities[i];
+    const score = calculateSimilarity(query, opp.name);
+    console.log(`  "${opp.name}" score: ${score.toFixed(2)}`);
+
+    if (score > bestScore && score >= threshold) {
+      bestScore = score;
+      bestMatch = { index: i, opportunity: opp, score };
+    }
+  }
+
+  console.log('Best match:', bestMatch);
+  return bestMatch;
+}
+
+const Chat = ({ roomCode, userId, masterId, allOpportunities = [], onRankUpdate, onRankingLoadingChange, onVoiceCountrySelect, onVoiceOpportunitySelect, selectedCountry, paginatedOpportunities = [], onVoiceGoBack, countriesWithOpportunities = [] }) => {
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(true);
+  const [isRecording, setIsRecording] = useState(false);
   const [usernames, setUsernames] = useState({}); // Cache for usernames
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
   const rankTimeoutRef = useRef(null);
+  const mediaRecorderRef = useRef(null);
+  const audioChunksRef = useRef([]);
+  const isRecordingRef = useRef(false);
+  const handleMicClickRef = useRef(null);
   const allOpportunitiesRef = useRef(allOpportunities);
   const onRankUpdateRef = useRef(onRankUpdate);
   const onRankingLoadingChangeRef = useRef(onRankingLoadingChange);
@@ -30,6 +481,46 @@ const Chat = ({ roomCode, userId, masterId, allOpportunities = [], onRankUpdate,
   useEffect(() => {
     allOpportunitiesRef.current = allOpportunities;
   }, [allOpportunities]);
+
+  // Keep isRecordingRef in sync
+  useEffect(() => {
+    isRecordingRef.current = isRecording;
+  }, [isRecording]);
+
+  // Space bar hold-to-record (only when not typing in chat input)
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      // Ignore if typing in an input/textarea
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+      // Ignore if not space bar
+      if (e.code !== 'Space') return;
+      // Prevent page scroll
+      e.preventDefault();
+      // Start recording if not already
+      if (!isRecordingRef.current && handleMicClickRef.current) {
+        handleMicClickRef.current();
+      }
+    };
+
+    const handleKeyUp = (e) => {
+      // Ignore if typing in an input/textarea
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+      // Ignore if not space bar
+      if (e.code !== 'Space') return;
+      // Stop recording if currently recording
+      if (isRecordingRef.current && handleMicClickRef.current) {
+        handleMicClickRef.current();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keyup', handleKeyUp);
+    };
+  }, []);
 
   useEffect(() => {
     onRankUpdateRef.current = onRankUpdate;
@@ -346,6 +837,171 @@ const Chat = ({ roomCode, userId, masterId, allOpportunities = [], onRankUpdate,
     }
   };
 
+  const handleMicClick = async () => {
+    if (isRecording) {
+      // Stop recording
+      if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+        mediaRecorderRef.current.stop();
+      }
+      setIsRecording(false);
+      return;
+    }
+
+    // Start recording
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = mediaRecorder;
+      audioChunksRef.current = [];
+
+      mediaRecorder.ondataavailable = (e) => {
+        if (e.data.size > 0) {
+          audioChunksRef.current.push(e.data);
+        }
+      };
+
+      mediaRecorder.onstop = async () => {
+        // Stop all tracks so the browser mic indicator goes away
+        stream.getTracks().forEach((t) => t.stop());
+
+        const blob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        audioChunksRef.current = [];
+
+        // Send to ElevenLabs STT
+        try {
+          const formData = new FormData();
+          formData.append('file', blob, 'recording.webm');
+          formData.append('model_id', 'scribe_v1');
+          formData.append('language_code', 'en');
+
+          const res = await fetch('https://api.elevenlabs.io/v1/speech-to-text', {
+            method: 'POST',
+            headers: {
+              'xi-api-key': process.env.REACT_APP_ELEVENLABS_API_KEY,
+            },
+            body: formData,
+          });
+
+          if (!res.ok) {
+            console.error('ElevenLabs STT error:', res.status);
+            return;
+          }
+
+          const data = await res.json();
+          const transcript = data.text || '';
+          console.log('Voice transcript:', transcript);
+
+          // Check for "book a flight" command first
+          const flightBooking = extractFlightBooking(transcript, selectedCountry);
+          if (flightBooking) {
+            console.log('Voice command: book flight:', flightBooking);
+            const url = buildSkyscannerUrl(flightBooking);
+            if (url) {
+              console.log('Opening Skyscanner URL:', url);
+              window.open(url, '_blank');
+            } else {
+              console.log('Could not build Skyscanner URL from booking:', flightBooking);
+            }
+            return;
+          }
+
+          // Check for "random" command (select random country with opportunities)
+          if (checkRandom(transcript)) {
+            console.log('Voice command: random country');
+            if (countriesWithOpportunities.length > 0 && onVoiceCountrySelect) {
+              const randomIndex = Math.floor(Math.random() * countriesWithOpportunities.length);
+              let randomCountry = countriesWithOpportunities[randomIndex];
+              // Convert to title case to match globe's MAJOR_COUNTRIES format
+              randomCountry = randomCountry
+                .split(' ')
+                .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+                .join(' ');
+              console.log('Selected random country:', randomCountry);
+              onVoiceCountrySelect(randomCountry);
+            } else {
+              console.log('No countries with opportunities available');
+            }
+            return;
+          }
+
+          // Check for "send" command (send chat message)
+          const sendMessage = extractSendMessage(transcript);
+          if (sendMessage) {
+            console.log('Voice command: send message:', sendMessage);
+            // Send the message via the chat
+            try {
+              const { error } = await supabase
+                .from('messages')
+                .insert({
+                  room_code: roomCode,
+                  user_id: userId,
+                  message: sendMessage,
+                });
+              if (error) {
+                console.error('Error sending voice message:', error);
+              } else {
+                console.log('Voice message sent successfully');
+              }
+            } catch (err) {
+              console.error('Error sending voice message:', err);
+            }
+            return;
+          }
+
+          // Check for "go back" command
+          if (checkGoBack(transcript)) {
+            console.log('Voice command: go back');
+            if (onVoiceGoBack) {
+              onVoiceGoBack();
+            }
+            return;
+          }
+
+          // If a country is already selected, check for ordinal or "select <name>" command
+          if (selectedCountry && paginatedOpportunities.length > 0) {
+            // Try ordinal first
+            const ordinalIndex = extractOrdinal(transcript);
+            if (ordinalIndex !== null && onVoiceOpportunitySelect) {
+              console.log('Voice selected opportunity index:', ordinalIndex);
+              onVoiceOpportunitySelect(ordinalIndex);
+              return;
+            }
+
+            // Try "select <name>" command with fuzzy matching
+            const selectQuery = extractSelectQuery(transcript);
+            if (selectQuery) {
+              const match = findBestMatchingOpportunity(selectQuery, paginatedOpportunities);
+              if (match && onVoiceOpportunitySelect) {
+                console.log('Voice matched opportunity by title:', match.opportunity.name, 'score:', match.score);
+                onVoiceOpportunitySelect(match.index);
+                return;
+              }
+            }
+          }
+
+          // Otherwise, try to extract a country name
+          const country = extractCountry(transcript);
+          if (country && onVoiceCountrySelect) {
+            console.log('Voice selected country:', country);
+            onVoiceCountrySelect(country);
+          } else {
+            console.log('No command found in transcript:', transcript);
+          }
+        } catch (err) {
+          console.error('Error calling ElevenLabs STT:', err);
+        }
+      };
+
+      mediaRecorder.start();
+      setIsRecording(true);
+    } catch (err) {
+      console.error('Microphone permission denied or unavailable:', err);
+    }
+  };
+
+  // Keep ref updated for keyboard handler
+  handleMicClickRef.current = handleMicClick;
+
   const getUsername = (uid) => {
     return usernames[uid] || `User ${uid?.substring ? uid.substring(0, 8) : uid}`;
   };
@@ -359,6 +1015,18 @@ const Chat = ({ roomCode, userId, masterId, allOpportunities = [], onRankUpdate,
       <div className="chat-container">
         <div className="chat-header">
           <h3>Chat</h3>
+          <button
+            className={`mic-button${isRecording ? ' recording' : ''}`}
+            onClick={handleMicClick}
+            title={isRecording ? 'Stop recording' : 'Say a country name'}
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 1a4 4 0 0 0-4 4v7a4 4 0 0 0 8 0V5a4 4 0 0 0-4-4z"/>
+              <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+              <line x1="12" y1="19" x2="12" y2="23"/>
+              <line x1="8" y1="23" x2="16" y2="23"/>
+            </svg>
+          </button>
         </div>
         <div className="chat-loading">
           <p>Loading messages...</p>
@@ -371,6 +1039,18 @@ const Chat = ({ roomCode, userId, masterId, allOpportunities = [], onRankUpdate,
     <div className="chat-container">
       <div className="chat-header">
         <h3>Chat</h3>
+        <button
+          className={`mic-button${isRecording ? ' recording' : ''}`}
+          onClick={handleMicClick}
+          title={isRecording ? 'Stop recording' : 'Say a country name'}
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12 1a4 4 0 0 0-4 4v7a4 4 0 0 0 8 0V5a4 4 0 0 0-4-4z"/>
+            <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+            <line x1="12" y1="19" x2="12" y2="23"/>
+            <line x1="8" y1="23" x2="16" y2="23"/>
+          </svg>
+        </button>
       </div>
 
       <div className="chat-messages">
