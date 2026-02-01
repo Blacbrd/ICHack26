@@ -448,7 +448,7 @@ const createGoogleFlightsUrl = (startLat, startLng, endLat, endLng) => {
   return `https://www.google.com/travel/flights?q=Flights%20from%20Manchester%20to%20Tokyo`;
 };
 
-const GlobeComponent = ({ roomCode, isMaster, user, opportunityMarker, opportunities = [], onCountrySelect, customGlobeImage }) => {
+const GlobeComponent = ({ roomCode, isMaster, user, opportunityMarker, opportunities = [], onCountrySelect, customGlobeImage, selectedCountry: selectedCountryProp }) => {
   const globeRef = useRef();
   const globeInstanceRef = useRef(null);
   const selectedCountryRef = useRef(null);
@@ -484,6 +484,14 @@ const GlobeComponent = ({ roomCode, isMaster, user, opportunityMarker, opportuni
     console.log('GlobeComponent: opportunityMarker prop changed:', opportunityMarker);
     setOpportunityMarkerState(opportunityMarker);
   }, [opportunityMarker]);
+
+  // Sync selectedCountry prop to internal state (for voice selection)
+  useEffect(() => {
+    if (selectedCountryProp !== undefined && selectedCountryProp !== selectedCountry) {
+      console.log('GlobeComponent: syncing selectedCountry from prop:', selectedCountryProp);
+      setSelectedCountry(selectedCountryProp);
+    }
+  }, [selectedCountryProp]);
 
   // Load initial selected country from database
   useEffect(() => {

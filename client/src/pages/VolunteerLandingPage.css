@@ -204,37 +204,18 @@
   object-fit: cover;
 }
 
-.profile-info-compact {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  overflow: hidden;
-  gap: 2px;
-  /* Slight gap between name and email */
-}
-
 .profile-name {
+  flex: 1;
   font-weight: 700;
   font-size: 1.05rem;
   color: #ffffff;
-  /* Force white text */
   margin: 0;
   line-height: 1.2;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-}
-
-.profile-email {
-  font-size: 0.8rem;
-  color: rgba(255, 255, 255, 0.85);
-  /* Slightly muted white */
-  margin: 0;
-  line-height: 1.2;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  display: flex;
+  align-items: center;
 }
 
 .my-rooms-section {
@@ -304,13 +285,15 @@
   border: 1px solid var(--panel-border);
   border-radius: 12px;
   padding: 12px;
-  cursor: pointer;
   transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
 }
 
 .mini-room-item:hover {
   background: rgba(28, 103, 230, 0.1);
-  transform: translateX(4px);
 }
 
 .mini-room-name {
@@ -325,6 +308,157 @@
   font-size: 0.75rem;
   color: var(--muted-color);
   font-family: monospace;
+}
+
+/* Room item structure */
+.mini-room-content {
+  flex: 1;
+  cursor: pointer;
+  min-width: 0;
+}
+
+.mini-room-info {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+
+/* Role badge (Admin/Member) */
+.mini-room-role {
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.mini-room-role.admin {
+  background: rgba(28, 103, 230, 0.15);
+  color: #1c67e6;
+  border: 1px solid rgba(28, 103, 230, 0.3);
+}
+
+.mini-room-role.member {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--muted-color);
+  border: 1px solid var(--panel-border);
+}
+
+/* Rename input */
+.room-rename-input {
+  background: var(--panel-bg);
+  border: 1px solid var(--panel-border);
+  border-radius: 6px;
+  padding: 4px 8px;
+  color: var(--text-color);
+  font-size: 0.9rem;
+  font-weight: 600;
+  outline: none;
+  width: 120px;
+  transition: all 0.2s;
+}
+
+.room-rename-input:focus {
+  border-color: #1c67e6;
+  box-shadow: 0 0 0 2px rgba(28, 103, 230, 0.1);
+}
+
+/* Room action buttons */
+.mini-room-actions {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.btn-rename,
+.btn-room-delete,
+.btn-rename-confirm,
+.btn-rename-cancel {
+  background: transparent;
+  border: 1px solid var(--panel-border);
+  border-radius: 6px;
+  padding: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  color: var(--text-color);
+  position: relative;
+}
+
+.btn-rename:hover,
+.btn-room-delete:hover {
+  background: rgba(28, 103, 230, 0.1);
+  border-color: #1c67e6;
+  color: #1c67e6;
+}
+
+/* Disabled state for non-admin rooms */
+.btn-rename:disabled,
+.btn-room-delete:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.btn-rename:disabled:hover,
+.btn-room-delete:disabled:hover {
+  background: transparent;
+  border-color: var(--panel-border);
+  color: var(--text-color);
+}
+
+/* Tooltip for disabled buttons */
+.btn-rename:disabled::after,
+.btn-room-delete:disabled::after {
+  content: attr(title);
+  position: absolute;
+  bottom: 100%;
+  right: 0;
+  transform: translateY(-4px);
+  background: rgba(0, 0, 0, 0.9);
+  color: white;
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-size: 11px;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s, transform 0.2s;
+  z-index: 1000;
+  max-width: 150px;
+}
+
+.btn-rename:disabled:hover::after,
+.btn-room-delete:disabled:hover::after {
+  opacity: 1;
+  transform: translateY(-8px);
+}
+
+.btn-rename-confirm {
+  color: #10b981;
+  font-size: 16px;
+  font-weight: bold;
+  padding: 4px 10px;
+}
+
+.btn-rename-confirm:hover {
+  background: rgba(16, 185, 129, 0.1);
+  border-color: #10b981;
+}
+
+.btn-rename-cancel {
+  color: #ef4444;
+  font-size: 16px;
+  font-weight: bold;
+  padding: 4px 10px;
+}
+
+.btn-rename-cancel:hover {
+  background: rgba(239, 68, 68, 0.1);
+  border-color: #ef4444;
 }
 
 .empty-rooms-state {

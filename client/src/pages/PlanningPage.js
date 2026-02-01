@@ -14,27 +14,37 @@ const PlanningPage = ({ user }) => {
   const navigate = useNavigate();
   const roomCode = (code || '').toString().toUpperCase();
 
+  // Loading / room state
   const [loading, setLoading] = useState(true);
   const [roomExists, setRoomExists] = useState(false);
   const [error, setError] = useState('');
   const [isMaster, setIsMaster] = useState(false);
   const [masterId, setMasterId] = useState(null);
   const [userId, setUserId] = useState(null);
+
+  // Selection state
   const [opportunityMarker, setOpportunityMarker] = useState(null);
   const [selectedCountry, setSelectedCountry] = useState(null);
-  const [opportunities, setOpportunities] = useState([]); // flattened array of opportunities
+
+  // Opportunities data
+  const [opportunities, setOpportunities] = useState([]);
   const [paginatedOpportunities, setPaginatedOpportunities] = useState([]);
-  const [opportunitiesData, setOpportunitiesData] = useState(null); // grouped by country if needed
+  const [opportunitiesData, setOpportunitiesData] = useState(null);
+
+  // Ranking
   const [rankedOpportunityIds, setRankedOpportunityIds] = useState(null);
   const [rankingLoading, setRankingLoading] = useState(false);
-  
-  // --- NEW STATE FOR MULTI-SELECTION ---
-  const [selectedCharities, setSelectedCharities] = useState([]); // Array of full charity objects
-  const [selectedCharityIds, setSelectedCharityIds] = useState([]); // Array of charity IDs only (for DB)
+
+  // Referral / multi-selection state
+  const [selectedCharities, setSelectedCharities] = useState([]); // full objects
+  const [selectedCharityIds, setSelectedCharityIds] = useState([]); // ids for DB
   const [showSelectedPopup, setShowSelectedPopup] = useState(false);
-  // -------------------------------------
-  
-  // ... (kept your fun UI/game state)
+
+  // Voice feature state
+  const [voiceSelectedIndex, setVoiceSelectedIndex] = useState(null);
+  const [voiceGoBack, setVoiceGoBack] = useState(false);
+
+  // UI / fun state
   const [catsActive, setCatsActive] = useState(false);
   const [cats, setCats] = useState([]);
   const catIntervalRef = useRef(null);
@@ -51,77 +61,69 @@ const PlanningPage = ({ user }) => {
   const hideButtonsTimeoutRef = useRef(null);
   const [globeImageUrl, setGlobeImageUrl] = useState(null);
   const globeImageTimeoutRef = useRef(null);
+
+  // Master idle / dino
   const [masterIdle, setMasterIdle] = useState(false);
   const masterIdleTimeoutRef = useRef(null);
   const lastMasterActionRef = useRef(Date.now());
   const [showDinosaurGame, setShowDinosaurGame] = useState(false);
+
+  // Theme
   const [theme, setTheme] = useTheme('dark');
 
-  // New loading for confirm action
+  // Confirm button loading
   const [confirmLoading, setConfirmLoading] = useState(false);
 
   const toggleTheme = () => {
-    setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'));
+    setTheme(prev => (prev === 'dark' ? 'light' : 'dark'));
   };
 
-  // Helper function to get full charity object by ID
-  const getCharityById = (id) => {
-    return opportunities.find(charity => charity.id === id);
-  };
+  // Helper: get full charity object by id
+  const getCharityById = (id) => opportunities.find(c => c.id === id || c.charity_id === id);
 
-  // --- NEW HANDLER FOR CHARITY SELECTION ---
+  // Toggle charity selection (keeps selectedCharityIds and selectedCharities in sync and writes to rooms.selected_charities)
   const toggleCharitySelection = async (charity) => {
-    // Calculate new selected charity IDs
-    const newSelectedCharityIds = (() => {
-      const exists = selectedCharityIds.find((id) => id === charity.id);
-      if (exists) {
-        // Remove it
-        return selectedCharityIds.filter((id) => id !== charity.id);
-      } else {
-        // Add it (check limit)
-        if (selectedCharityIds.length >= 5) {
-          alert("You can only select up to 5 charities.");
-          return selectedCharityIds;
-        }
-        return [...selectedCharityIds, charity.id];
+    const exists = selectedCharityIds.includes(charity.id || charity.charity_id);
+    let newIds;
+    if (exists) {
+      newIds = selectedCharityIds.filter(id => id !== (charity.id || charity.charity_id));
+    } else {
+      if (selectedCharityIds.length >= 5) {
+        alert('You can only select up to 5 charities.');
+        return;
       }
-    })();
+      newIds = [...selectedCharityIds, (charity.id || charity.charity_id)];
+    }
 
-    // Update local state for IDs
-    setSelectedCharityIds(newSelectedCharityIds);
+    // Optimistically update UI
+    setSelectedCharityIds(newIds);
+    const newSelectedObjects = opportunities.filter(opp => newIds.includes(opp.id || opp.charity_id));
+    setSelectedCharities(newSelectedObjects);
 
-    // Update full objects state by filtering opportunities
-    const newSelectedCharities = opportunities.filter(opp => 
-      newSelectedCharityIds.includes(opp.id)
-    );
-    setSelectedCharities(newSelectedCharities);
-
-    // Update Supabase with only the IDs (UUID array)
+    // Persist to DB
     try {
       const { error } = await supabase
         .from('rooms')
-        .update({ selected_charities: newSelectedCharityIds })
+        .update({ selected_charities: newIds })
         .eq('room_code', roomCode);
 
       if (error) {
-        console.error('Error updating selected_charities:', error);
-        // Revert local state on error
+        console.error('Failed to persist selected_charities:', error);
+        // revert on error
+        // (best-effort: refetch current room value; here we simply revert locally)
+        // Revert
         setSelectedCharityIds(selectedCharityIds);
         setSelectedCharities(selectedCharities);
         alert('Failed to save selection. Please try again.');
-      } else {
-        console.log('Selected charity IDs updated successfully:', newSelectedCharityIds.length);
       }
     } catch (err) {
-      console.error('Unexpected error updating selected_charities:', err);
-      // Revert local state on error
+      console.error('Unexpected error persisting selected_charities:', err);
       setSelectedCharityIds(selectedCharityIds);
       setSelectedCharities(selectedCharities);
     }
   };
-  // -----------------------------------------
 
-  // ------------- LOAD ROOM + PARTICIPANT -------------
+  // ----------------- LOAD ROOM + PARTICIPANT -----------------
   useEffect(() => {
     (async () => {
       if (!user) {
@@ -129,7 +131,6 @@ const PlanningPage = ({ user }) => {
         return;
       }
 
-      // Verify room exists and planning has started
       const { data: room, error: roomError } = await supabase
         .from('rooms')
         .select('planning_started, master_id, selected_opportunity_lat, selected_opportunity_lng, selected_country, selected_charities')
@@ -152,27 +153,22 @@ const PlanningPage = ({ user }) => {
       setMasterId(room.master_id);
       setUserId(user.id);
 
-      // initial opportunity marker if exists
+      // selected country / marker
+      if (room.selected_country) {
+        setSelectedCountry(room.selected_country);
+        lastMasterActionRef.current = Date.now();
+      }
+
       if (room.selected_opportunity_lat && room.selected_opportunity_lng) {
         setOpportunityMarker({
           lat: room.selected_opportunity_lat,
           lng: room.selected_opportunity_lng,
-          name: null
+          name: null,
         });
+        if (userIsMaster) lastMasterActionRef.current = Date.now();
       }
 
-      if (room.selected_country) {
-        setSelectedCountry(room.selected_country);
-        if (userIsMaster) {
-          lastMasterActionRef.current = Date.now();
-        }
-      }
-
-      if (room.selected_opportunity_lat && room.selected_opportunity_lng && userIsMaster) {
-        lastMasterActionRef.current = Date.now();
-      }
-
-      // add participant if missing
+      // ensure participant exists
       const { data: participant } = await supabase
         .from('room_participants')
         .select('*')
@@ -181,20 +177,16 @@ const PlanningPage = ({ user }) => {
         .maybeSingle();
 
       if (!participant) {
-        await supabase
-          .from('room_participants')
-          .insert({
-            room_code: roomCode,
-            user_id: user.id,
-            is_master: userIsMaster,
-          });
+        await supabase.from('room_participants').insert({
+          room_code: roomCode,
+          user_id: user.id,
+          is_master: userIsMaster,
+        });
       }
 
-      // Note: We'll load selected charities after opportunities are loaded
-      // We'll store the IDs for now
+      // load selected_charities ids from room if present
       if (room.selected_charities && Array.isArray(room.selected_charities)) {
         setSelectedCharityIds(room.selected_charities);
-        console.log('Loaded selected charity IDs from DB:', room.selected_charities.length);
       }
 
       setRoomExists(true);
@@ -202,37 +194,42 @@ const PlanningPage = ({ user }) => {
     })();
   }, [user, roomCode, navigate]);
 
-  // ------------- LOAD OPPORTUNITIES FROM 'charities' TABLE -------------
+  // ----------------- LOAD CHARITIES -----------------
   useEffect(() => {
-    // Fetch all charities -> transform to the old "opportunity" shape your UI expects:
-    // { latlon: [lat, lng], country: 'united kingdom', link: '...', name: '...' }
-    // Also build grouped data keyed by lowercase country string.
+    let mounted = true;
     const fetchCharities = async () => {
       try {
         const { data, error } = await supabase
           .from('charities')
           .select('charity_id, name, email, lat, lon, country, causes, link, created_at');
 
-        if (error) {
-          console.error('Failed to fetch charities:', error);
+        if (error || !data) {
+          // If DB fails, don't crash — keep empty list
+          console.warn('Failed to fetch charities or empty result', error);
+          if (!mounted) return;
+          setOpportunities([]);
+          setPaginatedOpportunities([]);
+          setOpportunitiesData({});
+          setLoading(false);
           return;
         }
-        if (!data) return;
+
+        if (!mounted) return;
 
         const flattened = data.map(row => ({
-          // Keep compatibility with previous shape (latlon array + country lowercase)
-          latlon: [Number(row.lat), Number(row.lon)],
-          country: (row.country || '').toLowerCase(),
-          link: row.link || null,
-          name: row.name || '(no name)',
-          id: row.charity_id, // Added id for selection tracking
+          // keep compatibility with previous shape
+          id: row.charity_id,
           charity_id: row.charity_id,
+          name: row.name,
           email: row.email || null,
+          lat: Number(row.lat),
+          lon: Number(row.lon),
+          country: (row.country || '').toLowerCase(),
           causes: row.causes || [],
+          link: row.link || '',
           created_at: row.created_at || null,
         }));
 
-        // grouped by country (object with keys being country name)
         const grouped = flattened.reduce((acc, opp) => {
           const c = opp.country || 'unknown';
           if (!acc[c]) acc[c] = [];
@@ -240,32 +237,39 @@ const PlanningPage = ({ user }) => {
           return acc;
         }, {});
 
-        // Update local state and notify any child components
         setOpportunities(flattened);
+        setPaginatedOpportunities(flattened.slice(0, 50));
         setOpportunitiesData(grouped);
+        setLoading(false);
 
-        // Keep paginatedOpportunities defaulting to entire list; OpportunitiesPanel may override
-        setPaginatedOpportunities(flattened.slice(0, 50)); // first page by default
-
-        // Now that we have opportunities, we can map IDs to full objects
-        const selectedCharityObjects = flattened.filter(opp => 
-          selectedCharityIds.includes(opp.id)
-        );
-        setSelectedCharities(selectedCharityObjects);
-        console.log('Mapped selected charity IDs to objects:', selectedCharityObjects.length);
-
+        // map any pre-loaded selectedCharityIds into full objects
+        if (selectedCharityIds && selectedCharityIds.length > 0) {
+          const selectedObjects = flattened.filter(opp => selectedCharityIds.includes(opp.id));
+          setSelectedCharities(selectedObjects);
+        }
       } catch (err) {
         console.error('Unexpected error loading charities:', err);
+        if (!mounted) return;
+        setOpportunities([]);
+        setPaginatedOpportunities([]);
+        setOpportunitiesData({});
+        setLoading(false);
       }
     };
 
     fetchCharities();
+    return () => { mounted = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // run once
 
-    // Optionally, you could create a realtime subscription to 'charities' for live updates.
-    // For now I'm only doing a single fetch — add realtime if desired.
-  }, [selectedCharityIds]);
+  // When selectedCharityIds changes (for example loaded from DB), map to full objects if opportunities are loaded
+  useEffect(() => {
+    if (!opportunities || opportunities.length === 0) return;
+    const objs = opportunities.filter(opp => selectedCharityIds.includes(opp.id));
+    setSelectedCharities(objs);
+  }, [selectedCharityIds, opportunities]);
 
-  // ------------- Realtime subscription for rooms (deletion + updates) -------------
+  // ----------------- Realtime subscription for room changes -----------------
   useEffect(() => {
     if (!roomCode) return;
 
@@ -275,111 +279,61 @@ const PlanningPage = ({ user }) => {
         'postgres_changes',
         { event: 'DELETE', schema: 'public', table: 'rooms', filter: `room_code=eq.${roomCode}` },
         () => {
-          alert('Room has been deleted.');
+          alert('Room deleted. Returning to home.');
           navigate('/');
         }
       )
       .on(
         'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'rooms',
-          filter: `room_code=eq.${roomCode}`,
-        },
+        { event: 'UPDATE', schema: 'public', table: 'rooms', filter: `room_code=eq.${roomCode}` },
         (payload) => {
-          const { 
-            selected_opportunity_lat, 
-            selected_opportunity_lng, 
-            selected_country,
-            selected_charities 
-          } = payload.new || {};
-          
-          const oldLat = payload.old?.selected_opportunity_lat;
-          const oldLng = payload.old?.selected_opportunity_lng;
-          const oldSelectedCountry = payload.old?.selected_country;
+          const { selected_opportunity_lat, selected_opportunity_lng, selected_country, selected_charities } = payload.new || {};
           const oldSelectedCharities = payload.old?.selected_charities;
 
-          // Handle charity selection changes
-          if (JSON.stringify(selected_charities) !== JSON.stringify(oldSelectedCharities)) {
+          // Update selected_charities if changed
+          if (JSON.stringify(selected_charities || []) !== JSON.stringify(oldSelectedCharities || [])) {
             setSelectedCharityIds(selected_charities || []);
-            
-            // Map IDs to full objects
-            const selectedCharityObjects = opportunities.filter(opp => 
-              (selected_charities || []).includes(opp.id)
-            );
-            setSelectedCharities(selectedCharityObjects);
-            
-            console.log('Selected charities updated via realtime:', selected_charities?.length || 0);
+            // Map to objects (opportunities might be already loaded)
+            const mapped = (opportunities || []).filter(opp => (selected_charities || []).includes(opp.id));
+            setSelectedCharities(mapped);
+            console.log('Realtime: selected_charities updated:', selected_charities?.length || 0);
           }
 
-          if (selected_country !== oldSelectedCountry ||
-              selected_opportunity_lat !== oldLat ||
-              selected_opportunity_lng !== oldLng) {
-            setMasterIdle(false);
-            setShowDinosaurGame(false);
-            if (masterIdleTimeoutRef.current) {
-              clearTimeout(masterIdleTimeoutRef.current);
-              masterIdleTimeoutRef.current = null;
-            }
-            lastMasterActionRef.current = Date.now();
-            masterIdleTimeoutRef.current = setTimeout(() => {
-              if (!isMaster) {
-                setMasterIdle(true);
-              }
-            }, 5000);
+          // Update selected country and opportunity marker
+          setSelectedCountry(selected_country || null);
+          if (selected_opportunity_lat && selected_opportunity_lng) {
+            setOpportunityMarker({
+              lat: selected_opportunity_lat,
+              lng: selected_opportunity_lng,
+              name: null,
+            });
+          } else {
+            setOpportunityMarker(null);
           }
 
-          if (selected_country !== oldSelectedCountry) {
-            setSelectedCountry(selected_country);
-            if (selected_country) {
-              setOpportunityMarker(null);
-            }
+          // Master idle handling
+          lastMasterActionRef.current = Date.now();
+          if (masterIdleTimeoutRef.current) {
+            clearTimeout(masterIdleTimeoutRef.current);
           }
-
-          if (selected_opportunity_lat !== oldLat || selected_opportunity_lng !== oldLng) {
-            if (!selected_country) {
-              if (selected_opportunity_lat && selected_opportunity_lng) {
-                setOpportunityMarker({
-                  lat: selected_opportunity_lat,
-                  lng: selected_opportunity_lng,
-                  name: null
-                });
-              } else {
-                setOpportunityMarker(null);
-              }
-            } else {
-              setOpportunityMarker(null);
-            }
-          }
+          masterIdleTimeoutRef.current = setTimeout(() => {
+            if (!isMaster) setMasterIdle(true);
+          }, 5000);
         }
       )
       .subscribe();
 
-    const hasSelection = selectedCountry || (opportunityMarker && opportunityMarker.lat);
-    if (!hasSelection) {
-      lastMasterActionRef.current = Date.now();
-      masterIdleTimeoutRef.current = setTimeout(() => {
-        if (!isMaster) {
-          setMasterIdle(true);
-        }
-      }, 5000);
-    }
-
     return () => {
       supabase.removeChannel(channel);
-      if (masterIdleTimeoutRef.current) {
-        clearTimeout(masterIdleTimeoutRef.current);
-      }
+      if (masterIdleTimeoutRef.current) clearTimeout(masterIdleTimeoutRef.current);
     };
-  }, [roomCode, navigate, isMaster, selectedCountry, opportunityMarker, opportunities]);
+  }, [roomCode, navigate, isMaster, opportunities]);
 
-
-  // Cat invasion functionality (same as your original)
+  // ----------------- Cat invasion & UI bits -----------------
   const startCatInvasion = () => {
     setCatsActive(true);
     setCats([]);
-    
+
     const catImages = ['/cat.png', '/cat2.png'];
     const baseCatSize = 80;
     const screenWidth = window.innerWidth;
@@ -387,25 +341,25 @@ const PlanningPage = ({ user }) => {
     const catsPerRow = Math.ceil(screenWidth / baseCatSize) + 2;
     const catsPerCol = Math.ceil(screenHeight / baseCatSize) + 2;
     const totalCats = catsPerRow * catsPerCol;
-    
+
     let catCount = 0;
-    
+
     catIntervalRef.current = setInterval(() => {
       if (catCount >= totalCats) {
         clearInterval(catIntervalRef.current);
         return;
       }
-      
+
       const row = Math.floor(catCount / catsPerRow);
       const col = catCount % catsPerRow;
       const x = col * baseCatSize + (Math.random() * 30 - 15);
       const y = row * baseCatSize + (Math.random() * 30 - 15);
       const rotation = Math.random() * 360;
       const image = catImages[Math.floor(Math.random() * catImages.length)];
-      
+
       const sizeMultiplier = 0.5 + Math.random() * 3.5;
       const catSize = baseCatSize * sizeMultiplier;
-      
+
       setCats(prev => [...prev, {
         id: catCount,
         x,
@@ -414,7 +368,7 @@ const PlanningPage = ({ user }) => {
         image,
         size: catSize
       }]);
-      
+
       catCount++;
     }, 30);
   };
@@ -448,18 +402,18 @@ const PlanningPage = ({ user }) => {
       const deltaX = newPosition.x - previousMousePosition.x;
       const deltaY = newPosition.y - previousMousePosition.y;
       const mouseVelocity = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
-      
+
       setMousePosition(newPosition);
       setPreviousMousePosition(newPosition);
-      
+
       setCats(prev => prev.map(cat => {
         const catCenterX = cat.x + (cat.size / 2);
         const catCenterY = cat.y + (cat.size / 2);
         const distance = Math.sqrt(
-          Math.pow(catCenterX - newPosition.x, 2) + 
+          Math.pow(catCenterX - newPosition.x, 2) +
           Math.pow(catCenterY - newPosition.y, 2)
         );
-        
+
         if (distance < waftRadius) {
           const angle = Math.atan2(catCenterY - newPosition.y, catCenterX - newPosition.x);
           const distanceFactor = (waftRadius - distance) / waftRadius;
@@ -468,14 +422,14 @@ const PlanningPage = ({ user }) => {
           const pushDistance = basePush * (1 + distanceFactor) * (1 + velocityFactor * 0.5);
           const newX = cat.x + Math.cos(angle) * pushDistance;
           const newY = cat.y + Math.sin(angle) * pushDistance;
-          
+
           return {
             ...cat,
             x: newX,
             y: newY
           };
         }
-        
+
         return cat;
       }));
     } else if (catsActive) {
@@ -494,10 +448,10 @@ const PlanningPage = ({ user }) => {
         const catBottom = cat.y + cat.size;
         const screenWidth = window.innerWidth;
         const screenHeight = window.innerHeight;
-        
-        return cat.x > -cat.size && 
-               cat.y > -cat.size && 
-               catRight < screenWidth + cat.size && 
+
+        return cat.x > -cat.size &&
+               cat.y > -cat.size &&
+               catRight < screenWidth + cat.size &&
                catBottom < screenHeight + cat.size;
       }));
     };
@@ -514,9 +468,7 @@ const PlanningPage = ({ user }) => {
     };
 
     window.addEventListener('keydown', handleKeyDown);
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-    };
+    return () => window.removeEventListener('keydown', handleKeyDown);
   }, [catsActive]);
 
   const handleExplosionClick = () => {
@@ -526,14 +478,10 @@ const PlanningPage = ({ user }) => {
         const currentSrc = explosionGifRef.current.src;
         explosionGifRef.current.src = '';
         setTimeout(() => {
-          if (explosionGifRef.current) {
-            explosionGifRef.current.src = currentSrc;
-          }
+          if (explosionGifRef.current) explosionGifRef.current.src = currentSrc;
         }, 10);
       }
-      if (explosionTimeoutRef.current) {
-        clearTimeout(explosionTimeoutRef.current);
-      }
+      if (explosionTimeoutRef.current) clearTimeout(explosionTimeoutRef.current);
       explosionTimeoutRef.current = setTimeout(() => {
         setExplosionActive(false);
         explosionTimeoutRef.current = null;
@@ -541,19 +489,9 @@ const PlanningPage = ({ user }) => {
     }
   };
 
-  const handleExplosionEnd = () => {
-    if (explosionTimeoutRef.current) {
-      clearTimeout(explosionTimeoutRef.current);
-      explosionTimeoutRef.current = null;
-    }
-    setExplosionActive(false);
-  };
-
   const handleHanzilaClick = () => {
     setGlobeImageUrl('/hanzila.png');
-    if (globeImageTimeoutRef.current) {
-      clearTimeout(globeImageTimeoutRef.current);
-    }
+    if (globeImageTimeoutRef.current) clearTimeout(globeImageTimeoutRef.current);
     globeImageTimeoutRef.current = setTimeout(() => {
       setGlobeImageUrl(null);
       globeImageTimeoutRef.current = null;
@@ -570,6 +508,7 @@ const PlanningPage = ({ user }) => {
     };
   }, []);
 
+  // ----------------- Leave room -----------------
   const handleLeaveRoom = async () => {
     if (!user) return;
 
@@ -606,7 +545,7 @@ const PlanningPage = ({ user }) => {
     }
   };
 
-  // Memoized callbacks passed to OpportunitiesPanel to avoid re-creating functions each render:
+  // ----------------- Memoized callbacks for OpportunitiesPanel -----------------
   const handleOpportunitySelect = useCallback((lat, lng, name) => {
     if (lat !== null && lat !== undefined && lng !== null && lng !== undefined) {
       setOpportunityMarker({ lat, lng, name });
@@ -620,14 +559,11 @@ const PlanningPage = ({ user }) => {
     setSelectedCountry(country);
     setOpportunityMarker(null);
     if (roomCode) {
-      supabase
-        .from('rooms')
-        .update({
-          selected_opportunity_lat: null,
-          selected_opportunity_lng: null,
-          selected_country: country || null
-        })
-        .eq('room_code', roomCode);
+      supabase.from('rooms').update({
+        selected_opportunity_lat: null,
+        selected_opportunity_lng: null,
+        selected_country: country || null
+      }).eq('room_code', roomCode);
     }
   }, [roomCode]);
 
@@ -643,11 +579,8 @@ const PlanningPage = ({ user }) => {
     setOpportunitiesData(data);
   }, []);
 
-  // -----------------------
-  // Updated confirm handler
-  // -----------------------
+  // ----------------- Confirm choices -> create referrals -----------------
   const handleConfirmChoices = async () => {
-    // Basic validation
     if (!selectedCharityIds || selectedCharityIds.length === 0) {
       alert('No charities selected to refer. Please select at least one charity.');
       return;
@@ -660,7 +593,7 @@ const PlanningPage = ({ user }) => {
     setConfirmLoading(true);
 
     try {
-      // Fetch room id first
+      // Get room id
       const { data: roomData, error: roomError } = await supabase
         .from('rooms')
         .select('id')
@@ -674,7 +607,6 @@ const PlanningPage = ({ user }) => {
       const roomId = roomData.id;
       const inserts = selectedCharityIds.map(cid => ({ room_id: roomId, charity_id: cid }));
 
-      // Insert referrals client-side
       const { data: inserted, error: insertError } = await supabase
         .from('referrals')
         .insert(inserts)
@@ -697,8 +629,8 @@ const PlanningPage = ({ user }) => {
       setConfirmLoading(false);
     }
   };
-  // ------------------------------------------------
 
+  // ----------------- Render -----------------
   if (loading) {
     return (
       <div className="planning-page">
@@ -714,25 +646,21 @@ const PlanningPage = ({ user }) => {
       <div className="planning-page">
         <div className="planning-error">
           <p>{error}</p>
-          <button onClick={() => navigate('/')} className="btn btn-primary">
-            Go Home
-          </button>
+          <button onClick={() => navigate('/')} className="btn btn-primary">Go Home</button>
         </div>
       </div>
     );
   }
 
-  if (!roomExists) {
-    return null;
-  }
+  if (!roomExists) return null;
 
   return (
     <div className={`planning-page ${theme}`}>
       <div className="planning-header">
         <h1>Planning Room: {roomCode}</h1>
-        
-        {/* NEW BUTTON FOR SHOWING SELECTED CHARITIES */}
-        <button 
+
+        {/* Selected charities button (multi-select panel) */}
+        <button
           className="btn btn-primary"
           style={{ margin: '0 20px' }}
           onClick={() => setShowSelectedPopup(true)}
@@ -744,12 +672,7 @@ const PlanningPage = ({ user }) => {
           <button type="button" className="theme-toggle" onClick={toggleTheme}>
             {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
           </button>
-          <button 
-            onClick={handleLeaveRoom} 
-            className="btn btn-leave-room"
-          >
-            Leave Room
-          </button>
+          <button onClick={handleLeaveRoom} className="btn btn-leave-room">Leave Room</button>
         </div>
       </div>
 
@@ -779,30 +702,27 @@ const PlanningPage = ({ user }) => {
         <button
           className={`explosion-button ${buttonsVisible ? 'visible' : ''}`}
           onClick={handleExplosionClick}
-          title="Explosion!"
           disabled={explosionActive}
         >
           BOOM
         </button>
         <button
           className={`google-careers-button ${buttonsVisible ? 'visible' : ''}`}
-          onClick={() => window.open('https://www.google.com/about/careers/applications/jobs/results?target_level=INTERN_AND_APPRENTICE#!t=jo&jid=127025001&', '_blank')}
-          title="Google Careers - Internships"
+          onClick={() => window.open('https://www.google.com/about/careers/', '_blank')}
         >
           <span className="google-logo">G</span>
         </button>
         <button
           className={`hanzila-button ${buttonsVisible ? 'visible' : ''}`}
           onClick={handleHanzilaClick}
-          title="Change globe to Hanzila (10 seconds)"
         >
           MAP
         </button>
       </div>
 
       {catsActive && (
-        <div 
-          className="cat-overlay" 
+        <div
+          className="cat-overlay"
           ref={catContainerRef}
           onMouseDown={handleMouseDown}
           onMouseUp={handleMouseUp}
@@ -856,9 +776,7 @@ const PlanningPage = ({ user }) => {
             className="explosion-gif"
             onError={(e) => {
               console.error('Failed to load explosion GIF:', e);
-              setTimeout(() => {
-                setExplosionActive(false);
-              }, 1000);
+              setTimeout(() => setExplosionActive(false), 1000);
             }}
           />
         </div>
@@ -866,38 +784,55 @@ const PlanningPage = ({ user }) => {
 
       <div className="planning-content">
         <div className="globe-wrapper">
-          <GlobeComponent 
-            roomCode={roomCode} 
-            isMaster={isMaster} 
-            user={user} 
+          <GlobeComponent
+            roomCode={roomCode}
+            isMaster={isMaster}
+            user={user}
             opportunityMarker={opportunityMarker}
             opportunities={paginatedOpportunities.length > 0 ? paginatedOpportunities : opportunities}
             customGlobeImage={globeImageUrl}
             onCountrySelect={(country) => {
-              console.log('PlanningPage: Country selected:', country);
               setSelectedCountry(country);
               setOpportunityMarker(null);
               if (roomCode) {
-                supabase
-                  .from('rooms')
-                  .update({
-                    selected_opportunity_lat: null,
-                    selected_opportunity_lng: null,
-                    selected_country: country || null
-                  })
-                  .eq('room_code', roomCode);
+                supabase.from('rooms').update({
+                  selected_opportunity_lat: null,
+                  selected_opportunity_lng: null,
+                  selected_country: country || null
+                }).eq('room_code', roomCode);
               }
             }}
           />
         </div>
 
-        <Chat 
-          roomCode={roomCode} 
-          userId={user?.id} 
-          masterId={masterId} 
+        <Chat
+          roomCode={roomCode}
+          userId={user?.id}
+          masterId={masterId}
           allOpportunities={opportunities}
+          selectedCountry={selectedCountry}
           onRankUpdate={(ids) => setRankedOpportunityIds(ids)}
           onRankingLoadingChange={(v) => setRankingLoading(v)}
+          onVoiceCountrySelect={(country) => {
+            setSelectedCountry(country);
+            setOpportunityMarker(null);
+            supabase.from('rooms').update({
+              selected_country: country,
+              selected_opportunity_lat: null,
+              selected_opportunity_lng: null,
+            }).eq('room_code', roomCode);
+          }}
+          onVoiceOpportunitySelect={(index) => setVoiceSelectedIndex(index)}
+          onVoiceGoBack={() => {
+            setOpportunityMarker(null);
+            setVoiceGoBack(true);
+            supabase.from('rooms').update({
+              selected_opportunity_lat: null,
+              selected_opportunity_lng: null,
+            }).eq('room_code', roomCode);
+          }}
+          paginatedOpportunities={paginatedOpportunities}
+          countriesWithOpportunities={opportunitiesData ? Object.keys(opportunitiesData) : []}
         />
 
         <OpportunitiesPanel
@@ -905,67 +840,56 @@ const PlanningPage = ({ user }) => {
           selectedCountry={selectedCountry}
           rankedOpportunityIds={rankedOpportunityIds}
           rankingLoading={rankingLoading}
-          
-          // --- NEW PROPS FOR SELECTION ---
+
+          // selection props
           selectedCharities={selectedCharities}
           onToggleCharity={toggleCharitySelection}
-          // -------------------------------
 
+          // opportunity/country handlers (memoized)
           onOpportunitySelect={handleOpportunitySelect}
           onCountrySelect={handleCountrySelect}
           onOpportunitiesChange={handleOpportunitiesChange}
           onPaginatedOpportunitiesChange={handlePaginatedOpportunitiesChange}
           onOpportunitiesDataChange={handleOpportunitiesDataChange}
 
-          onOpportunitiesChangeLocal={(opps) => setOpportunities(opps)}
-          onPaginatedOpportunitiesChangeLocal={(paginatedOpps) => setPaginatedOpportunities(paginatedOpps)}
+          // voice props
+          voiceSelectedIndex={voiceSelectedIndex}
+          onVoiceSelectionHandled={() => setVoiceSelectedIndex(null)}
+          voiceGoBack={voiceGoBack}
+          onVoiceGoBackHandled={() => setVoiceGoBack(false)}
 
-          onOpportunitiesDataChangeLocal={(data) => setOpportunitiesData(data)}
+          // voice -> globe handler
+          onVoiceOpportunitySelect={(lat, lng, name) => {
+            setOpportunityMarker({ lat, lng, name });
+          }}
 
-          onOpportunitiesChangeParent={handleOpportunitiesChange}
-          onPaginatedOpportunitiesChangeParent={handlePaginatedOpportunitiesChange}
-          onOpportunitiesDataChangeParent={handleOpportunitiesDataChange}
-
-          onCountrySelectParent={handleCountrySelect}
-          onOpportunitySelectParent={handleOpportunitySelect}
-
-          onToggleCharityParent={toggleCharitySelection}
-
-          onRankedOpportunityIdsUpdate={(ids) => setRankedOpportunityIds(ids)}
-          
-          onRankingLoadingChange={(v) => setRankingLoading(v)}
-
-          onShowDinosaur={() => setShowDinosaurGame(true)}
-
-          // provide current fetched data directly so panel doesn't need to re-fetch the JSON:
+          // provide current fetched data directly so panel doesn't need to re-fetch:
           initialOpportunities={opportunities}
           initialOpportunitiesData={opportunitiesData}
+
+          // update local paginated/opportunities if child decides to notify:
+          // (child will call these stable handlers)
+          // onPaginatedOpportunitiesChange passed above already points to handlePaginatedOpportunitiesChange
         />
       </div>
 
       {!isMaster && masterIdle && (
-        <button
-          className="dinosaur-game-toggle-button"
-          onClick={() => setShowDinosaurGame(!showDinosaurGame)}
-          title={showDinosaurGame ? "Hide Dinosaur Game" : "Show Dinosaur Game"}
-        >
+        <button className="dinosaur-game-toggle-button" onClick={() => setShowDinosaurGame(!showDinosaurGame)}>
           DINO
         </button>
       )}
 
       {showDinosaurGame && (
-        <DinosaurGame 
+        <DinosaurGame
           isMaster={isMaster}
           masterIdle={masterIdle}
-          onGameEnd={() => {
-            setShowDinosaurGame(false);
-          }}
+          onGameEnd={() => setShowDinosaurGame(false)}
         />
       )}
 
-      {/* --- NEW SELECTED CHARITIES POPUP --- */}
+      {/* Selected charities popup */}
       {showSelectedPopup && (
-        <div 
+        <div
           className="selected-charities-overlay"
           onClick={() => setShowSelectedPopup(false)}
           style={{
@@ -981,7 +905,7 @@ const PlanningPage = ({ user }) => {
             justifyContent: 'center'
           }}
         >
-          <div 
+          <div
             className="selected-charities-modal"
             onClick={(e) => e.stopPropagation()}
             style={{
@@ -989,7 +913,7 @@ const PlanningPage = ({ user }) => {
               color: theme === 'dark' ? '#fff' : '#000',
               padding: '2rem',
               borderRadius: '12px',
-              maxWidth: '500px',
+              maxWidth: '600px',
               width: '90%',
               maxHeight: '80vh',
               overflowY: 'auto'
@@ -999,12 +923,10 @@ const PlanningPage = ({ user }) => {
             <p style={{ marginBottom: '1rem', opacity: 0.7 }}>
               You have selected {selectedCharities.length} / 5 charities.
             </p>
-            
+
             <div className="modal-list">
-              {selectedCharities.length === 0 && (
-                <p>No charities selected yet.</p>
-              )}
-              
+              {selectedCharities.length === 0 && <p>No charities selected yet.</p>}
+
               {selectedCharities.map(opp => (
                 <div
                   key={opp.id}
@@ -1018,28 +940,17 @@ const PlanningPage = ({ user }) => {
                     gap: '8px'
                   }}
                 >
-                  <div style={{ fontWeight: 'bold', fontSize: '1.1rem' }}>
-                    {opp.name}
-                  </div>
-                  <div style={{ fontSize: '0.9rem', opacity: 0.8 }}>
-                    {opp.country}
-                  </div>
+                  <div style={{ fontWeight: 'bold', fontSize: '1.1rem' }}>{opp.name}</div>
+                  <div style={{ fontSize: '0.9rem', opacity: 0.8 }}>{opp.country}</div>
 
-                  <div
-                    style={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      marginTop: '5px'
-                    }}
-                  >
+                  <div style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    marginTop: '5px'
+                  }}>
                     {opp.link && (
-                      <a
-                        href={opp.link}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        style={{ color: '#3b82f6', textDecoration: 'none' }}
-                      >
+                      <a href={opp.link} target="_blank" rel="noopener noreferrer" style={{ color: '#3b82f6', textDecoration: 'none' }}>
                         Learn more →
                       </a>
                     )}
@@ -1055,15 +966,7 @@ const PlanningPage = ({ user }) => {
               ))}
             </div>
 
-            {/* --- BUTTON ROW --- */}
-            <div
-              style={{
-                marginTop: '1.5rem',
-                display: 'flex',
-                justifyContent: 'flex-end',
-                gap: '10px'
-              }}
-            >
+            <div style={{ marginTop: '1.5rem', display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
               <button
                 onClick={handleConfirmChoices}
                 disabled={confirmLoading}

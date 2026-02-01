@@ -5,6 +5,7 @@ import './OpportunitiesPanel.css';
 const OpportunitiesPanel = ({
   roomCode,
   onOpportunitySelect,
+  onVoiceOpportunitySelect,
   selectedCountry,
   onOpportunitiesChange,
   onCountrySelect,
@@ -16,6 +17,11 @@ const OpportunitiesPanel = ({
   selectedCharities,
   onToggleCharity,
   // -------------------------------
+  // Voice-related props
+  voiceSelectedIndex,
+  onVoiceSelectionHandled,
+  voiceGoBack,
+  onVoiceGoBackHandled,
 }) => {
   const [opportunities, setOpportunities] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -145,9 +151,9 @@ const OpportunitiesPanel = ({
         setLoading(false);
 
         // notify parent
-        onOpportunitiesChange && onOpportunitiesChange(validated);
-        onOpportunitiesDataChange && onOpportunitiesDataChange(grouped);
-        onPaginatedOpportunitiesChange && onPaginatedOpportunitiesChange(validated.slice(0, itemsPerPage));
+        if (onOpportunitiesChange) onOpportunitiesChange(validated);
+        if (onOpportunitiesDataChange) onOpportunitiesDataChange(grouped);
+        if (onPaginatedOpportunitiesChange) onPaginatedOpportunitiesChange(validated.slice(0, itemsPerPage));
       } catch (err) {
         console.error('Unexpected error fetching charities:', err);
         // fallback to JSON
@@ -195,9 +201,9 @@ const OpportunitiesPanel = ({
         setError(null);
         setLoading(false);
 
-        onOpportunitiesChange && onOpportunitiesChange(validated);
-        onOpportunitiesDataChange && onOpportunitiesDataChange(grouped);
-        onPaginatedOpportunitiesChange && onPaginatedOpportunitiesChange(validated.slice(0, itemsPerPage));
+        if (onOpportunitiesChange) onOpportunitiesChange(validated);
+        if (onOpportunitiesDataChange) onOpportunitiesDataChange(grouped);
+        if (onPaginatedOpportunitiesChange) onPaginatedOpportunitiesChange(validated.slice(0, itemsPerPage));
       } catch (err) {
         console.error('Error loading opportunities.json fallback:', err);
         if (!mounted) return;
@@ -219,6 +225,9 @@ const OpportunitiesPanel = ({
   useEffect(() => {
     if (!opportunities.length || !selectedCountry) {
       setFilteredOpportunities(opportunities);
+      // Inform parent that filter was cleared (keep it minimal)
+      if (onOpportunitiesChange) onOpportunitiesChange(opportunities);
+      if (onPaginatedOpportunitiesChange) onPaginatedOpportunitiesChange(opportunities.slice(0, itemsPerPage));
       return;
     }
 
@@ -275,11 +284,12 @@ const OpportunitiesPanel = ({
     setFilteredOpportunities(filtered);
     setCurrentPage(1); // Reset to first page when filtering
 
-    // Notify parent about filtered opportunities
-    onOpportunitiesChange && onOpportunitiesChange(filtered);
-    onPaginatedOpportunitiesChange && onPaginatedOpportunitiesChange(filtered.slice(0, itemsPerPage));
+    // Notify parent about filtered opportunities (keep call but this effect doesn't depend on parent callbacks)
+    if (onOpportunitiesChange) onOpportunitiesChange(filtered);
+    if (onPaginatedOpportunitiesChange) onPaginatedOpportunitiesChange(filtered.slice(0, itemsPerPage));
 
-  }, [selectedCountry, opportunities, onOpportunitiesChange, onPaginatedOpportunitiesChange]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedCountry, opportunities]); // intentionally not including parent callbacks in deps to avoid loops
 
   // When the list of opportunities changes, reset to page 1
   useEffect(() => {
@@ -329,6 +339,66 @@ const OpportunitiesPanel = ({
       console.debug('onPaginatedOpportunitiesChange fired. paginated length=', paginatedOpportunities.length);
     }
   }, [paginatedOpportunities, onPaginatedOpportunitiesChange]);
+
+  // Handle voice "go back" command
+  useEffect(() => {
+    if (!voiceGoBack) return;
+
+    console.log('Voice go back: returning to country view');
+    setSelectedOpportunityId(null);
+    setShowAllOpportunities(true);
+
+    if (onVoiceGoBackHandled) {
+      try { onVoiceGoBackHandled(); } catch (e) { console.error(e); }
+    }
+  }, [voiceGoBack, onVoiceGoBackHandled]);
+
+  // Handle voice selection by index
+  useEffect(() => {
+    if (voiceSelectedIndex === null || voiceSelectedIndex === undefined) return;
+
+    // Get the opportunity at the specified index from paginated list
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const visibleOpps = displayedOpportunities.slice(startIndex, startIndex + itemsPerPage);
+    const opp = visibleOpps[voiceSelectedIndex];
+
+    if (opp) {
+      console.log('Voice selecting opportunity:', opp.name, 'at index', voiceSelectedIndex);
+
+      // Set local state to show only this opportunity
+      setSelectedOpportunityId(opp.id);
+      setShowAllOpportunities(false);
+
+      // Do NOT clear country selection for voice - we want to keep it for "go back"
+
+      // Use dedicated voice callback that doesn't clear country
+      if (onVoiceOpportunitySelect) {
+        try { onVoiceOpportunitySelect(opp.lat, opp.lng, opp.name); } catch (e) { console.error(e); }
+      }
+
+      // Update database - keep the country selected
+      if (roomCode) {
+        supabase
+          .from('rooms')
+          .update({
+            selected_opportunity_lat: opp.lat,
+            selected_opportunity_lng: opp.lng,
+            // Keep selected_country as is
+          })
+          .eq('room_code', roomCode)
+          .then(({ error }) => {
+            if (error) console.error('Error updating room for voice selection:', error);
+          });
+      }
+    }
+
+    // Notify parent that we've handled the voice selection
+    if (onVoiceSelectionHandled) {
+      try { onVoiceSelectionHandled(); } catch (e) { console.error(e); }
+    }
+    // include displayedOpportunities to ensure we pick correct index when page changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [voiceSelectedIndex, currentPage, displayedOpportunities, onVoiceSelectionHandled, onVoiceOpportunitySelect, roomCode]);
 
   // Load initial selected opportunity from database
   useEffect(() => {
@@ -403,7 +473,7 @@ const OpportunitiesPanel = ({
                 setSelectedOpportunityId(matchingOpp.id);
                 setShowAllOpportunities(false);
                 if (onOpportunitySelect) {
-                  onOpportunitySelect(matchingOpp.lat, matchingOpp.lng, matchingOpp.name);
+                  try { onOpportunitySelect(matchingOpp.lat, matchingOpp.lng, matchingOpp.name); } catch (e) { console.error(e); }
                 }
               }
             }
@@ -434,11 +504,11 @@ const OpportunitiesPanel = ({
 
       // Clear country selection when a specific opportunity is selected
       if (onCountrySelect) {
-        onCountrySelect(null);
+        try { onCountrySelect(null); } catch (e) { console.error(e); }
       }
 
       if (onOpportunitySelect) {
-        onOpportunitySelect(opportunity.lat, opportunity.lng, opportunity.name);
+        try { onOpportunitySelect(opportunity.lat, opportunity.lng, opportunity.name); } catch (e) { console.error(e); }
       }
 
       if (roomCode) {
@@ -476,7 +546,7 @@ const OpportunitiesPanel = ({
     }
 
     if (onOpportunitySelect) {
-      onOpportunitySelect(null, null, null);
+      try { onOpportunitySelect(null, null, null); } catch (e) { console.error(e); }
     }
   };
 
@@ -494,11 +564,11 @@ const OpportunitiesPanel = ({
       alert(`Congratulations! You've selected "${opportunity.name}". The flight route from Manchester will be displayed.`);
 
       if (onCountrySelect) {
-        onCountrySelect(null);
+        try { onCountrySelect(null); } catch (e) { console.error(e); }
       }
 
       if (onOpportunitySelect) {
-        onOpportunitySelect(opportunity.lat, opportunity.lng, opportunity.name);
+        try { onOpportunitySelect(opportunity.lat, opportunity.lng, opportunity.name); } catch (e) { console.error(e); }
       }
 
       if (roomCode) {
@@ -518,11 +588,11 @@ const OpportunitiesPanel = ({
       alert(`Congratulations! You've selected "${opportunity.name}". The globe will reset to its default position.`);
 
       if (onCountrySelect) {
-        onCountrySelect(null);
+        try { onCountrySelect(null); } catch (e) { console.error(e); }
       }
 
       if (onOpportunitySelect) {
-        onOpportunitySelect(opportunity.lat, opportunity.lng, opportunity.name);
+        try { onOpportunitySelect(opportunity.lat, opportunity.lng, opportunity.name); } catch (e) { console.error(e); }
       }
 
       setSelectedOpportunityId(null);
@@ -542,7 +612,7 @@ const OpportunitiesPanel = ({
       // Clear the globe marker after a short delay so the "hadOpportunity" condition triggers the globe reset logic
       setTimeout(() => {
         if (onOpportunitySelect) {
-          onOpportunitySelect(null, null, null);
+          try { onOpportunitySelect(null, null, null); } catch (e) { console.error(e); }
         }
       }, 100);
     }
