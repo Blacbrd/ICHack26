@@ -1,12 +1,17 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom'; // Import useNavigate
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
 import { supabase } from '../lib/supabaseClient';
+import useTheme from '../lib/useTheme'; // Import the hook
 import './MyProfile.css';
 
 const MyProfile = ({ user }) => {
+  const navigate = useNavigate();
+  const [theme, setTheme] = useTheme('dark');
+  
   const [selectedFile, setSelectedFile] = useState(null);
   const [cvUrl, setCvUrl] = useState(null);
   const [uploading, setUploading] = useState(false);
@@ -16,6 +21,10 @@ const MyProfile = ({ user }) => {
   const [userId, setUserId] = useState(null);
   const [loading, setLoading] = useState(true);
   const calendarRef = useRef(null);
+
+  const toggleTheme = () => {
+    setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'));
+  };
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -198,13 +207,34 @@ const MyProfile = ({ user }) => {
     alert('Profile saved successfully!');
   };
 
-
-
   return (
-    <div className="myprofile-page">
+    // 1. Apply theme class here
+    <div className={`myprofile-page ${theme}`}>
+      
+      {/* 2. Theme Toggle Button */}
+      <button type="button" className="theme-toggle" onClick={toggleTheme}>
+        {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
+      </button>
+
       <div className="myprofile-container">
         <div className="myprofile-header">
           <h1>Profile</h1>
+          
+          {/* 3. Back Button */}
+          <button 
+            onClick={() => navigate('/')} 
+            style={{
+              marginTop: '10px', 
+              background:'none', 
+              border:'none', 
+              color:'var(--muted-color)', 
+              cursor:'pointer', 
+              textDecoration:'underline',
+              fontSize: '0.9rem'
+            }}
+          >
+             ← Back to Dashboard
+          </button>
         </div>
 
         <div className="profile-content">

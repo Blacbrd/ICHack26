@@ -346,7 +346,7 @@
 
 .btn-settings:hover {
   background: rgba(255, 255, 255, 0.3);
-  transform: rotate(15deg);
+  transform: rotate(60deg);
 }
 
 .volunteer-page.dark .btn-settings:hover {
