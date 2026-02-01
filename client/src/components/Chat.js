@@ -228,6 +228,8 @@ const Chat = ({ roomCode, userId, masterId, allOpportunities = [], onRankUpdate,
   const rankTimeoutRef = useRef(null);
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
+  const isRecordingRef = useRef(false);
+  const handleMicClickRef = useRef(null);
   const allOpportunitiesRef = useRef(allOpportunities);
   const onRankUpdateRef = useRef(onRankUpdate);
   const onRankingLoadingChangeRef = useRef(onRankingLoadingChange);
@@ -236,6 +238,46 @@ const Chat = ({ roomCode, userId, masterId, allOpportunities = [], onRankUpdate,
   useEffect(() => {
     allOpportunitiesRef.current = allOpportunities;
   }, [allOpportunities]);
+
+  // Keep isRecordingRef in sync
+  useEffect(() => {
+    isRecordingRef.current = isRecording;
+  }, [isRecording]);
+
+  // Space bar hold-to-record (only when not typing in chat input)
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      // Ignore if typing in an input/textarea
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+      // Ignore if not space bar
+      if (e.code !== 'Space') return;
+      // Prevent page scroll
+      e.preventDefault();
+      // Start recording if not already
+      if (!isRecordingRef.current && handleMicClickRef.current) {
+        handleMicClickRef.current();
+      }
+    };
+
+    const handleKeyUp = (e) => {
+      // Ignore if typing in an input/textarea
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+      // Ignore if not space bar
+      if (e.code !== 'Space') return;
+      // Stop recording if currently recording
+      if (isRecordingRef.current && handleMicClickRef.current) {
+        handleMicClickRef.current();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keyup', handleKeyUp);
+    };
+  }, []);
 
   useEffect(() => {
     onRankUpdateRef.current = onRankUpdate;
@@ -656,6 +698,9 @@ const Chat = ({ roomCode, userId, masterId, allOpportunities = [], onRankUpdate,
       console.error('Microphone permission denied or unavailable:', err);
     }
   };
+
+  // Keep ref updated for keyboard handler
+  handleMicClickRef.current = handleMicClick;
 
   const getUsername = (uid) => {
     return usernames[uid] || `User ${uid?.substring ? uid.substring(0, 8) : uid}`;
