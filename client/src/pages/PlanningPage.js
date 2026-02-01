@@ -28,7 +28,8 @@ const PlanningPage = ({ user }) => {
   const [rankingLoading, setRankingLoading] = useState(false);
   
   // --- NEW STATE FOR MULTI-SELECTION ---
-  const [selectedCharities, setSelectedCharities] = useState([]); // Array of objects
+  const [selectedCharities, setSelectedCharities] = useState([]); // Array of full charity objects
+  const [selectedCharityIds, setSelectedCharityIds] = useState([]); // Array of charity IDs only (for DB)
   const [showSelectedPopup, setShowSelectedPopup] = useState(false);
   // -------------------------------------
   
@@ -59,26 +60,60 @@ const PlanningPage = ({ user }) => {
     setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'));
   };
 
+  // Helper function to get full charity object by ID
+  const getCharityById = (id) => {
+    return opportunities.find(charity => charity.id === id);
+  };
+
   // --- NEW HANDLER FOR CHARITY SELECTION ---
-  const toggleCharitySelection = (charity) => {
-    setSelectedCharities((prev) => {
-      const exists = prev.find((c) => c.id === charity.id);
+  const toggleCharitySelection = async (charity) => {
+    // Calculate new selected charity IDs
+    const newSelectedCharityIds = (() => {
+      const exists = selectedCharityIds.find((id) => id === charity.id);
       if (exists) {
         // Remove it
-        return prev.filter((c) => c.id !== charity.id);
+        return selectedCharityIds.filter((id) => id !== charity.id);
       } else {
         // Add it (check limit)
-        if (prev.length >= 5) {
+        if (selectedCharityIds.length >= 5) {
           alert("You can only select up to 5 charities.");
-          return prev;
+          return selectedCharityIds;
         }
-        return [...prev, charity];
+        return [...selectedCharityIds, charity.id];
       }
-    });
+    })();
 
-    // NOTE: If you want to sync this list to Supabase for everyone to see,
-    // you would add a supabase.update() call here to save `selectedCharities`
-    // to a JSON column in your 'rooms' table.
+    // Update local state for IDs
+    setSelectedCharityIds(newSelectedCharityIds);
+
+    // Update full objects state by filtering opportunities
+    const newSelectedCharities = opportunities.filter(opp => 
+      newSelectedCharityIds.includes(opp.id)
+    );
+    setSelectedCharities(newSelectedCharities);
+
+    // Update Supabase with only the IDs (UUID array)
+    try {
+      const { error } = await supabase
+        .from('rooms')
+        .update({ selected_charities: newSelectedCharityIds })
+        .eq('room_code', roomCode);
+
+      if (error) {
+        console.error('Error updating selected_charities:', error);
+        // Revert local state on error
+        setSelectedCharityIds(selectedCharityIds);
+        setSelectedCharities(selectedCharities);
+        alert('Failed to save selection. Please try again.');
+      } else {
+        console.log('Selected charity IDs updated successfully:', newSelectedCharityIds.length);
+      }
+    } catch (err) {
+      console.error('Unexpected error updating selected_charities:', err);
+      // Revert local state on error
+      setSelectedCharityIds(selectedCharityIds);
+      setSelectedCharities(selectedCharities);
+    }
   };
   // -----------------------------------------
 
@@ -93,7 +128,7 @@ const PlanningPage = ({ user }) => {
       // Verify room exists and planning has started
       const { data: room, error: roomError } = await supabase
         .from('rooms')
-        .select('planning_started, master_id, selected_opportunity_lat, selected_opportunity_lng, selected_country')
+        .select('planning_started, master_id, selected_opportunity_lat, selected_opportunity_lng, selected_country, selected_charities')
         .eq('room_code', roomCode)
         .single();
 
@@ -151,6 +186,13 @@ const PlanningPage = ({ user }) => {
           });
       }
 
+      // Note: We'll load selected charities after opportunities are loaded
+      // We'll store the IDs for now
+      if (room.selected_charities && Array.isArray(room.selected_charities)) {
+        setSelectedCharityIds(room.selected_charities);
+        console.log('Loaded selected charity IDs from DB:', room.selected_charities.length);
+      }
+
       setRoomExists(true);
       setLoading(false);
     })();
@@ -201,6 +243,13 @@ const PlanningPage = ({ user }) => {
         // Keep paginatedOpportunities defaulting to entire list; OpportunitiesPanel may override
         setPaginatedOpportunities(flattened.slice(0, 50)); // first page by default
 
+        // Now that we have opportunities, we can map IDs to full objects
+        const selectedCharityObjects = flattened.filter(opp => 
+          selectedCharityIds.includes(opp.id)
+        );
+        setSelectedCharities(selectedCharityObjects);
+        console.log('Mapped selected charity IDs to objects:', selectedCharityObjects.length);
+
       } catch (err) {
         console.error('Unexpected error loading charities:', err);
       }
@@ -210,7 +259,7 @@ const PlanningPage = ({ user }) => {
 
     // Optionally, you could create a realtime subscription to 'charities' for live updates.
     // For now I'm only doing a single fetch — add realtime if desired.
-  }, []); // run once on mount
+  }, [selectedCharityIds]); // Run when charity IDs change
 
   // ------------- Realtime subscription for rooms (deletion + updates) -------------
   useEffect(() => {
@@ -235,10 +284,30 @@ const PlanningPage = ({ user }) => {
           filter: `room_code=eq.${roomCode}`,
         },
         (payload) => {
-          const { selected_opportunity_lat, selected_opportunity_lng, selected_country } = payload.new || {};
+          const { 
+            selected_opportunity_lat, 
+            selected_opportunity_lng, 
+            selected_country,
+            selected_charities 
+          } = payload.new || {};
+          
           const oldLat = payload.old?.selected_opportunity_lat;
           const oldLng = payload.old?.selected_opportunity_lng;
           const oldSelectedCountry = payload.old?.selected_country;
+          const oldSelectedCharities = payload.old?.selected_charities;
+
+          // Handle charity selection changes
+          if (JSON.stringify(selected_charities) !== JSON.stringify(oldSelectedCharities)) {
+            setSelectedCharityIds(selected_charities || []);
+            
+            // Map IDs to full objects
+            const selectedCharityObjects = opportunities.filter(opp => 
+              (selected_charities || []).includes(opp.id)
+            );
+            setSelectedCharities(selectedCharityObjects);
+            
+            console.log('Selected charities updated via realtime:', selected_charities?.length || 0);
+          }
 
           if (selected_country !== oldSelectedCountry ||
               selected_opportunity_lat !== oldLat ||
@@ -299,7 +368,7 @@ const PlanningPage = ({ user }) => {
         clearTimeout(masterIdleTimeoutRef.current);
       }
     };
-  }, [roomCode, navigate, isMaster, selectedCountry, opportunityMarker]);
+  }, [roomCode, navigate, isMaster, selectedCountry, opportunityMarker, opportunities]);
 
 
   // Cat invasion functionality (same as your original)
@@ -530,6 +599,17 @@ const PlanningPage = ({ user }) => {
       } else {
         navigate('/');
       }
+    }
+  };
+
+  const handleConfirmChoices = async () => {
+    try {
+      // You can add any confirmation logic here
+      console.log('Choices confirmed:', selectedCharities);
+      alert(`Confirmed ${selectedCharities.length} charity selections!`);
+      setShowSelectedPopup(false);
+    } catch (err) {
+      console.error('Error confirming choices:', err);
     }
   };
 
@@ -802,7 +882,7 @@ const PlanningPage = ({ user }) => {
         />
       )}
 
-{/* --- NEW SELECTED CHARITIES POPUP --- */}
+      {/* --- NEW SELECTED CHARITIES POPUP --- */}
       {showSelectedPopup && (
         <div 
           className="selected-charities-overlay"
@@ -904,10 +984,7 @@ const PlanningPage = ({ user }) => {
               }}
             >
               <button
-                onClick={() => {
-                  // Placeholder for future functionality
-                  console.log("Choices confirmed (placeholder)");
-                }}
+                onClick={handleConfirmChoices}
                 style={{
                   padding: '0.5rem 1rem',
                   backgroundColor: '#10b981',

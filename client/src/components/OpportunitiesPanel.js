@@ -28,6 +28,7 @@ const OpportunitiesPanel = ({
 
   // Store the full grouped data (object keyed by country)
   const [opportunitiesData, setOpportunitiesData] = useState(null);
+  const [filteredOpportunities, setFilteredOpportunities] = useState([]);
 
   // Keep a ref to the latest opportunities so realtime subscription handlers
   // don't require re-subscribing when opportunities array identity changes
@@ -138,6 +139,7 @@ const OpportunitiesPanel = ({
         }, {});
 
         setOpportunities(validated);
+        setFilteredOpportunities(validated); // Initialize filtered opportunities
         setOpportunitiesData(grouped);
         setError(null);
         setLoading(false);
@@ -188,6 +190,7 @@ const OpportunitiesPanel = ({
         if (!mounted) return;
 
         setOpportunities(validated);
+        setFilteredOpportunities(validated); // Initialize filtered opportunities
         setOpportunitiesData(grouped);
         setError(null);
         setLoading(false);
@@ -212,101 +215,83 @@ const OpportunitiesPanel = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Update opportunities when selectedCountry or initial data changes.
+  // Update filtered opportunities when selectedCountry changes
   useEffect(() => {
-    if (!opportunitiesData) return;
+    if (!opportunities.length || !selectedCountry) {
+      setFilteredOpportunities(opportunities);
+      return;
+    }
 
-    // If a specific opportunity is selected, don't change the opportunities list
-    if (selectedOpportunityId) return;
-
-    if (selectedCountry) {
-      // Find country key (case-insensitive)
-      const countryKey = Object.keys(opportunitiesData).find(
-        (key) => key.toLowerCase() === selectedCountry.toLowerCase()
-      );
-
-      if (countryKey && Array.isArray(opportunitiesData[countryKey])) {
-        const validatedOpportunities = validateAndNormalize(opportunitiesData[countryKey]);
-        setOpportunities(validatedOpportunities);
-        setError(null);
-      } else {
-        // Country not found: show all or empty list depending on your preference
-        // We'll show an empty list (consistent with previous behavior fallback)
-        setOpportunities([]);
-        setError(null);
+    // Normalize the selected country for comparison
+    const normalizedSelected = selectedCountry.toLowerCase().trim();
+    
+    // Filter opportunities based on country match
+    const filtered = opportunities.filter((opp) => {
+      const oppCountry = opp.country ? opp.country.toLowerCase().trim() : '';
+      
+      // Direct match
+      if (oppCountry === normalizedSelected) {
+        return true;
       }
-    } else {
-      // No country selected -> aggregate all groups into one list (or keep previous "hardcode" logic)
-      const aggregated = Object.values(opportunitiesData).flat();
-      setOpportunities(aggregated);
-      setError(null);
-    }
+      
+      // Check for common variations
+      const countryGroups = {
+        'united states': ['usa', 'united states of america', 'us', 'u.s.', 'u.s.a.'],
+        'united kingdom': ['uk', 'britain', 'great britain', 'england', 'scotland', 'wales'],
+        'russia': ['russian federation'],
+        'japan': [],
+        'brazil': [],
+        'india': [],
+        'germany': ['deutschland'],
+        'australia': ['aus'],
+        'mexico': [],
+        'china': ['peoples republic of china'],
+        'argentina': [],
+        'egypt': []
+      };
 
-    setCurrentPage(1);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedCountry, opportunitiesData, selectedOpportunityId]);
+      // Check if selected country is in any group
+      for (const [mainCountry, variations] of Object.entries(countryGroups)) {
+        if (mainCountry === normalizedSelected || variations.includes(normalizedSelected)) {
+          // Check if opportunity country matches any variation in this group
+          if (oppCountry === mainCountry || variations.includes(oppCountry)) {
+            return true;
+          }
+        }
+      }
 
-  // Notify parent when opportunities change (this is still useful)
-  useEffect(() => {
-    if (onOpportunitiesChange) {
-      onOpportunitiesChange(opportunities);
-      console.debug('Notified parent of opportunities change:', opportunities.length);
-    }
-  }, [opportunities, onOpportunitiesChange]);
+      // Check for partial matches (if both strings are long enough)
+      if (normalizedSelected.length >= 3 && oppCountry.includes(normalizedSelected)) {
+        return true;
+      }
+      if (oppCountry.length >= 3 && normalizedSelected.includes(oppCountry)) {
+        return true;
+      }
+
+      return false;
+    });
+
+    console.debug(`Filtered ${filtered.length} opportunities for country: ${selectedCountry}`);
+    setFilteredOpportunities(filtered);
+    setCurrentPage(1); // Reset to first page when filtering
+
+    // Notify parent about filtered opportunities
+    onOpportunitiesChange && onOpportunitiesChange(filtered);
+    onPaginatedOpportunitiesChange && onPaginatedOpportunitiesChange(filtered.slice(0, itemsPerPage));
+
+  }, [selectedCountry, opportunities, onOpportunitiesChange, onPaginatedOpportunitiesChange]);
 
   // When the list of opportunities changes, reset to page 1
   useEffect(() => {
     setCurrentPage(1);
-  }, [opportunities.length, selectedCountry]);
-
-  // Helper function to match country names (kept your existing logic)
-  const matchCountry = (oppCountry, selectedCountryStr) => {
-    const opp = oppCountry?.toLowerCase().trim() || '';
-    const selected = selectedCountryStr?.toLowerCase().trim() || '';
-
-    if (!opp || !selected) return false;
-    if (opp === selected) return true;
-
-    const countryGroups = [
-      ['united states', 'united states of america', 'usa'],
-      ['united kingdom', 'uk', 'britain', 'great britain', 'england'],
-      ['russia', 'russian federation'],
-      ['japan'],
-      ['brazil'],
-      ['india'],
-      ['germany'],
-      ['australia'],
-      ['mexico'],
-      ['china'],
-      ['argentina'],
-      ['egypt'],
-    ];
-
-    for (const group of countryGroups) {
-      const selectedInGroup = group.some((v) => v === selected);
-      const oppInGroup = group.some((v) => v === opp);
-      if (selectedInGroup && oppInGroup) return true;
-    }
-
-    if (selected.includes(opp) && opp.length >= 5) return true;
-    if (opp.includes(selected) && selected.length >= 5) return true;
-
-    return false;
-  };
-
-  // Memoize filtered opportunities so we only compute this when inputs change
-  const filteredOpportunities = useMemo(() => {
-    if (!selectedCountry) return opportunities;
-
-    const filtered = opportunities.filter((opp) => matchCountry(opp.country, selectedCountry));
-    console.debug(`Filtered opportunities for country "${selectedCountry}": ${filtered.length}`);
-    return filtered;
-  }, [opportunities, selectedCountry]);
+  }, [filteredOpportunities.length, selectedCountry]);
 
   // Compute displayed opportunities (either all filtered or only the selected one),
   // then apply AI ranking if available
   const displayedOpportunities = useMemo(() => {
-    const base = showAllOpportunities ? filteredOpportunities : filteredOpportunities.filter((opp) => opp.id === selectedOpportunityId);
+    const base = showAllOpportunities 
+      ? filteredOpportunities 
+      : filteredOpportunities.filter((opp) => opp.id === selectedOpportunityId);
 
     // Apply AI ranking if we have ranked IDs
     if (rankedOpportunityIds && rankedOpportunityIds.length > 0 && showAllOpportunities) {
@@ -614,7 +599,7 @@ const OpportunitiesPanel = ({
         )}
         {showAllOpportunities && (
           <span className="opportunities-count">
-            {rankingLoading ? 'Ranking...' : (selectedCountry ? filteredOpportunities.length : opportunities.length)}
+            {rankingLoading ? 'Ranking...' : filteredOpportunities.length}
           </span>
         )}
       </div>
@@ -623,6 +608,11 @@ const OpportunitiesPanel = ({
         {displayedOpportunities.length === 0 ? (
           <div className="opportunities-empty">
             <p>No opportunities available.</p>
+            {selectedCountry && (
+              <p className="opportunities-hint">
+                Try selecting a different country or clear the country filter.
+              </p>
+            )}
           </div>
         ) : (
           <>
