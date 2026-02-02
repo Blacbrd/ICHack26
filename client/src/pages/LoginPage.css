@@ -9,8 +9,10 @@
   --muted-color: #ffffff;
 
   /* INSIDE-PANEL text (keep original theme colors) */
-  --panel-text-color: #0b1224;    /* original light-mode text */
-  --panel-muted-color: #5b6b86;   /* original light-mode muted */
+  --panel-text-color: #0b1224;
+  /* original light-mode text */
+  --panel-muted-color: #5b6b86;
+  /* original light-mode muted */
 
   --accent: #1c67e6;
   --accent-strong: #0f3b88;
@@ -48,8 +50,10 @@
   --muted-color: #ffffff;
 
   /* INSIDE-PANEL text for dark theme (keep original light text inside dark panel) */
-  --panel-text-color: #f6f8ff;    /* original dark-mode text */
-  --panel-muted-color: #b7c3da;   /* original dark-mode muted */
+  --panel-text-color: #f6f8ff;
+  /* original dark-mode text */
+  --panel-muted-color: #b7c3da;
+  /* original dark-mode muted */
 
   --accent: #6aa5ff;
   --accent-strong: #2c7dff;
@@ -77,11 +81,13 @@
   opacity: 0.3;
   z-index: 0;
 }
+
 .login-page::before {
   background: rgba(28, 103, 230, 0.18);
   top: -100px;
   left: -60px;
 }
+
 .login-page::after {
   background: rgba(15, 59, 136, 0.2);
   bottom: -80px;
@@ -108,7 +114,8 @@
   right: 24px;
   border: 1px solid var(--panel-border);
   background: var(--panel-bg);
-  color: var(--text-color); /* OUTSIDE-BOX => white */
+  color: var(--text-color);
+  /* OUTSIDE-BOX => white */
   border-radius: 999px;
   padding: 8px 18px;
   font-size: 14px;
@@ -120,9 +127,11 @@
   box-shadow: 0 15px 40px rgba(8, 15, 35, 0.12);
   z-index: 5;
 }
+
 .login-page .theme-icon {
   font-size: 16px;
-  color: var(--text-color); /* white */
+  color: var(--text-color);
+  /* white */
 }
 
 /* PANEL: keep original text colors by using panel variables */
@@ -226,11 +235,13 @@
   box-shadow: var(--button-shadow);
   transition: transform 0.2s, box-shadow 0.2s;
 }
+
 .login-container .btn.btn-primary:hover:not(:disabled) {
   transform: translateY(-3px);
   box-shadow: var(--button-shadow-hover);
   background: var(--button-gradient-hover);
 }
+
 .login-container .btn.btn-primary:disabled {
   opacity: 0.75;
   cursor: not-allowed;
@@ -249,7 +260,8 @@
 .btn-link {
   background: transparent;
   border: none;
-  color: var(--text-color); /* outside -> white */
+  color: var(--text-color);
+  /* outside -> white */
   text-decoration: underline;
   cursor: pointer;
   padding: 0;
@@ -278,7 +290,64 @@
   border: 1px solid var(--error-border);
 }
 
-/* Responsive tweaks (panel contents remain same) */
+/* Role selection toggle */
+.role-selection {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.role-option {
+  flex: 1;
+  position: relative;
+}
+
+.role-option input[type="radio"] {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.role-label {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  border: 2px solid var(--field-border);
+  border-radius: 16px;
+  background: var(--field-bg);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-align: center;
+  min-height: 80px;
+}
+
+.role-label:hover {
+  border-color: var(--accent);
+  background: rgba(28, 103, 230, 0.05);
+}
+
+.role-option input[type="radio"]:checked+.role-label {
+  border-color: var(--accent);
+  background: rgba(28, 103, 230, 0.12);
+  box-shadow: 0 4px 12px rgba(28, 103, 230, 0.2);
+}
+
+.role-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--panel-text-color);
+  margin-bottom: 4px;
+}
+
+.role-description {
+  font-size: 12px;
+  color: var(--panel-muted-color);
+}
+
+/* Causes as chips/pills */
 .causes-container {
   background: var(--field-bg);
   border: 1.5px solid var(--field-border);
@@ -291,51 +360,198 @@
   display: block;
   font-size: 15px;
   font-weight: 600;
-  color: var(--text-color);
+  color: var(--panel-text-color);
   margin-bottom: 14px;
 }
 
 .causes-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 10px;
-  max-height: 280px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  max-height: 240px;
   overflow-y: auto;
   padding: 4px;
 }
 
-.cause-checkbox {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  cursor: pointer;
-  padding: 8px 10px;
-  border-radius: 8px;
-  transition: background-color 0.2s;
+.cause-chip {
+  position: relative;
 }
 
-.cause-checkbox:hover {
-  background: rgba(28, 103, 230, 0.08);
+.cause-chip input[type="checkbox"] {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
 }
 
-.cause-checkbox input[type="checkbox"] {
-  cursor: pointer;
-  width: 18px;
-  height: 18px;
-  accent-color: var(--accent);
-}
-
-.cause-text {
+.cause-chip-label {
+  display: inline-block;
+  padding: 10px 16px;
+  border: 1.5px solid var(--field-border);
+  border-radius: 999px;
+  background: var(--field-bg);
+  color: var(--panel-text-color);
   font-size: 14px;
-  color: var(--text-color);
+  cursor: pointer;
+  transition: all 0.2s ease;
   user-select: none;
 }
 
+.cause-chip-label:hover {
+  border-color: var(--accent);
+  background: rgba(28, 103, 230, 0.08);
+}
+
+.cause-chip input[type="checkbox"]:checked+.cause-chip-label {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #ffffff;
+  font-weight: 600;
+}
+
 .causes-selected {
-  margin: 12px 0 0 0;
+  margin: 16px 0 0 0;
   font-size: 13px;
   color: var(--accent);
   font-weight: 600;
+  text-align: center;
+}
+
+/* Profile picture upload */
+.profile-upload {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 24px;
+  border: 2px dashed var(--field-border);
+  border-radius: 18px;
+  background: var(--field-bg);
+  transition: all 0.3s ease;
+}
+
+.profile-upload:hover {
+  border-color: var(--accent);
+  background: rgba(28, 103, 230, 0.05);
+}
+
+.profile-preview {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid var(--accent);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.profile-placeholder {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent), var(--accent-strong));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 40px;
+  color: white;
+  font-weight: 600;
+}
+
+.upload-button {
+  position: relative;
+  overflow: hidden;
+  display: inline-block;
+}
+
+.upload-button input[type="file"] {
+  position: absolute;
+  left: -9999px;
+}
+
+.upload-label {
+  display: inline-block;
+  padding: 12px 24px;
+  background: var(--accent);
+  color: white;
+  border-radius: 12px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 14px;
+  transition: all 0.2s ease;
+}
+
+.upload-label:hover {
+  background: var(--accent-strong);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(28, 103, 230, 0.3);
+}
+
+.upload-hint {
+  font-size: 12px;
+  color: var(--panel-muted-color);
+  text-align: center;
+}
+
+/* Charity fields container */
+.charity-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* Remote opportunity checkbox */
+.remote-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.9rem;
+  color: var(--panel-muted-color);
+  cursor: pointer;
+  padding: 12px 16px;
+  border: 1.5px solid var(--field-border);
+  border-radius: 12px;
+  background: var(--field-bg);
+  transition: all 0.2s ease;
+}
+
+.remote-checkbox:hover {
+  border-color: var(--accent);
+  background: rgba(28, 103, 230, 0.05);
+}
+
+.remote-checkbox input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  accent-color: var(--accent);
+}
+
+/* Input field consistency */
+.form-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 16px 20px;
+  font-size: 16px;
+  border: 1.5px solid var(--field-border);
+  border-radius: 18px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  background: var(--field-bg);
+  color: var(--panel-text-color);
+}
+
+.form-input::placeholder {
+  color: var(--panel-muted-color);
+  opacity: 0.7;
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--field-focus);
+}
+
+select.form-input {
+  cursor: pointer;
 }
 
 @media (max-width: 640px) {
@@ -358,7 +574,10 @@
   }
 
   .causes-grid {
-    grid-template-columns: 1fr;
-    max-height: 200px;
+    max-height: 180px;
+  }
+
+  .role-selection {
+    flex-direction: column;
   }
 }

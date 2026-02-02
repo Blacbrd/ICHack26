@@ -450,9 +450,9 @@ const PlanningPage = ({ user }) => {
         const screenHeight = window.innerHeight;
 
         return cat.x > -cat.size &&
-               cat.y > -cat.size &&
-               catRight < screenWidth + cat.size &&
-               catBottom < screenHeight + cat.size;
+          cat.y > -cat.size &&
+          catRight < screenWidth + cat.size &&
+          catBottom < screenHeight + cat.size;
       }));
     };
 
@@ -508,41 +508,9 @@ const PlanningPage = ({ user }) => {
     };
   }, []);
 
-  // ----------------- Leave room -----------------
-  const handleLeaveRoom = async () => {
-    if (!user) return;
-
-    if (isMaster) {
-      if (!window.confirm('Are you sure you want to leave and delete this room? All participants will be returned to the landing page.')) {
-        return;
-      }
-
-      const { error } = await supabase
-        .from('rooms')
-        .delete()
-        .eq('room_code', roomCode)
-        .eq('master_id', userId);
-
-      if (error) {
-        alert('Failed to delete room.');
-        console.error('Error deleting room:', error);
-      } else {
-        navigate('/');
-      }
-    } else {
-      const { error } = await supabase
-        .from('room_participants')
-        .delete()
-        .eq('room_code', roomCode)
-        .eq('user_id', userId);
-
-      if (error) {
-        alert('Failed to leave room.');
-        console.error('Error leaving room:', error);
-      } else {
-        navigate('/');
-      }
-    }
+  // ----------------- Go back -----------------
+  const handleGoBack = () => {
+    navigate('/');
   };
 
   // ----------------- Memoized callbacks for OpportunitiesPanel -----------------
@@ -658,21 +626,26 @@ const PlanningPage = ({ user }) => {
     <div className={`planning-page ${theme}`}>
       <div className="planning-header">
         <h1>Planning Room: {roomCode}</h1>
-
-        {/* Selected charities button (multi-select panel) */}
-        <button
-          className="btn btn-primary"
-          style={{ margin: '0 20px' }}
-          onClick={() => setShowSelectedPopup(true)}
-        >
-          Show selected charities ({selectedCharities.length})
-        </button>
-
         <div className="planning-header-actions">
-          <button type="button" className="theme-toggle" onClick={toggleTheme}>
+          <button
+            className="btn-show-selected"
+            onClick={() => setShowSelectedPopup(true)}
+            style={{
+              padding: '8px 16px',
+              backgroundColor: '#10b981',
+              color: 'white',
+              border: 'none',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              fontWeight: '600'
+            }}
+          >
+            Show Selected ({selectedCharities.length})
+          </button>
+          <button className="theme-toggle" onClick={toggleTheme}>
             {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
           </button>
-          <button onClick={handleLeaveRoom} className="btn btn-leave-room">Leave Room</button>
+          <button className="btn-leave-room" onClick={handleGoBack}>← Go Back</button>
         </div>
       </div>
 
@@ -867,9 +840,9 @@ const PlanningPage = ({ user }) => {
           initialOpportunities={opportunities}
           initialOpportunitiesData={opportunitiesData}
 
-          // update local paginated/opportunities if child decides to notify:
-          // (child will call these stable handlers)
-          // onPaginatedOpportunitiesChange passed above already points to handlePaginatedOpportunitiesChange
+        // update local paginated/opportunities if child decides to notify:
+        // (child will call these stable handlers)
+        // onPaginatedOpportunitiesChange passed above already points to handlePaginatedOpportunitiesChange
         />
       </div>
 

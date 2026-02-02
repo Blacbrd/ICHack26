@@ -44,20 +44,85 @@ const LoginPage = () => {
   const [password, setPassword] = useState('');
   const [username, setUsername] = useState('');
   const [avatarUrl, setAvatarUrl] = useState('');
+  const [avatarFile, setAvatarFile] = useState(null);
+  const [avatarPreview, setAvatarPreview] = useState('');
   const [causes, setCauses] = useState([]);
   const [isCharity, setIsCharity] = useState(false);
 
   // Charity fields
-  const [lat, setLat] = useState('');
-  const [lon, setLon] = useState('');
+  const [address, setAddress] = useState('');
   const [country, setCountry] = useState('');
   const [link, setLink] = useState('');
+  const [isRemote, setIsRemote] = useState(false);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [theme, setTheme] = useTheme('dark');
 
   const toggleTheme = () => setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'));
+
+  // Handle profile picture upload
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setAvatarFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setAvatarPreview(reader.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  // Upload avatar to Supabase storage
+  const uploadAvatar = async (file, userId) => {
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${userId}-${Date.now()}.${fileExt}`;
+    const filePath = `avatars/${fileName}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from('avatars')
+      .upload(filePath, file);
+
+    if (uploadError) {
+      console.error('Avatar upload error:', uploadError);
+      return null;
+    }
+
+    const { data } = supabase.storage.from('avatars').getPublicUrl(filePath);
+    return data.publicUrl;
+  };
+
+  // Geocode address to lat/lon using Nominatim API
+  const addressToLatLng = async (addressString) => {
+    const url = "https://nominatim.openstreetmap.org/search";
+    const params = new URLSearchParams({
+      q: addressString,
+      format: "json",
+      limit: "1"
+    });
+
+    try {
+      const response = await fetch(`${url}?${params}`, {
+        headers: {
+          "User-Agent": "IMCharitable-App"
+        }
+      });
+      const data = await response.json();
+
+      if (!data || data.length === 0) {
+        return null;
+      }
+
+      return {
+        lat: parseFloat(data[0].lat),
+        lon: parseFloat(data[0].lon)
+      };
+    } catch (error) {
+      console.error('Geocoding error:', error);
+      return null;
+    }
+  };
 
   // Toggle a cause on/off (used in both charity and volunteer signups)
   const handleCauseToggle = (cause) => {
@@ -73,8 +138,8 @@ const LoginPage = () => {
   };
 
   const validateCharityFields = () => {
-    if (!lat || !lon) {
-      setError('Latitude and longitude are required for charities.');
+    if (!isRemote && !address) {
+      setError('Address is required for charities (unless remote).');
       return false;
     }
     if (!country) {
@@ -83,12 +148,6 @@ const LoginPage = () => {
     }
     if (causes.length < 1 || causes.length > 5) {
       setError('Please select between 1 and 5 causes.');
-      return false;
-    }
-    const latN = Number(lat);
-    const lonN = Number(lon);
-    if (Number.isNaN(latN) || Number.isNaN(lonN)) {
-      setError('Latitude and longitude must be valid numbers.');
       return false;
     }
     return true;
@@ -150,14 +209,34 @@ const LoginPage = () => {
 
         const userId = user.id;
 
+        // Upload avatar if file was selected
+        let finalAvatarUrl = avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(username || email.split('@')[0])}`;
+        if (avatarFile) {
+          const uploadedUrl = await uploadAvatar(avatarFile, userId);
+          if (uploadedUrl) {
+            finalAvatarUrl = uploadedUrl;
+          }
+        }
+
         if (isCharity) {
+          // Geocode the address to get lat/lon (skip if remote)
+          let coords = null;
+          if (!isRemote) {
+            coords = await addressToLatLng(address);
+            if (!coords) {
+              setError('Could not find coordinates for the provided address. Please check the address and try again.');
+              setLoading(false);
+              return;
+            }
+          }
+
           // Insert charity record into charities table
           const charityPayload = {
             charity_id: userId,
             name: username || (email ? email.split('@')[0] : 'Charity'),
             email,
-            lat: Number(lat),
-            lon: Number(lon),
+            lat: coords?.lat || null,
+            lon: coords?.lon || null,
             country,
             causes,
             link: link || null,
@@ -180,7 +259,7 @@ const LoginPage = () => {
             username: username || (email ? email.split('@')[0] : ''),
             email,
             causes: causes.length ? causes : null,
-            avatar_url: avatarUrl || null,
+            avatar_url: finalAvatarUrl,
           };
 
           const { error: upsertError } = await supabase.from('profiles').upsert(profilePayload);
@@ -260,82 +339,155 @@ const LoginPage = () => {
               <input
                 type="text"
                 className="form-input"
-                placeholder={isCharity ? 'Charity name' : 'Username'}
+                placeholder={isCharity ? 'Charity Name' : 'Username'}
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 required
               />
 
-              <div className="role-selection" style={{ marginBottom: 12 }}>
-                <label style={{ marginRight: 12 }}>
-                  <input type="radio" name="role" value="volunteer" checked={!isCharity} onChange={() => setIsCharity(false)} /> Volunteer
-                </label>
-                <label>
-                  <input type="radio" name="role" value="charity" checked={isCharity} onChange={() => setIsCharity(true)} /> Charity
-                </label>
+              {/* Role Selection - Modern Card Style */}
+              <div className="role-selection">
+                <div className="role-option">
+                  <input
+                    type="radio"
+                    id="role-volunteer"
+                    name="role"
+                    value="volunteer"
+                    checked={!isCharity}
+                    onChange={() => setIsCharity(false)}
+                  />
+                  <label htmlFor="role-volunteer" className="role-label">
+                    <div className="role-title">Volunteer</div>
+                    <div className="role-description">Join and contribute</div>
+                  </label>
+                </div>
+                <div className="role-option">
+                  <input
+                    type="radio"
+                    id="role-charity"
+                    name="role"
+                    value="charity"
+                    checked={isCharity}
+                    onChange={() => setIsCharity(true)}
+                  />
+                  <label htmlFor="role-charity" className="role-label">
+                    <div className="role-title">Charity</div>
+                    <div className="role-description">Find volunteers</div>
+                  </label>
+                </div>
               </div>
 
               {/* Charity-specific fields */}
               {isCharity && (
-                <div className="charity-fields" style={{ marginBottom: 12 }}>
-                  <div style={{ display: 'flex', gap: 8 }}>
-                    <input type="number" step="any" className="form-input" placeholder="Latitude" value={lat} onChange={(e) => setLat(e.target.value)} required />
-                    <input type="number" step="any" className="form-input" placeholder="Longitude" value={lon} onChange={(e) => setLon(e.target.value)} required />
-                  </div>
+                <div className="charity-fields">
+                  <input
+                    type="text"
+                    className="form-input"
+                    placeholder="Address"
+                    value={address}
+                    onChange={(e) => setAddress(e.target.value)}
+                    required={!isRemote}
+                    disabled={isRemote}
+                    style={isRemote ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
+                  />
 
-                  <div style={{ marginTop: 8 }}>
-                    <select className="form-input" value={country} onChange={(e) => setCountry(e.target.value)} required>
-                      <option value="">Select country</option>
-                      {COUNTRY_OPTIONS.map((c) => <option key={c} value={c}>{c}</option>)}
-                    </select>
-                  </div>
+                  <label className="remote-checkbox">
+                    <input
+                      type="checkbox"
+                      checked={isRemote}
+                      onChange={(e) => setIsRemote(e.target.checked)}
+                    />
+                    Remote Opportunity
+                  </label>
 
-                  <div style={{ marginTop: 8 }}>
-                    <label>Causes (select 1–5):</label>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                  <select className="form-input" value={country} onChange={(e) => setCountry(e.target.value)} required>
+                    <option value="">Select Country</option>
+                    {COUNTRY_OPTIONS.map((c) => (
+                      <option key={c} value={c}>
+                        {c.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
+                      </option>
+                    ))}
+                  </select>
+
+                  <div className="causes-container">
+                    <label className="causes-label">Select Causes (1–5)</label>
+                    <div className="causes-grid">
                       {CAUSES_LIST.map((c) => (
-                        <label key={c} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                          <input type="checkbox" checked={causes.includes(c)} onChange={() => handleCauseToggle(c)} />
-                          <span style={{ fontSize: 14 }}>{c}</span>
-                        </label>
+                        <div key={c} className="cause-chip">
+                          <input
+                            type="checkbox"
+                            id={`charity-cause-${c}`}
+                            checked={causes.includes(c)}
+                            onChange={() => handleCauseToggle(c)}
+                          />
+                          <label htmlFor={`charity-cause-${c}`} className="cause-chip-label">
+                            {c}
+                          </label>
+                        </div>
                       ))}
                     </div>
+                    {causes.length > 0 && (
+                      <p className="causes-selected">
+                        {causes.length} of 5 selected
+                      </p>
+                    )}
                   </div>
 
-                  <div style={{ marginTop: 8 }}>
-                    <input type="url" className="form-input" placeholder="Website (optional)" value={link} onChange={(e) => setLink(e.target.value)} />
-                  </div>
+                  <input
+                    type="url"
+                    className="form-input"
+                    placeholder="Website (Optional)"
+                    value={link}
+                    onChange={(e) => setLink(e.target.value)}
+                  />
                 </div>
               )}
 
-              {/* Avatar / profile picture for both roles */}
-              <input
-                type="url"
-                className="form-input"
-                placeholder="Profile Picture URL (Optional)"
-                value={avatarUrl}
-                onChange={(e) => setAvatarUrl(e.target.value)}
-              />
+              {/* Profile Picture Upload */}
+              <div className="profile-upload">
+                {avatarPreview ? (
+                  <img src={avatarPreview} alt="Profile preview" className="profile-preview" />
+                ) : (
+                  <div className="profile-placeholder">
+                    {username ? username.charAt(0).toUpperCase() : '?'}
+                  </div>
+                )}
+                <div className="upload-button">
+                  <input
+                    type="file"
+                    id="avatar-upload"
+                    accept="image/*"
+                    onChange={handleFileChange}
+                  />
+                  <label htmlFor="avatar-upload" className="upload-label">
+                    {avatarPreview ? 'Change Photo' : 'Upload Photo'}
+                  </label>
+                </div>
+                <p className="upload-hint">JPG, PNG or GIF (Max 5MB)</p>
+              </div>
 
-              {/* Causes selection area for volunteers too (optional) */}
+              {/* Causes selection area for volunteers */}
               {!isCharity && (
-                <div className="causes-container" style={{ marginTop: 8 }}>
-                  <label className="causes-label">Select your causes of interest (optional):</label>
+                <div className="causes-container">
+                  <label className="causes-label">Select Causes (Optional)</label>
                   <div className="causes-grid">
                     {CAUSES_LIST.map((cause) => (
-                      <label key={cause} className="cause-checkbox">
+                      <div key={cause} className="cause-chip">
                         <input
                           type="checkbox"
+                          id={`volunteer-cause-${cause}`}
                           checked={causes.includes(cause)}
                           onChange={() => handleCauseToggle(cause)}
                         />
-                        <span className="cause-text">{cause}</span>
-                      </label>
+                        <label htmlFor={`volunteer-cause-${cause}`} className="cause-chip-label">
+                          {cause}
+                        </label>
+                      </div>
                     ))}
                   </div>
                   {causes.length > 0 && (
                     <p className="causes-selected">
-                      Selected: {causes.length} cause{causes.length !== 1 ? 's' : ''}
+                      {causes.length} selected
                     </p>
                   )}
                 </div>
@@ -343,9 +495,26 @@ const LoginPage = () => {
             </>
           )}
 
-          <input type="email" className="form-input" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} required autoComplete="email" />
+          <input
+            type="email"
+            className="form-input"
+            placeholder="Email Address"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+            autoComplete="email"
+          />
 
-          <input type="password" className="form-input" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} required autoComplete={isSignUp ? 'new-password' : 'current-password'} minLength={6} />
+          <input
+            type="password"
+            className="form-input"
+            placeholder="Password (min 6 characters)"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+            autoComplete={isSignUp ? 'new-password' : 'current-password'}
+            minLength={6}
+          />
 
           <button type="submit" className="btn btn-primary" disabled={loading}>
             {loading ? 'Please wait...' : isSignUp ? 'Sign Up' : 'Sign In'}

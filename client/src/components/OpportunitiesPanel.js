@@ -28,9 +28,20 @@ const OpportunitiesPanel = ({
   const [selectedOpportunityId, setSelectedOpportunityId] = useState(null);
   const [error, setError] = useState(null);
   const [showAllOpportunities, setShowAllOpportunities] = useState(true);
+  const [showRemote, setShowRemote] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
   const debounceTimerRef = useRef(null);
+
+  // Helper function to title case country names (single or multiple words)
+  const toTitleCase = (str) => {
+    if (!str) return '';
+    return str
+      .toLowerCase()
+      .split(' ')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
+  };
 
   // Store the full grouped data (object keyed by country)
   const [opportunitiesData, setOpportunitiesData] = useState(null);
@@ -74,23 +85,20 @@ const OpportunitiesPanel = ({
         const country = (opp.country || opp.Country || opp.location || 'Unknown').toString();
         const id = opp.charity_id || opp.id || `opp-${index}`;
 
-        if (typeof lat !== 'number' || typeof lng !== 'number') {
-          console.warn(`Invalid coordinates for opportunity ${index}:`, opp);
-          return null;
-        }
+        const isRemote = typeof lat !== 'number' || typeof lng !== 'number';
 
         return {
           id,
-          lat,
-          lng,
+          lat: isRemote ? null : lat,
+          lng: isRemote ? null : lng,
           name,
           link,
           country,
+          isRemote,
           // keep raw DB fields for later use if needed:
           raw: opp,
         };
       })
-      .filter((opp) => opp !== null); // Remove invalid entries
 
     console.debug(`validateAndNormalize: ${opportunitiesList.length} input, ${validated.length} validated`);
     return validated;
@@ -126,8 +134,8 @@ const OpportunitiesPanel = ({
           charity_id: row.charity_id,
           name: row.name,
           email: row.email,
-          lat: Number(row.lat),
-          lon: Number(row.lon),
+          lat: row.lat != null ? Number(row.lat) : null,
+          lon: row.lon != null ? Number(row.lon) : null,
           country: row.country || '',
           causes: row.causes || [],
           link: row.link || '',
@@ -233,16 +241,16 @@ const OpportunitiesPanel = ({
 
     // Normalize the selected country for comparison
     const normalizedSelected = selectedCountry.toLowerCase().trim();
-    
+
     // Filter opportunities based on country match
     const filtered = opportunities.filter((opp) => {
       const oppCountry = opp.country ? opp.country.toLowerCase().trim() : '';
-      
+
       // Direct match
       if (oppCountry === normalizedSelected) {
         return true;
       }
-      
+
       // Check for common variations
       const countryGroups = {
         'united states': ['usa', 'united states of america', 'us', 'u.s.', 'u.s.a.'],
@@ -299,17 +307,24 @@ const OpportunitiesPanel = ({
   // Compute displayed opportunities (either all filtered or only the selected one),
   // then apply AI ranking if available
   const displayedOpportunities = useMemo(() => {
-    const base = showAllOpportunities 
-      ? filteredOpportunities 
+    let base = showAllOpportunities
+      ? filteredOpportunities
       : filteredOpportunities.filter((opp) => opp.id === selectedOpportunityId);
 
-    // Apply AI ranking if we have ranked IDs
+    // Hide remote (null lat/lng) opportunities unless the checkbox is ticked
+    if (!showRemote) {
+      base = base.filter((opp) => !opp.isRemote);
+    }
+
+    // Sort remote opportunities to the top, then apply AI ranking within each group
     if (rankedOpportunityIds && rankedOpportunityIds.length > 0 && showAllOpportunities) {
       const idToIndex = {};
       rankedOpportunityIds.forEach((id, idx) => {
         idToIndex[id] = idx;
       });
       const sorted = [...base].sort((a, b) => {
+        // Remote items always come first
+        if (a.isRemote !== b.isRemote) return a.isRemote ? -1 : 1;
         const aIdx = idToIndex[a.id] !== undefined ? idToIndex[a.id] : rankedOpportunityIds.length;
         const bIdx = idToIndex[b.id] !== undefined ? idToIndex[b.id] : rankedOpportunityIds.length;
         return aIdx - bIdx;
@@ -318,8 +333,12 @@ const OpportunitiesPanel = ({
       return sorted;
     }
 
-    return base;
-  }, [filteredOpportunities, showAllOpportunities, selectedOpportunityId, rankedOpportunityIds]);
+    // Even without AI ranking, put remote items first
+    return [...base].sort((a, b) => {
+      if (a.isRemote !== b.isRemote) return a.isRemote ? -1 : 1;
+      return 0;
+    });
+  }, [filteredOpportunities, showAllOpportunities, selectedOpportunityId, rankedOpportunityIds, showRemote]);
 
   // Pagination calculation (memoized)
   const paginatedOpportunities = useMemo(() => {
@@ -561,7 +580,7 @@ const OpportunitiesPanel = ({
       Math.abs(opportunity.lng - shinjukuLng) < 0.0001;
 
     if (isShinjukuOpportunity) {
-      alert(`Congratulations! You've selected "${opportunity.name}". The flight route from Manchester will be displayed.`);
+      console.log(`Congratulations! You've selected "${opportunity.name}". The flight route from Manchester will be displayed.`);
 
       if (onCountrySelect) {
         try { onCountrySelect(null); } catch (e) { console.error(e); }
@@ -585,7 +604,7 @@ const OpportunitiesPanel = ({
       setSelectedOpportunityId(null);
       setShowAllOpportunities(true);
     } else {
-      alert(`Congratulations! You've selected "${opportunity.name}". The globe will reset to its default position.`);
+      console.log(`Congratulations! You've selected "${opportunity.name}". The globe will zoom to show this location.`);
 
       if (onCountrySelect) {
         try { onCountrySelect(null); } catch (e) { console.error(e); }
@@ -595,15 +614,12 @@ const OpportunitiesPanel = ({
         try { onOpportunitySelect(opportunity.lat, opportunity.lng, opportunity.name); } catch (e) { console.error(e); }
       }
 
-      setSelectedOpportunityId(null);
-      setShowAllOpportunities(true);
-
       if (roomCode) {
         supabase
           .from('rooms')
           .update({
-            selected_opportunity_lat: null,
-            selected_opportunity_lng: null,
+            selected_opportunity_lat: opportunity.lat,
+            selected_opportunity_lng: opportunity.lng,
             selected_country: null,
           })
           .eq('room_code', roomCode);
@@ -615,6 +631,8 @@ const OpportunitiesPanel = ({
           try { onOpportunitySelect(null, null, null); } catch (e) { console.error(e); }
         }
       }, 100);
+      setSelectedOpportunityId(null);
+      setShowAllOpportunities(true);
     }
   };
 
@@ -662,6 +680,14 @@ const OpportunitiesPanel = ({
     <div className="opportunities-panel">
       <div className="opportunities-header">
         <h3>Opportunities</h3>
+        <label className="remote-checkbox-label">
+          <input
+            type="checkbox"
+            checked={showRemote}
+            onChange={(e) => setShowRemote(e.target.checked)}
+          />
+          Remote
+        </label>
         {!showAllOpportunities && (
           <button className="back-button" onClick={handleBackClick} title="Back to all opportunities">
             ← Back
@@ -669,7 +695,7 @@ const OpportunitiesPanel = ({
         )}
         {showAllOpportunities && (
           <span className="opportunities-count">
-            {rankingLoading ? 'Ranking...' : filteredOpportunities.length}
+            {rankingLoading ? <span className="ranking-spinner" /> : displayedOpportunities.length}
           </span>
         )}
       </div>
@@ -692,9 +718,10 @@ const OpportunitiesPanel = ({
                 className={`opportunity-tile ${selectedOpportunityId === opp.id ? 'selected' : ''}`}
                 onClick={() => handleTileClick(opp)}
               >
+                {opp.isRemote && <span className="remote-tag">Remote</span>}
                 <div className="opportunity-title">{opp.name}</div>
-                <div className="opportunity-country">{opp.country}</div>
-                <div className="opportunity-actions" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div className="opportunity-country">{toTitleCase(opp.country)}</div>
+                <div className="opportunity-actions">
                   {opp.link && (
                     <a
                       href={opp.link}
@@ -702,12 +729,11 @@ const OpportunitiesPanel = ({
                       rel="noopener noreferrer"
                       className="opportunity-link"
                       onClick={(e) => e.stopPropagation()}
-                      style={{ color: '#3b82f6', textDecoration: 'none' }}
                     >
                       Learn more →
                     </a>
                   )}
-                  
+
                   <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
                     <button
                       className="opportunity-select-button"
@@ -715,13 +741,13 @@ const OpportunitiesPanel = ({
                     >
                       Select this
                     </button>
-                    
+
                     {/* --- NEW CHECKBOX FOR MULTI-SELECTION --- */}
-                    <input 
-                      type="checkbox" 
-                      style={{ 
-                        width: '20px', 
-                        height: '20px', 
+                    <input
+                      type="checkbox"
+                      style={{
+                        width: '20px',
+                        height: '20px',
                         cursor: 'pointer',
                         transform: 'scale(1.2)',
                         accentColor: '#3b82f6'
@@ -730,8 +756,8 @@ const OpportunitiesPanel = ({
                       disabled={selectedCharities && !selectedCharities.some(c => c.id === opp.id) && selectedCharities.length >= 5}
                       onChange={() => onToggleCharity && onToggleCharity(opp)}
                       onClick={(e) => e.stopPropagation()} // Prevent clicking the checkbox from triggering tile selection
-                      title={selectedCharities && !selectedCharities.some(c => c.id === opp.id) && selectedCharities.length >= 5 
-                        ? "You can only select up to 5 charities" 
+                      title={selectedCharities && !selectedCharities.some(c => c.id === opp.id) && selectedCharities.length >= 5
+                        ? "You can only select up to 5 charities"
                         : "Select this charity"}
                     />
                   </div>
@@ -740,23 +766,25 @@ const OpportunitiesPanel = ({
             ))}
 
             {/* Pagination Controls */}
-            {displayedOpportunities.length > itemsPerPage && (
-              <div className="pagination-controls">
-                <button className="pagination-button" onClick={handlePreviousPage} disabled={currentPage === 1} title="Previous page">
-                  ← Previous
-                </button>
-                <span className="pagination-info">
-                  Page {currentPage} of {totalPages}
-                </span>
-                <button className="pagination-button" onClick={handleNextPage} disabled={currentPage === totalPages} title="Next page">
-                  Next →
-                </button>
-              </div>
-            )}
+            {
+              displayedOpportunities.length > itemsPerPage && (
+                <div className="pagination-controls">
+                  <button className="pagination-button" onClick={handlePreviousPage} disabled={currentPage === 1} title="Previous page">
+                    ← Previous
+                  </button>
+                  <span className="pagination-info">
+                    Page {currentPage} of {totalPages}
+                  </span>
+                  <button className="pagination-button" onClick={handleNextPage} disabled={currentPage === totalPages} title="Next page">
+                    Next →
+                  </button>
+                </div>
+              )
+            }
           </>
         )}
-      </div>
-    </div>
+      </div >
+    </div >
   );
 };
 
